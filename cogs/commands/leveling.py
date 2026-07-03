@@ -189,7 +189,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
             try :
                 embed_color_int =hex_to_int (color_value )
             except Exception as e :
-                logger .error (f"Color conversion error: {color_error}")
+                logger .error (f"Color conversion error: {e}")
                 embed_color_int =0 
 
 
@@ -564,9 +564,14 @@ class Leveling (commands .Cog ):
             self .message_cooldowns [cooldown_key ]=now +timedelta (seconds =cooldown_seconds )
 
 
-            base_xp =settings .get ('xp_per_message',20 )
-            if base_xp is None :
-                base_xp =20 
+            min_xp_setting =settings .get ('min_xp',None )
+            max_xp_setting =settings .get ('max_xp',None )
+            if min_xp_setting is not None and max_xp_setting is not None and max_xp_setting >=min_xp_setting :
+                base_xp =random .randint (min_xp_setting ,max_xp_setting )
+            else :
+                base_xp =settings .get ('xp_per_message',20 )
+                if base_xp is None :
+                    base_xp =20 
 
             final_xp =base_xp 
 
@@ -684,7 +689,7 @@ class Leveling (commands .Cog ):
             except discord .NotFound :
                 logger .error (f"Level up channel {channel.id} not found")
             except Exception as e :
-                logger .error (f"Error sending level up message: {send_error}")
+                logger .error (f"Error sending level up message: {e}")
 
 
             await self .give_level_rewards (message .guild ,message .author ,new_level )
@@ -726,29 +731,6 @@ class Leveling (commands .Cog ):
 
         except Exception as e :
             logger .error (f"Error giving level rewards: {e}")
-
-    async def apply_level_roles (self ,guild ,member ,level ):
-        """Apply level roles for reaching a level"""
-        try :
-            async with aiosqlite .connect ("db/leveling.db")as db :
-                async with db .execute (
-                "SELECT role_id FROM level_roles WHERE guild_id = ? AND level <= ? ORDER BY level DESC",
-                (guild .id ,level )
-                )as cursor :
-                    level_roles =await cursor .fetchall ()
-
-            for role_id ,in level_roles :
-                role =guild .get_role (role_id )
-                if role and role not in member .roles :
-                    try :
-                        await member .add_roles (role ,reason =f"Reached level {level}")
-                    except discord .Forbidden :
-                        logger .warning (f"No permission to add role {role.name} to {member}")
-                    except Exception as e :
-                        logger .error (f"Error adding level role {role_id}: {e}")
-
-        except Exception as e :
-            logger .error (f"Error applying level roles: {e}")
 
     async def get_user_data (self ,guild_id :int ,user_id :int )->tuple :
         """Get user XP and level data"""
@@ -821,7 +803,7 @@ class Leveling (commands .Cog ):
                     return await self .create_rank_card_design (member ,xp ,level ,rank ,messages ,design_number )
 
                 except Exception as e :
-                    logger .error (f"PIL error, falling back to text: {pil_error}")
+                    logger .error (f"PIL error, falling back to text: {e}")
 
                     return self .create_simple_rank_card (member ,xp ,level ,rank ,messages )
             else :
@@ -3147,3 +3129,325 @@ class Leveling (commands .Cog ):
         except Exception as e :
             logger .error (f"Error setting level channel: {e}")
             pass 
+
+    # ─── level status ────────────────────────────────────────────────────────
+
+    @level.command(name="status", description="Show current leveling system status and settings")
+    async def level_status(self, ctx):
+        """Display a summary of current leveling settings for this server."""
+        try:
+            settings = await self.get_guild_settings(ctx.guild.id)
+            enabled     = settings.get('enabled', False)
+            channel_id  = settings.get('channel_id')
+            xp_per_msg  = settings.get('xp_per_message', 20)
+            level_msg   = settings.get('level_message', 'Congratulations {user}! You have reached level {level}!')
+            color       = settings.get('embed_color', '#000000')
+            thumbnail   = settings.get('thumbnail_enabled', True)
+            level_img   = settings.get('level_image')
+            cooldown    = settings.get('cooldown_seconds', 60)
+
+            channel = ctx.guild.get_channel(channel_id) if channel_id else None
+
+            embed = discord.Embed(
+                title="📊 Leveling System Status",
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc)
+            )
+            embed.add_field(
+                name="⚙️ System",
+                value=(
+                    f"**Status:** {'✅ Enabled' if enabled else '❌ Disabled'}\n"
+                    f"**XP per Message:** {xp_per_msg}\n"
+                    f"**Cooldown:** {cooldown}s\n"
+                    f"**Embed Color:** `{color}`"
+                ),
+                inline=True
+            )
+            embed.add_field(
+                name="📢 Notifications",
+                value=(
+                    f"**Level-Up Channel:** {channel.mention if channel else 'Current channel'}\n"
+                    f"**Thumbnail:** {'✅ Yes' if thumbnail else '❌ No'}\n"
+                    f"**Level-Up Image:** {'✅ Set' if level_img else '❌ Not set'}"
+                ),
+                inline=True
+            )
+            embed.add_field(
+                name="💬 Level-Up Message",
+                value=f"```{level_msg[:200]}{'...' if len(level_msg) > 200 else ''}```",
+                inline=False
+            )
+            embed.set_footer(text=f"Use `level enable` / `level disable` to toggle the system.")
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in level status: {e}")
+
+    # ─── level image ─────────────────────────────────────────────────────────
+
+    @level.command(name="image", description="Set the level-up embed image URL")
+    @commands.has_permissions(administrator=True)
+    async def level_image_cmd(self, ctx, url: str):
+        """Set a custom image shown in level-up embeds."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                async with db.execute("SELECT guild_id FROM leveling_settings WHERE guild_id = ?", (ctx.guild.id,)) as cursor:
+                    exists = await cursor.fetchone()
+                if exists:
+                    await db.execute("UPDATE leveling_settings SET level_image = ? WHERE guild_id = ?", (url, ctx.guild.id))
+                else:
+                    await db.execute("INSERT INTO leveling_settings (guild_id, level_image) VALUES (?, ?)", (ctx.guild.id, url))
+                await db.commit()
+            embed = discord.Embed(
+                title="✅ Level-Up Image Set",
+                description=f"Level-up embeds will now show: [View Image]({url})",
+                color=0x00FF00,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error setting level image: {e}")
+
+    @level.command(name="clearimage", description="Remove the level-up embed image")
+    @commands.has_permissions(administrator=True)
+    async def level_clearimage(self, ctx):
+        """Remove the custom level-up image."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("UPDATE leveling_settings SET level_image = NULL WHERE guild_id = ?", (ctx.guild.id,))
+                await db.commit()
+            embed = discord.Embed(
+                title="✅ Level-Up Image Cleared",
+                description="The custom level-up image has been removed.",
+                color=0x00FF00,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error clearing level image: {e}")
+
+    # ─── level xprange ───────────────────────────────────────────────────────
+
+    @level.command(name="xprange", description="Set the min and max XP awarded per message")
+    @commands.has_permissions(administrator=True)
+    async def level_xprange(self, ctx, min_xp: int, max_xp: int):
+        """Set the XP range awarded per message (random between min and max)."""
+        try:
+            if min_xp < 1 or max_xp < 1:
+                await ctx.send("❌ XP values must be at least 1.")
+                return
+            if min_xp > max_xp:
+                await ctx.send("❌ Minimum XP must be ≤ maximum XP.")
+                return
+            async with aiosqlite.connect(self.db_path) as db:
+                async with db.execute("SELECT guild_id FROM leveling_settings WHERE guild_id = ?", (ctx.guild.id,)) as cursor:
+                    exists = await cursor.fetchone()
+                if exists:
+                    await db.execute(
+                        "UPDATE leveling_settings SET min_xp = ?, max_xp = ?, xp_per_message = ? WHERE guild_id = ?",
+                        (min_xp, max_xp, (min_xp + max_xp) // 2, ctx.guild.id)
+                    )
+                else:
+                    await db.execute(
+                        "INSERT INTO leveling_settings (guild_id, min_xp, max_xp, xp_per_message) VALUES (?, ?, ?, ?)",
+                        (ctx.guild.id, min_xp, max_xp, (min_xp + max_xp) // 2)
+                    )
+                await db.commit()
+            embed = discord.Embed(
+                title="✅ XP Range Updated",
+                description=f"Users will now earn between **{min_xp}** and **{max_xp}** XP per message.",
+                color=0x00FF00,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error setting xp range: {e}")
+
+    # ─── level preview ───────────────────────────────────────────────────────
+
+    @level.command(name="preview", description="Preview how the level-up message will look")
+    async def level_preview(self, ctx, level_number: int = 5):
+        """Preview the level-up embed for a given level."""
+        try:
+            settings = await self.get_guild_settings(ctx.guild.id)
+            level_message = settings.get('level_message', 'Congratulations {user}! You have reached level {level}!')
+            level_message = level_message.replace('{user}', ctx.author.mention)
+            level_message = level_message.replace('{level}', str(level_number))
+            level_message = level_message.replace('{username}', ctx.author.display_name)
+            level_message = level_message.replace('{server}', ctx.guild.name)
+
+            embed_color = settings.get('embed_color', '#FF0000')
+            if isinstance(embed_color, str):
+                embed_color = hex_to_int(embed_color)
+
+            embed = discord.Embed(
+                title="🎉 Level Up! *(Preview)*",
+                description=level_message,
+                color=embed_color,
+                timestamp=datetime.now(timezone.utc)
+            )
+            if settings.get('thumbnail_enabled', True):
+                embed.set_thumbnail(url=ctx.author.display_avatar.url)
+            if settings.get('level_image'):
+                embed.set_image(url=settings['level_image'])
+            embed.set_footer(text=f"Level {level_number} • {ctx.guild.name} • This is a preview")
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in level preview: {e}")
+
+    # ─── level reset group ───────────────────────────────────────────────────
+
+    @level.group(name="reset", invoke_without_command=True, description="Reset leveling data")
+    @commands.has_permissions(administrator=True)
+    async def level_reset(self, ctx):
+        """Level reset management — use `reset user` or `reset all`."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @level_reset.command(name="user", description="Reset a specific user's XP and level")
+    @commands.has_permissions(administrator=True)
+    async def level_reset_user(self, ctx, member: discord.Member):
+        """Reset a user's XP back to zero."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    "DELETE FROM user_xp WHERE guild_id = ? AND user_id = ?",
+                    (ctx.guild.id, member.id)
+                )
+                await db.execute(
+                    "DELETE FROM users WHERE guild_id = ? AND user_id = ?",
+                    (ctx.guild.id, member.id)
+                )
+                await db.commit()
+            embed = discord.Embed(
+                title="✅ User XP Reset",
+                description=f"Successfully reset all XP and level data for {member.mention}.",
+                color=0x00FF00,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error resetting user XP: {e}")
+
+    @level_reset.command(name="all", description="Reset ALL users' XP in this server")
+    @commands.has_permissions(administrator=True)
+    async def level_reset_all(self, ctx):
+        """Reset every user's XP in this server. This cannot be undone."""
+        try:
+            confirm_embed = discord.Embed(
+                title="⚠️ Confirm Reset",
+                description=(
+                    "Are you sure you want to **reset ALL users' XP** in this server?\n\n"
+                    "This **cannot be undone**. Reply with `confirm` within 30 seconds to proceed."
+                ),
+                color=0xFF0000,
+            )
+            await ctx.send(embed=confirm_embed)
+
+            def check(m):
+                return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() == 'confirm'
+
+            try:
+                await self.bot.wait_for('message', check=check, timeout=30)
+            except asyncio.TimeoutError:
+                await ctx.send("❌ Reset cancelled — timed out.")
+                return
+
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("DELETE FROM user_xp WHERE guild_id = ?", (ctx.guild.id,))
+                await db.execute("DELETE FROM users WHERE guild_id = ?", (ctx.guild.id,))
+                await db.commit()
+
+            embed = discord.Embed(
+                title="✅ All XP Reset",
+                description="All user XP and level data for this server has been cleared.",
+                color=0x00FF00,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error resetting all XP: {e}")
+
+    # ─── level unblacklist group ─────────────────────────────────────────────
+
+    @level.group(name="unblacklist", invoke_without_command=True, description="Remove from the leveling blacklist")
+    @commands.has_permissions(administrator=True)
+    async def level_unblacklist(self, ctx):
+        """Remove channels or roles from the leveling blacklist."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(ctx.command)
+
+    @level_unblacklist.command(name="channel", description="Un-blacklist a channel")
+    @commands.has_permissions(administrator=True)
+    async def unblacklist_channel(self, ctx, channel: discord.TextChannel):
+        """Remove a channel from the leveling blacklist."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    "DELETE FROM leveling_blacklist WHERE guild_id = ? AND target_id = ? AND target_type = 'channel'",
+                    (ctx.guild.id, channel.id)
+                )
+                await db.commit()
+            await ctx.send(f"✅ {channel.mention} has been removed from the leveling blacklist.")
+        except Exception as e:
+            logger.error(f"Error unblacklisting channel: {e}")
+
+    @level_unblacklist.command(name="role", description="Un-blacklist a role")
+    @commands.has_permissions(administrator=True)
+    async def unblacklist_role(self, ctx, role: discord.Role):
+        """Remove a role from the leveling blacklist."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    "DELETE FROM leveling_blacklist WHERE guild_id = ? AND target_id = ? AND target_type = 'role'",
+                    (ctx.guild.id, role.id)
+                )
+                await db.commit()
+            await ctx.send(f"✅ {role.mention} has been removed from the leveling blacklist.")
+        except Exception as e:
+            logger.error(f"Error unblacklisting role: {e}")
+
+    # ─── level blacklist channel / role shortcuts ─────────────────────────────
+
+    @blacklist.command(name="channel", description="Blacklist a channel from leveling")
+    @commands.has_permissions(administrator=True)
+    async def blacklist_channel(self, ctx, channel: discord.TextChannel):
+        """Blacklist a channel so messages in it don't earn XP."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    "INSERT OR REPLACE INTO leveling_blacklist (guild_id, target_id, target_type) VALUES (?, ?, 'channel')",
+                    (ctx.guild.id, channel.id)
+                )
+                await db.commit()
+            await ctx.send(f"✅ {channel.mention} has been added to the leveling blacklist.")
+        except Exception as e:
+            logger.error(f"Error blacklisting channel: {e}")
+
+    @blacklist.command(name="role", description="Blacklist a role from leveling")
+    @commands.has_permissions(administrator=True)
+    async def blacklist_role(self, ctx, role: discord.Role):
+        """Blacklist members with this role so they don't earn XP."""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    "INSERT OR REPLACE INTO leveling_blacklist (guild_id, target_id, target_type) VALUES (?, ?, 'role')",
+                    (ctx.guild.id, role.id)
+                )
+                await db.commit()
+            await ctx.send(f"✅ {role.mention} has been added to the leveling blacklist.")
+        except Exception as e:
+            logger.error(f"Error blacklisting role: {e}")
+
+    # ─── addreward / removereward aliases ─────────────────────────────────────
+
+    @level.command(name="addreward", description="Add a level reward role (shortcut)")
+    @commands.has_permissions(administrator=True)
+    async def addreward(self, ctx, level_num: int, role: discord.Role, remove_previous: bool = False):
+        """Shortcut for `level rewards add`. Add a role reward for reaching a level."""
+        await ctx.invoke(self.rewards_add, level=level_num, role=role, remove_previous=remove_previous)
+
+    @level.command(name="removereward", description="Remove a level reward role (shortcut)")
+    @commands.has_permissions(administrator=True)
+    async def removereward(self, ctx, level_num: int):
+        """Shortcut for `level rewards remove`. Remove the reward for a level."""
+        await ctx.invoke(self.rewards_remove, level=level_num)

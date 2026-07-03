@@ -1,11 +1,244 @@
 import discord
 from discord.ext import commands
-import random
+import aiohttp
 from utils.Tools import blacklist_check, ignore_check
 
+# ─── Keyword data ────────────────────────────────────────────────────────────
+
+# Maps keyword → past-tense form used in the title
+PAST_TENSE: dict[str, str] = {
+    "bite":        "bit",
+    "boop":        "booped",
+    "bully":       "bullied",
+    "cuddle":      "cuddled",
+    "greet":       "greeted",
+    "handholding": "held hands with",
+    "highfive":    "high-fived",
+    "hold":        "held",
+    "hug":         "hugged",
+    "insult":      "insulted",
+    "kill":        "killed",
+    "kiss":        "kissed",
+    "lick":        "licked",
+    "nom":         "nommed",
+    "pat":         "patted",
+    "pats":        "patted",
+    "poke":        "poked",
+    "punch":       "punched",
+    "slap":        "slapped",
+    "snuggle":     "snuggled with",
+    "stare":       "stared at",
+    "tickle":      "tickled",
+    "wave":        "waved at",
+    "blush":       "blushed at",
+    "cry":         "cried for",
+    "dance":       "danced with",
+    "deredere":    "got deredere for",
+    "grin":        "grinned at",
+    "happy":       "is happy for",
+    "lewd":        "did something lewd to",
+    "pout":        "pouted at",
+    "scoff":       "scoffed at",
+    "shrug":       "shrugged at",
+    "sleepy":      "fell asleep on",
+    "smile":       "smiled at",
+    "smug":        "was smug at",
+    "teehee":      "went teehee at",
+    "thinking":    "thought about",
+    "thonking":    "thonked about",
+    "thumbsup":    "gave a thumbs up to",
+    "thumbs":      "gave thumbs to",
+    "triggered":   "got triggered by",
+    "wag":         "wagged excitedly for",
+    "pic":         "took a pic of",
+    "gif":         "made a gif of",
+    "headpat":     "headpatted",
+}
+
+# Maps keyword → emotion / reaction sentence appended to title
+EMOTIONS: dict[str, str] = {
+    "bite":        "Ouch! That must have hurt! 😬",
+    "boop":        "Boop! ✨",
+    "bully":       "That's not very nice... 😢",
+    "cuddle":      "So warm and fluffy! 🥰",
+    "greet":       "Hello there! 👋",
+    "handholding": "How wholesome! 🤝",
+    "highfive":    "Nice! ✋",
+    "hold":        "So gentle! 💕",
+    "hug":         "Group hug! 🤗",
+    "insult":      "That was really rude! 😤",
+    "kill":        "Chill dude! 💀",
+    "kiss":        "Ahh! So cute! 😍",
+    "lick":        "W-what?! 👅",
+    "nom":         "Yummy! 😋",
+    "pat":         "Good job! 🥺",
+    "pats":        "There, there! 🥺",
+    "poke":        "Hey! Stop that! 👉",
+    "punch":       "That's gonna leave a mark! 💢",
+    "slap":        "Did you deserve that? 👋",
+    "snuggle":     "So cozy! 💤",
+    "stare":       "Why are you staring? 👀",
+    "tickle":      "Hahaha! Stop! 😂",
+    "wave":        "Hello! 👋",
+    "blush":       "Look how cute! 😳",
+    "cry":         "Don't cry! 😢",
+    "dance":       "Let's groove! 💃",
+    "deredere":    "You're so sweet! 💕",
+    "grin":        "Suspicious… 😏",
+    "happy":       "Yay! 🎉",
+    "lewd":        "That's inappropriate! 🙈",
+    "pout":        "Don't be pouty! 😤",
+    "scoff":       "How rude! 😒",
+    "shrug":       "Whatever… 🤷",
+    "sleepy":      "Time for a nap! 😴",
+    "smile":       "Such a beautiful smile! 😊",
+    "smug":        "You look very smug! 😏",
+    "teehee":      "Teehee~ 😄",
+    "thinking":    "Hmm… 🤔",
+    "thonking":    "Big brain time! 🧠",
+    "thumbsup":    "Great job! 👍",
+    "thumbs":      "You got it! 👍",
+    "triggered":   "TRIGGERED! 😡",
+    "wag":         "So excited! 🐕",
+    "pic":         "Say cheese! 📸",
+    "gif":         "GIF time! 🎬",
+    "headpat":     "Aww! 🥺",
+}
+
+# Maps keyword → waifu.pics SFW endpoint
+# Full list: https://waifu.pics/docs
+_WAIFUPICS: dict[str, str] = {
+    "bite":        "bite",
+    "boop":        "poke",
+    "bully":       "bully",
+    "cuddle":      "cuddle",
+    "greet":       "wave",
+    "handholding": "handhold",
+    "highfive":    "highfive",
+    "hold":        "hug",
+    "hug":         "hug",
+    "insult":      "bully",
+    "kill":        "shoot",
+    "kiss":        "kiss",
+    "lick":        "lick",
+    "nom":         "nom",
+    "pat":         "pat",
+    "pats":        "pat",
+    "poke":        "poke",
+    "punch":       "punch",
+    "slap":        "slap",
+    "snuggle":     "cuddle",
+    "stare":       "stare",
+    "tickle":      "tickle",
+    "wave":        "wave",
+    "blush":       "blush",
+    "cry":         "cry",
+    "dance":       "dance",
+    "deredere":    "hug",
+    "grin":        "smug",
+    "happy":       "happy",
+    "lewd":        "smug",
+    "pout":        "pout",
+    "scoff":       "smug",
+    "shrug":       "shrug",
+    "sleepy":      "sleep",
+    "smile":       "smile",
+    "smug":        "smug",
+    "teehee":      "laugh",
+    "thinking":    "think",
+    "thonking":    "think",
+    "thumbsup":    "thumbsup",
+    "thumbs":      "thumbsup",
+    "triggered":   "triggered",
+    "wag":         "wag",
+    "pic":         "lurk",
+    "gif":         "lurk",
+    "headpat":     "bonk",
+}
+
+KEYWORDS = frozenset(PAST_TENSE.keys())
+
+
+# ─── Cog ─────────────────────────────────────────────────────────────────────
+
 class Fun(commands.Cog):
-    def __init__(self, bot):
+    """Fun reaction commands triggered with the sun prefix."""
+
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-async def setup(bot):
+    # ── GIF fetcher ───────────────────────────────────────────────────────────
+
+    async def _get_gif(self, keyword: str) -> str:
+        """Fetch a random anime GIF URL for the keyword via waifu.pics."""
+        endpoint = _WAIFUPICS.get(keyword, "hug")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"https://api.waifu.pics/sfw/{endpoint}",
+                    timeout=aiohttp.ClientTimeout(total=5),
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        url = data.get("url", "")
+                        if url:
+                            return url
+        except Exception:
+            pass
+        return ""
+
+    # ── Message listener ──────────────────────────────────────────────────────
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        # Ignore bots and DMs
+        if message.author.bot or not message.guild:
+            return
+
+        content = message.content.strip()
+        lower   = content.lower()
+
+        # Must start with "sun " (case-insensitive)
+        if not lower.startswith("sun "):
+            return
+
+        # Parse words: sun <keyword> [@mention ...]
+        parts = lower.split()
+        if len(parts) < 2:
+            return
+
+        keyword = parts[1]
+        if keyword not in KEYWORDS:
+            return
+
+        # Need at least one mentioned user
+        mentions = [m for m in message.mentions if not m.bot and m != message.author]
+        if not mentions:
+            return
+
+        target = mentions[0]
+
+        # Fetch GIF (non-blocking; fall back gracefully)
+        gif_url = await self._get_gif(keyword)
+
+        # Build embed
+        past    = PAST_TENSE[keyword]
+        emotion = EMOTIONS[keyword]
+        title   = f"{message.author.display_name} {past} {target.display_name}! {emotion}"
+
+        embed = discord.Embed(color=0xFFD700)
+        embed.set_author(
+            name=title,
+            icon_url=message.author.display_avatar.url,
+        )
+        if gif_url:
+            embed.set_image(url=gif_url)
+
+        try:
+            await message.channel.send(embed=embed)
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(Fun(bot))

@@ -4,6 +4,8 @@ import sqlite3
 DEFAULT_BRANDING = "Sunlight"
 DEFAULT_COLOR = 0xFFD700
 
+# guild_id = 0 is used as the "global default" slot
+
 
 def _setup_branding_db():
     conn = sqlite3.connect('db/branding.db')
@@ -32,12 +34,12 @@ def _setup_branding_db():
 _setup_branding_db()
 
 
-async def get_branding(guild_id: int) -> dict:
+async def get_global_branding() -> dict:
+    """Get global default branding (stored with guild_id = 0)."""
     async with aiosqlite.connect('db/branding.db') as db:
         async with db.execute(
             "SELECT branding_name, embed_color, embed_thumbnail, embed_banner "
-            "FROM guild_branding WHERE guild_id = ?",
-            (guild_id,)
+            "FROM guild_branding WHERE guild_id = 0"
         ) as cursor:
             row = await cursor.fetchone()
             if row:
@@ -47,12 +49,58 @@ async def get_branding(guild_id: int) -> dict:
                     "embed_thumbnail": row[2],
                     "embed_banner":    row[3],
                 }
-            return {
-                "branding_name":   DEFAULT_BRANDING,
-                "embed_color":     DEFAULT_COLOR,
-                "embed_thumbnail": None,
-                "embed_banner":    None,
-            }
+    return {
+        "branding_name":   DEFAULT_BRANDING,
+        "embed_color":     DEFAULT_COLOR,
+        "embed_thumbnail": None,
+        "embed_banner":    None,
+    }
+
+
+async def set_global_branding(**kwargs):
+    """Set global default branding (guild_id = 0)."""
+    valid = {"branding_name", "embed_color", "embed_thumbnail", "embed_banner"}
+    data = {k: v for k, v in kwargs.items() if k in valid}
+    if not data:
+        return
+    async with aiosqlite.connect('db/branding.db') as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO guild_branding (guild_id) VALUES (0)"
+        )
+        for key, value in data.items():
+            await db.execute(
+                f"UPDATE guild_branding SET {key} = ? WHERE guild_id = 0",
+                (value,)
+            )
+        await db.commit()
+
+
+async def reset_branding(guild_id: int):
+    """Delete a guild's branding row so it reverts to global/default."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        await db.execute("DELETE FROM guild_branding WHERE guild_id = ?", (guild_id,))
+        await db.commit()
+
+
+async def get_branding(guild_id: int) -> dict:
+    """Get branding for a guild; falls back to global defaults then hardcoded defaults."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        async with db.execute(
+            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner "
+            "FROM guild_branding WHERE guild_id = ?",
+            (guild_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row and any(v is not None for v in row):
+                return {
+                    "branding_name": row[0] if row[0] else DEFAULT_BRANDING,
+                    "embed_color":   row[1] if row[1] is not None else DEFAULT_COLOR,
+                    "embed_thumbnail": row[2],
+                    "embed_banner":    row[3],
+                }
+
+    # Fall back to global defaults (guild_id = 0)
+    return await get_global_branding()
 
 
 async def set_branding(guild_id: int, **kwargs):

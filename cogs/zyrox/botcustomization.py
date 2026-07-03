@@ -6,11 +6,9 @@ class _botcustomization(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    def help_custom(self):
-        emoji = '<:zwrench:1448951382597177495>'
-        label = "Bot Customization"
-        description = "Customize the bot's appearance & profile for this server"
-        return emoji, label, description
+    # help_custom() intentionally removed so this cog does NOT appear
+    # in the help dropdown. The /botcustomization slash command is the
+    # primary entry point for this feature.
 
     @commands.group()
     async def __BotCustomization__(self, ctx: commands.Context):

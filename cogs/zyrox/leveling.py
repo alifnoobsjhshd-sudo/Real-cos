@@ -1,19 +1,19 @@
 import discord 
-from discord .ext import commands 
+from discord.ext import commands 
 
 
-class _leveling (commands .Cog ):
-    def __init__ (self ,bot ):
-        self .bot =bot 
+class _leveling(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
 
     """Leveling commands"""
 
-    def help_custom (self ):
-		      emoji ='<:zlevelup:1448964376504696943>'
-		      label ="Leveling Commands"
-		      description ="Shows you the commands of leveling"
-		      return emoji ,label ,description 
+    def help_custom(self):
+        emoji = '<:zlevelup:1448964376504696943>'
+        label = "Leveling Commands"
+        description = "Shows you the commands of leveling"
+        return emoji, label, description
 
-    @commands .group ()
-    async def __Leveling__ (self ,ctx :commands .Context ):
-        """`level status`, `level channel`, `level message`, `level desc`, `level color`, `level thumbnail`, `level image`, `level clearimage`, `level xprange`, `level multiplier`, `level addreward`, `level removereward`, `level rewards`, `level setxp`, `level preview`, `level xpboost`, `level xpboost add`, `level xpboost remove`, `level xpboost list`, `level blacklist`, `level blacklist channel`, `level blacklist role`, `level unblacklist`, `level unblacklist channel`, `level unblacklist role`, `level stats`, `level leaderboard`, `level reset`, `level reset user`, `level reset all`, `level placeholders`, `level rank`"""
+    @commands.group()
+    async def __Leveling__(self, ctx: commands.Context):
+        """`level status`, `level enable`, `level disable`, `level channel #channel`, `level settings`, `level message <text>`, `level image <url>`, `level clearimage`, `level color <hex>`, `level thumbnail on/off`, `level xprange <min> <max>`, `level setxp <amount>`, `level cooldown <seconds>`, `level preview [level]`, `level rank [@user]`, `level stats [@user]`, `level leaderboard`, `level placeholders`, `level rewards add <level> @role`, `level rewards remove <level>`, `level rewards list`, `level addreward <level> @role`, `level removereward <level>`, `level multiplier add <role/channel> <id> <multiplier>`, `level multiplier remove <role/channel> <id>`, `level multiplier list`, `level blacklist add <role/channel> <id>`, `level blacklist channel #channel`, `level blacklist role @role`, `level blacklist list`, `level unblacklist channel #channel`, `level unblacklist role @role`, `level reset user @member`, `level reset all`"""
