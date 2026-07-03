@@ -427,9 +427,8 @@ class MainCustomizationView(discord.ui.View):
         embed = discord.Embed(
             title="🔧 __Bot Customization__",
             description=(
-                f"➡️ Select an option below to customize the bot for this server.\n\n"
-                f"🔧 **`»`** Bot Message Appearance — branding, color, thumbnail & banner\n"
-                f"📣 **`»`** Bot Server Profile — display name, bio, avatar & banner\n"
+                f"➡️ Customize how the bot looks in this server.\n\n"
+                f"🔧 **`»`** Bot Message Appearance — branding, embed color, thumbnail & banner\n"
             ),
             color=self.branding["embed_color"],
         )
@@ -449,12 +448,6 @@ class MainCustomizationView(discord.ui.View):
     @discord.ui.button(label="Bot Message Appearance", emoji="🔧", style=discord.ButtonStyle.secondary, row=0)
     async def btn_appearance(self, interaction: discord.Interaction, button: discord.ui.Button):
         view  = AppearanceView(self.invoker, self.guild_id, self.branding, self)
-        embed = view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=view)
-
-    @discord.ui.button(label="Bot Server Profile", emoji="📣", style=discord.ButtonStyle.secondary, row=0)
-    async def btn_profile(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view  = ProfileView(self.invoker, self.guild_id, self.profile, self.branding, self)
         embed = view.build_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 

@@ -1,12 +1,13 @@
 import discord
 from discord.ext import commands
 import aiohttp
-from utils.Tools import blacklist_check, ignore_check
+import logging
 
-# ─── Keyword data ────────────────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
 
-# Maps keyword → past-tense form used in the title
-PAST_TENSE: dict[str, str] = {
+# ─── Keyword data ─────────────────────────────────────────────────────────────
+
+PAST_TENSE = {
     "bite":        "bit",
     "boop":        "booped",
     "bully":       "bullied",
@@ -55,8 +56,7 @@ PAST_TENSE: dict[str, str] = {
     "headpat":     "headpatted",
 }
 
-# Maps keyword → emotion / reaction sentence appended to title
-EMOTIONS: dict[str, str] = {
+EMOTIONS = {
     "bite":        "Ouch! That must have hurt! 😬",
     "boop":        "Boop! ✨",
     "bully":       "That's not very nice... 😢",
@@ -105,9 +105,8 @@ EMOTIONS: dict[str, str] = {
     "headpat":     "Aww! 🥺",
 }
 
-# Maps keyword → waifu.pics SFW endpoint
-# Full list: https://waifu.pics/docs
-_WAIFUPICS: dict[str, str] = {
+# Maps keyword → waifu.pics SFW endpoint (free, no API key needed)
+_WAIFUPICS = {
     "bite":        "bite",
     "boop":        "poke",
     "bully":       "bully",
@@ -159,17 +158,17 @@ _WAIFUPICS: dict[str, str] = {
 KEYWORDS = frozenset(PAST_TENSE.keys())
 
 
-# ─── Cog ─────────────────────────────────────────────────────────────────────
+# ─── Cog ──────────────────────────────────────────────────────────────────────
 
 class Fun(commands.Cog):
     """Fun reaction commands triggered with the sun prefix."""
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot):
         self.bot = bot
 
     # ── GIF fetcher ───────────────────────────────────────────────────────────
 
-    async def _get_gif(self, keyword: str) -> str:
+    async def _get_gif(self, keyword):
         """Fetch a random anime GIF URL for the keyword via waifu.pics."""
         endpoint = _WAIFUPICS.get(keyword, "hug")
         try:
@@ -183,62 +182,79 @@ class Fun(commands.Cog):
                         url = data.get("url", "")
                         if url:
                             return url
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(f"[Fun] GIF fetch failed for keyword '{keyword}': {exc}")
         return ""
 
     # ── Message listener ──────────────────────────────────────────────────────
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        # Ignore bots and DMs
-        if message.author.bot or not message.guild:
-            return
-
-        content = message.content.strip()
-        lower   = content.lower()
-
-        # Must start with "sun " (case-insensitive)
-        if not lower.startswith("sun "):
-            return
-
-        # Parse words: sun <keyword> [@mention ...]
-        parts = lower.split()
-        if len(parts) < 2:
-            return
-
-        keyword = parts[1]
-        if keyword not in KEYWORDS:
-            return
-
-        # Need at least one mentioned user
-        mentions = [m for m in message.mentions if not m.bot and m != message.author]
-        if not mentions:
-            return
-
-        target = mentions[0]
-
-        # Fetch GIF (non-blocking; fall back gracefully)
-        gif_url = await self._get_gif(keyword)
-
-        # Build embed
-        past    = PAST_TENSE[keyword]
-        emotion = EMOTIONS[keyword]
-        title   = f"{message.author.display_name} {past} {target.display_name}! {emotion}"
-
-        embed = discord.Embed(color=0xFFD700)
-        embed.set_author(
-            name=title,
-            icon_url=message.author.display_avatar.url,
-        )
-        if gif_url:
-            embed.set_image(url=gif_url)
-
+    async def on_message(self, message):
         try:
-            await message.channel.send(embed=embed)
-        except (discord.Forbidden, discord.HTTPException):
-            pass
+            # Ignore bots and DMs
+            if message.author.bot or not message.guild:
+                return
 
+            content = message.content.strip()
+            if not content:
+                return
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(Fun(bot))
+            lower = content.lower()
+
+            # Must start with "sun " (case-insensitive)
+            if not lower.startswith("sun "):
+                return
+
+            # Parse: sun <keyword> ...
+            parts = lower.split()
+            if len(parts) < 2:
+                return
+
+            keyword = parts[1]
+            if keyword not in KEYWORDS:
+                return
+
+            # Must have at least one non-bot, non-self mention
+            mentions = [
+                m for m in message.mentions
+                if not m.bot and m.id != message.author.id
+            ]
+            if not mentions:
+                return
+
+            target = mentions[0]
+
+            # Fetch GIF (graceful fallback if API unavailable)
+            gif_url = await self._get_gif(keyword)
+
+            # Build embed
+            past    = PAST_TENSE[keyword]
+            emotion = EMOTIONS[keyword]
+
+            # Author field carries the profile pic + full action sentence
+            author_line = f"{message.author.display_name} {past} {target.display_name}! {emotion}"
+
+            embed = discord.Embed(
+                # description is required for the embed to be accepted by Discord's API
+                description=f"{target.mention} {emotion}",
+                color=0xFFD700,
+            )
+            embed.set_author(
+                name=author_line,
+                icon_url=message.author.display_avatar.url,
+            )
+            if gif_url:
+                embed.set_image(url=gif_url)
+
+            try:
+                await message.channel.send(embed=embed)
+            except discord.Forbidden:
+                logger.warning(
+                    f"[Fun] Missing Embed Links / Send Messages permission in "
+                    f"#{message.channel} ({message.guild})"
+                )
+            except discord.HTTPException as exc:
+                logger.error(f"[Fun] HTTPException sending embed: {exc}")
+
+        except Exception as exc:
+            logger.error(f"[Fun] Unhandled error in on_message: {exc}", exc_info=True)
