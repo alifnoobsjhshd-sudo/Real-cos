@@ -49,7 +49,7 @@ class Snipe(commands.Cog):
         else:
             # Send an error message if no message is stored for this channel
             embed = discord.Embed(
-                description="<:error:1397218903389044776> | There are no deleted messages to snipe in this channel.",
+                description="❌ | There are no deleted messages to snipe in this channel.",
                 color=0xFF0000
             )
             await ctx.send(embed=embed)

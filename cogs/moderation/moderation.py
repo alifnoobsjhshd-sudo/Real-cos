@@ -63,7 +63,7 @@ async def do_removal(ctx, limit, predicate, *, before=None, after=None):
 
     spammers = Counter(m.author.display_name for m in deleted)
     deleted = len(deleted)
-    messages = [f'<:ztick:1448951767990796298>> | {deleted} message{" was" if deleted == 1 else "s were"} removed.']
+    messages = [f'✅> | {deleted} message{" was" if deleted == 1 else "s were"} removed.']
     if deleted:
         messages.append("")
         spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
@@ -72,7 +72,7 @@ async def do_removal(ctx, limit, predicate, *, before=None, after=None):
     to_send = "\n".join(messages)
 
     if len(to_send) > 2000:
-        await ctx.send(f"<:ztick:1448951767990796298>> | Successfully removed {deleted} messages.", delete_after=7)
+        await ctx.send(f"✅> | Successfully removed {deleted} messages.", delete_after=7)
     else:
         await ctx.send(to_send, delete_after=7)
 
@@ -125,10 +125,10 @@ class Moderation(commands.Cog):
       if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
           button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
           button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zwarning:1448949627712966717>")
+                     emoji="⚠️")
           async def button_callback(interaction: discord.Interaction):
               a = 0
               if interaction.user == ctx.author:
@@ -149,12 +149,12 @@ class Moderation(commands.Cog):
                           except Exception as e:
                               print(e)
                       await interaction.channel.send(
-                              content=f"<:ztick:1448951767990796298>> | Successfully Unlocked {a} Channels")   
+                              content=f"✅> | Successfully Unlocked {a} Channels")   
                       return
                   else:
                     await interaction.response.edit_message(
                          content=
-                           "<:zwarning:1448949627712966717> | It seems I'm missing the necessary permissions. Please grant me the `manage roles` permissions and try again.",
+                           "⚠️ | It seems I'm missing the necessary permissions. Please grant me the `manage roles` permissions and try again.",
                               embed=None,
                                   view=None)
               else:
@@ -188,7 +188,7 @@ class Moderation(commands.Cog):
 
 
       else:
-          embed5 = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+          embed5 = discord.Embed(title="⚠️ Access Denied",
                 description="Your role should be above my top role.",
                 color=0xFF0000)
           embed5.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
@@ -210,10 +210,10 @@ class Moderation(commands.Cog):
       if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
           button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
           button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zcross:1448951756372443296>")
+                     emoji="❌")
           async def button_callback(interaction: discord.Interaction):
               a = 0
               if interaction.user == ctx.author:
@@ -234,12 +234,12 @@ class Moderation(commands.Cog):
                           except Exception as e:
                               print(e)
                       await interaction.channel.send(
-                              content=f"<:ztick:1448951767990796298>>| Successfully locked {a} Channels")
+                              content=f"✅>| Successfully locked {a} Channels")
                       return
                   else:
                     await interaction.response.edit_message(
                          content=
-                           "<:zwarning:1448949627712966717> | It seems I'm missing the necessary permissions. Please grant me the `manage roles` permissions and try again.",
+                           "⚠️ | It seems I'm missing the necessary permissions. Please grant me the `manage roles` permissions and try again.",
                               embed=None,
                                   view=None)
               else:
@@ -272,7 +272,7 @@ class Moderation(commands.Cog):
           await ctx.reply(embed=embed, view=view, mention_author=False,delete_after=30)     
 
       else:
-          denied = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+          denied = discord.Embed(title="⚠️ Access Denied",
               description="Your role should be above my top role.",
               color=0xFF0000)
           denied.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
@@ -292,7 +292,7 @@ class Moderation(commands.Cog):
   @commands.bot_has_permissions(manage_roles= True)
   async def give(self, ctx, member: discord.Member, *, role: discord.Role):
     if not ctx.guild.me.guild_permissions.manage_roles:
-        return await ctx.send("<:Denied:1294218790082711553> I don't have permission to manage roles!")
+        return await ctx.send("⛔ I don't have permission to manage roles!")
 
     if role >= ctx.guild.me.top_role:
         error = discord.Embed(
@@ -338,13 +338,13 @@ class Moderation(commands.Cog):
     except discord.Forbidden:
         error = discord.Embed(
             color=self.color,
-            description="<:zwarning:1448949627712966717> I don't have permission to manage roles for this user!"
+            description="⚠️ I don't have permission to manage roles for this user!"
         )
         await ctx.send(embed=error)
     except Exception as e:
         error = discord.Embed(
             color=self.color,
-            description=f"<:zwarning:1448949627712966717> An unexpected error occurred: {str(e)}"
+            description=f"⚠️ An unexpected error occurred: {str(e)}"
         )
         await ctx.send(embed=error)
 
@@ -362,10 +362,10 @@ class Moderation(commands.Cog):
       if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
           button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
           button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zcross:1448951756372443296>")
+                     emoji="❌")
           async def button_callback(interaction: discord.Interaction):
               a = 0
               if interaction.user == ctx.author:
@@ -383,12 +383,12 @@ class Moderation(commands.Cog):
                           except Exception as e:
                               print(e)
                       await interaction.channel.send(
-                              content=f"<:ztick:1448951767990796298>> | Successfully Hidden {a} Channel(s) .")
+                              content=f"✅> | Successfully Hidden {a} Channel(s) .")
                       return
                   else:
                     await interaction.response.edit_message(
                          content=
-                           "<:zwarning:1448949627712966717> | It seems I'm missing the necessary permissions. Please grant me the `manage channels` permissions and try again.",
+                           "⚠️ | It seems I'm missing the necessary permissions. Please grant me the `manage channels` permissions and try again.",
                               embed=None,
                                   view=None)
               else:
@@ -421,7 +421,7 @@ class Moderation(commands.Cog):
           await ctx.reply(embed=embed, view=view, mention_author=False,delete_after=30)
 
       else:
-          denied = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+          denied = discord.Embed(title="⚠️ Access Denied",
               description="Your role should be above my top role.",
               color=0xFF0000)
           denied.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
@@ -440,10 +440,10 @@ class Moderation(commands.Cog):
       if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
           button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
           button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zcross:1448951756372443296>")
+                     emoji="❌")
           async def button_callback(interaction: discord.Interaction):
               a = 0
               if interaction.user == ctx.author:
@@ -461,12 +461,12 @@ class Moderation(commands.Cog):
                           except Exception as e:
                               print(e)
                       await interaction.channel.send(
-                              content=f"<:ztick:1448951767990796298>> | Successfully Unhidden {a} Channel(s) .")
+                              content=f"✅> | Successfully Unhidden {a} Channel(s) .")
                       return
                   else:
                     await interaction.response.edit_message(
                          content=
-                           "<:zwarning:1448949627712966717> | It seems I'm missing the necessary permissions. Please grant me the `manage channels` permissions and try again.",
+                           "⚠️ | It seems I'm missing the necessary permissions. Please grant me the `manage channels` permissions and try again.",
                               embed=None,
                                   view=None)
               else:
@@ -499,7 +499,7 @@ class Moderation(commands.Cog):
           await ctx.reply(embed=embed, view=view, mention_author=False,delete_after=30)     
 
       else:
-          denied = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+          denied = discord.Embed(title="⚠️ Access Denied",
               description="Your role should be above my top role.",
               color=0xFF0000)
           denied.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
@@ -521,7 +521,7 @@ class Moderation(commands.Cog):
   @commands.guild_only()
   async def _prefix(self, ctx: commands.Context, prefix: str):
       if not prefix:
-          await ctx.reply(embed=discord.Embed(title="<:zcross:1448951756372443296> Error",
+          await ctx.reply(embed=discord.Embed(title="❌ Error",
                 description="Prefix cannot be empty. Please provide a valid prefix.",
                 color=self.color
             ))
@@ -531,13 +531,13 @@ class Moderation(commands.Cog):
       if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
           data["prefix"] = str(prefix)
           await updateConfig(ctx.guild.id, data)
-          embed1=discord.Embed(title="<:ztick:1448951767990796298>> Success",
+          embed1=discord.Embed(title="✅> Success",
                 description=f"Changed Prefix For this guild to `{prefix}`\n\nNew Prefix for **{ctx.guild.name}** is : `{prefix}`\nUse `{prefix}help` For More.",
                 color=self.color
                              )
           await ctx.reply(embed=embed1)
       else:
-          denied = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+          denied = discord.Embed(title="⚠️ Access Denied",
               description="Your role should be above my top role.",
               color=0xFF0000)
           denied.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
@@ -655,13 +655,13 @@ class Moderation(commands.Cog):
     except discord.Forbidden:
         error = discord.Embed(
             color=self.color,
-            description="<:zwarning:1448949627712966717> | I don't have permission to manage this user's nickname!"
+            description="⚠️ | I don't have permission to manage this user's nickname!"
         )
         await ctx.send(embed=error)
     except Exception as e:
         error = discord.Embed(
             color=self.color,
-            description=f"<:zwarning:1448949627712966717> | An error occurred while trying to change the nickname: {str(e)}"
+            description=f"⚠️ | An error occurred while trying to change the nickname: {str(e)}"
         )
         await ctx.send(embed=error)
         
@@ -675,10 +675,10 @@ class Moderation(commands.Cog):
   async def _nuke(self, ctx: commands.Context):
     button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
     button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zcross:1448951756372443296>")
+                     emoji="❌")
 
     async def button_callback(interaction: discord.Interaction):
       if interaction.user == ctx.author:
@@ -698,7 +698,7 @@ class Moderation(commands.Cog):
         else:
           await interaction.response.edit_message(
             content=
-            "<:zwarning:1448949627712966717> | It seems I'm missing the necessary permissions. Please grant me the `manage channel` permissions and try again.",
+            "⚠️ | It seems I'm missing the necessary permissions. Please grant me the `manage channel` permissions and try again.",
             embed=None,
             view=None)
       else:
@@ -796,7 +796,7 @@ class Moderation(commands.Cog):
             for i in msg.stickers:
                 name = i.name
                 await ctx.guild.delete_sticker(i)
-            await ctx.reply(f"<:ztick:1448951767990796298>> Sucessfully deleted sticker named `{name}`")
+            await ctx.reply(f"✅> Sucessfully deleted sticker named `{name}`")
         except:
             await ctx.reply("Failed to delete the sticker")
 
@@ -841,7 +841,7 @@ class Moderation(commands.Cog):
                 except discord.Forbidden:
                     continue  
             await init_message.delete()
-            return await ctx.reply(f"<:ztick:1448951767990796298>> | Successfully deleted {delete_count}/{len(found_emojis)} emoji(s).")
+            return await ctx.reply(f"✅> | Successfully deleted {delete_count}/{len(found_emojis)} emoji(s).")
 
     
     await init_message.delete()
@@ -952,7 +952,7 @@ class Moderation(commands.Cog):
                 image_data = await r.read()
             await role.edit(display_icon=image_data)
             success_embed = discord.Embed(
-                description=f"<:ztick:1448951767990796298>>| Successfully changed the icon for {role.mention}.",
+                description=f"✅>| Successfully changed the icon for {role.mention}.",
                 color=self.color
             )
             return await ctx.reply(embed=success_embed, mention_author=False)
@@ -976,10 +976,10 @@ class Moderation(commands.Cog):
   async def unbanall(self, ctx):
     button = Button(label="Confirm",
                     style=discord.ButtonStyle.green,
-                    emoji="<:ztick:1448951767990796298>>")
+                    emoji="✅>")
     button1 = Button(label="Cancel",
                      style=discord.ButtonStyle.red,
-                     emoji="<:zcross:1448951756372443296>")
+                     emoji="❌")
 
     async def button_callback(interaction: discord.Interaction):
       a = 0
@@ -993,7 +993,7 @@ class Moderation(commands.Cog):
               reason="Unbanall Command Executed By: {}".format(ctx.author))
             a += 1
           await interaction.channel.send(
-            content=f"<:ztick:1448951767990796298>> Successfully Unbanned {a} Members")
+            content=f"✅> Successfully Unbanned {a} Members")
         else:
           await interaction.response.edit_message(
             content=

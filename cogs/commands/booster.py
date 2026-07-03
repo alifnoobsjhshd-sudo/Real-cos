@@ -162,7 +162,7 @@ class Booster (Cog ):
 
         if not self .url_pattern .match (thumbnail_url ):
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> Please provide a valid URL.",
+            description ="❌ Please provide a valid URL.",
             color =self .color 
             ))
 
@@ -174,7 +174,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        description ="<:ztick:1448951767990796298> Successfully updated the boost thumbnail URL.",
+        description ="✅ Successfully updated the boost thumbnail URL.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -194,7 +194,7 @@ class Booster (Cog ):
 
         if not self .url_pattern .match (image_url ):
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> Please provide a valid URL.",
+            description ="❌ Please provide a valid URL.",
             color =self .color 
             ))
 
@@ -206,7 +206,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        description ="<:ztick:1448951767990796298> Successfully updated the boost image URL.",
+        description ="✅ Successfully updated the boost image URL.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -226,7 +226,7 @@ class Booster (Cog ):
 
         if seconds <0 :
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> Auto-delete timer must be 0 or greater.",
+            description ="❌ Auto-delete timer must be 0 or greater.",
             color =self .color 
             ))
 
@@ -236,9 +236,9 @@ class Booster (Cog ):
         data ["boost"]["autodel"]=seconds 
         await self .update_boost_config (ctx .guild .id ,data )
 
-        description =f"<:ztick:1448951767990796298> Successfully set auto-delete timer to {seconds} seconds."
+        description =f"✅ Successfully set auto-delete timer to {seconds} seconds."
         if seconds ==0 :
-            description ="<:ztick:1448951767990796298> Auto-delete has been disabled."
+            description ="✅ Auto-delete has been disabled."
 
         embed =discord .Embed (
         color =self .color ,
@@ -262,7 +262,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        title ="<:ztick:1448951767990796298> Boost Message Setup",
+        title ="✅ Boost Message Setup",
         description ="Send your boost message in this channel now.\n\n**Available Variables:**\n"
         "```\n"
         "{server.name}         - Server name\n"
@@ -295,7 +295,7 @@ class Booster (Cog ):
             message =await self .bot .wait_for ('message',check =check ,timeout =60.0 )
         except asyncio .TimeoutError :
             await ctx .send (embed =discord .Embed (
-            description ="<:ztimer:1448949799528173621> Timeout! Please try again.",
+            description ="⏱️ Timeout! Please try again.",
             color =self .color 
             ))
 
@@ -307,7 +307,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        description ="<:ztick:1448951767990796298> Successfully updated the boost message.",
+        description ="✅ Successfully updated the boost message.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -332,7 +332,7 @@ class Booster (Cog ):
         status ="enabled"if data ["boost"]["embed"]else "disabled"
         embed =discord .Embed (
         color =self .color ,
-        description =f"<:ztick:1448951767990796298> Embed formatting has been **{status}**.",
+        description =f"✅ Embed formatting has been **{status}**.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -357,7 +357,7 @@ class Booster (Cog ):
         status ="enabled"if data ["boost"]["ping"]else "disabled"
         embed =discord .Embed (
         color =self .color ,
-        description =f"<:ztick:1448951767990796298> Booster pinging has been **{status}**.",
+        description =f"✅ Booster pinging has been **{status}**.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -392,7 +392,7 @@ class Booster (Cog ):
         if len (channels )>=3 :
             embed =discord .Embed (
             color =self .color ,
-            description ="<:zcross:1448951756372443296> Maximum boost channel limit reached (3 channels).",
+            description ="❌ Maximum boost channel limit reached (3 channels).",
             timestamp =ctx .message .created_at 
             )
             embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -402,7 +402,7 @@ class Booster (Cog ):
         if str (channel .id )in channels :
             embed =discord .Embed (
             color =self .color ,
-            description ="<:zcross:1448951756372443296> This channel is already in the boost channels list.",
+            description ="❌ This channel is already in the boost channels list.",
             timestamp =ctx .message .created_at 
             )
             embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -414,7 +414,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        description =f"<:ztick:1448951767990796298> Successfully added {channel.mention} to boost channels list.",
+        description =f"✅ Successfully added {channel.mention} to boost channels list.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -438,7 +438,7 @@ class Booster (Cog ):
         if not channels :
             embed =discord .Embed (
             color =self .color ,
-            description ="<:zcross:1448951756372443296> No boost channels are currently set up.",
+            description ="❌ No boost channels are currently set up.",
             timestamp =ctx .message .created_at 
             )
             embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -448,7 +448,7 @@ class Booster (Cog ):
         if str (channel .id )not in channels :
             embed =discord .Embed (
             color =self .color ,
-            description ="<:zcross:1448951756372443296> This channel is not in the boost channels list.",
+            description ="❌ This channel is not in the boost channels list.",
             timestamp =ctx .message .created_at 
             )
             embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -460,7 +460,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        description =f"<:ztick:1448951767990796298> Successfully removed {channel.mention} from boost channels list.",
+        description =f"✅ Successfully removed {channel.mention} from boost channels list.",
         timestamp =ctx .message .created_at 
         )
         embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -478,7 +478,7 @@ class Booster (Cog ):
         if not channels :
             embed =discord .Embed (
             color =self .color ,
-            description ="<:zcross:1448951756372443296> Please set up a boost channel first using `boost channel add #channel`.",
+            description ="❌ Please set up a boost channel first using `boost channel add #channel`.",
             timestamp =ctx .message .created_at 
             )
             embed .set_author (name =ctx .author .name ,icon_url =ctx .author .display_avatar .url )
@@ -492,7 +492,7 @@ class Booster (Cog ):
         channel =self .bot .get_channel (int (channels [0 ]))
         if not channel :
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> The configured boost channel no longer exists.",
+            description ="❌ The configured boost channel no longer exists.",
             color =self .color 
             ))
 
@@ -520,13 +520,13 @@ class Booster (Cog ):
 
         except discord .Forbidden :
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> I don't have permission to send messages in the boost channel.",
+            description ="❌ I don't have permission to send messages in the boost channel.",
             color =self .color 
             ))
 
         except Exception as e :
             await ctx .send (embed =discord .Embed (
-            description =f"<:zcross:1448951756372443296> An error occurred: `{str(e)}`",
+            description =f"❌ An error occurred: `{str(e)}`",
             color =self .color 
             ))
 
@@ -541,7 +541,7 @@ class Booster (Cog ):
 
         if not channels :
             await ctx .send (embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> Please set up a boost channel first using `boost channel add #channel`.",
+            description ="❌ Please set up a boost channel first using `boost channel add #channel`.",
             color =self .color 
             ))
 
@@ -549,7 +549,7 @@ class Booster (Cog ):
 
         embed =discord .Embed (
         color =self .color ,
-        title =f"<a:nitroboost:1448949639540899921> Boost Configuration for {ctx.guild.name}"
+        title =f"🚀 Boost Configuration for {ctx.guild.name}"
         )
 
 
@@ -573,13 +573,13 @@ class Booster (Cog ):
 
         embed .add_field (
         name ="Embed",
-        value ="<:ztick:1448951767990796298> Enabled"if data ["boost"]["embed"]else "<:zcross:1448951756372443296> Disabled",
+        value ="✅ Enabled"if data ["boost"]["embed"]else "❌ Disabled",
         inline =True 
         )
 
         embed .add_field (
         name ="Ping",
-        value ="<:ztick:1448951767990796298> Enabled"if data ["boost"]["ping"]else "<:zcross:1448951756372443296> Disabled",
+        value ="✅ Enabled"if data ["boost"]["ping"]else "❌ Disabled",
         inline =True 
         )
 
@@ -611,7 +611,7 @@ class Booster (Cog ):
 
         if not data ["boost"]["channel"]:
             embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> No boost configuration found to reset.",
+            description ="❌ No boost configuration found to reset.",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -629,7 +629,7 @@ class Booster (Cog ):
         await self .update_boost_config (ctx .guild .id ,data )
 
         embed =discord .Embed (
-        description ="<:ztick:1448951767990796298> Successfully reset all boost configuration.",
+        description ="✅ Successfully reset all boost configuration.",
         color =self .color 
         )
         await ctx .send (embed =embed )
@@ -700,7 +700,7 @@ class Booster (Cog ):
 
         if len (roles )>=10 :
             embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> Maximum boost role limit reached (10 roles).",
+            description ="❌ Maximum boost role limit reached (10 roles).",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -708,7 +708,7 @@ class Booster (Cog ):
 
         if str (role .id )in roles :
             embed =discord .Embed (
-            description =f"<:zcross:1448951756372443296> {role.mention} is already a boost role.",
+            description =f"❌ {role.mention} is already a boost role.",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -718,7 +718,7 @@ class Booster (Cog ):
         await self .update_boost_config (ctx .guild .id ,data )
 
         embed =discord .Embed (
-        description =f"<:ztick:1448951767990796298> {role.mention} has been added as a boost role.",
+        description =f"✅ {role.mention} has been added as a boost role.",
         color =self .color 
         )
         await ctx .send (embed =embed )
@@ -740,7 +740,7 @@ class Booster (Cog ):
 
         if not roles :
             embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> No boost roles are currently configured.",
+            description ="❌ No boost roles are currently configured.",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -748,7 +748,7 @@ class Booster (Cog ):
 
         if str (role .id )not in roles :
             embed =discord .Embed (
-            description =f"<:zcross:1448951756372443296> {role.mention} is not a boost role.",
+            description =f"❌ {role.mention} is not a boost role.",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -758,7 +758,7 @@ class Booster (Cog ):
         await self .update_boost_config (ctx .guild .id ,data )
 
         embed =discord .Embed (
-        description =f"<:ztick:1448951767990796298> {role.mention} has been removed from boost roles.",
+        description =f"✅ {role.mention} has been removed from boost roles.",
         color =self .color 
         )
         await ctx .send (embed =embed )
@@ -779,7 +779,7 @@ class Booster (Cog ):
 
         if not data ["boost_roles"]["roles"]:
             embed =discord .Embed (
-            description ="<:zcross:1448951756372443296> No boost roles are currently configured.",
+            description ="❌ No boost roles are currently configured.",
             color =self .color 
             )
             await ctx .send (embed =embed )
@@ -789,7 +789,7 @@ class Booster (Cog ):
         await self .update_boost_config (ctx .guild .id ,data )
 
         embed =discord .Embed (
-        description ="<:ztick:1448951767990796298> Successfully cleared all boost roles.",
+        description ="✅ Successfully cleared all boost roles.",
         color =self .color 
         )
         await ctx .send (embed =embed )

@@ -15,14 +15,14 @@ class Status(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def status(self, ctx, user: discord.User = None):
         user = user or ctx.author
-        processing = await ctx.send("<a:loading:1448951579603505154> Loading Status...")
+        processing = await ctx.send("⏳ Loading Status...")
         embed = discord.Embed(title=f"{user.display_name}'s Status", color=0xFF0000)
 
         status_emoji = {
-            "online": "<a:online:1448951591305744427> Online",
-            "idle": "<:idle:1448951603028693042> Idle",
-            "dnd": "<:dnd:1448951614172954664> Do Not Disturb",
-            "offline": "<:offline:1448951625506099261>  Offline"
+            "online": "🟢 Online",
+            "idle": "🌙 Idle",
+            "dnd": "⛔ Do Not Disturb",
+            "offline": "⚫  Offline"
         }
 
         member = None
@@ -32,7 +32,7 @@ class Status(commands.Cog):
                 break
 
         if member:
-            status = status_emoji.get(str(member.status), "<:offline:1448951625506099261> Offline")
+            status = status_emoji.get(str(member.status), "⚫ Offline")
             embed.add_field(name="Status:", value=status, inline=False)
 
             avatar_url = member.display_avatar.url if member.avatar else member.default_avatar.url
@@ -73,7 +73,7 @@ class Status(commands.Cog):
         else:
             try:
                 user = await self.bot.fetch_user(user.id)
-                embed.add_field(name="Status:", value="<:offline:1448951625506099261> Offline", inline=False)
+                embed.add_field(name="Status:", value="⚫ Offline", inline=False)
                 avatar_url = user.default_avatar.url
                 embed.set_thumbnail(url=avatar_url)
             except discord.NotFound:
@@ -114,11 +114,11 @@ class Status(commands.Cog):
 
     def get_platform(self, member):
         if member.desktop_status != discord.Status.offline:
-            return "<:pc:1448951637266665542>  Desktop"
+            return "🖥️  Desktop"
         elif member.mobile_status != discord.Status.offline:
-            return "<a:mobile:1448951648490885132> Mobile"
+            return "📱 Mobile"
         elif member.web_status != discord.Status.offline:
-            return "<:icon_browser:1448951659521773598> Browser"
+            return "🌐 Browser"
         return "Unknown"
 
     def get_custom_status(self, member):

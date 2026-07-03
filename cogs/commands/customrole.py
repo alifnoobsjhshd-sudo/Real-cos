@@ -74,32 +74,32 @@ class Customrole(commands.Cog):
                             if role:
                                 if role not in member.roles:
                                     await self.add_role2(role=role_id, member=member)
-                                    embed = discord.Embed(title="<:ztick:1448951767990796298> Success",
+                                    embed = discord.Embed(title="✅ Success",
                                         description=f"**Given** <@&{role.id}> To {member.mention}",
                                         color=0xFF0000)
                                 else:
                                     await self.remove_role2(role=role_id, member=member)
-                                    embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+                                    embed = discord.Embed(title="✅ Success",
                                         description=f"**Removed** <@&{role.id}> From {member.mention}",
                                         color=0xFF0000)
                                 await context.reply(embed=embed)
                             else:
-                                embed = discord.Embed(title="<:CrossIcon:1327829124894429235> Error",
+                                embed = discord.Embed(title="❌ Error",
                                     description=f"{role_type.capitalize()} role is not set up in {context.guild.name}",
                                     color=0xFF0000)
                                 await context.reply(embed=embed)
                         else:
-                            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+                            embed = discord.Embed(title="⚠️ Access Denied",
                                 description=f"You need {reqrole.mention} to run this command.",
                                 color=0x000000)
                             await context.reply(embed=embed)
                     else:
-                        embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+                        embed = discord.Embed(title="⚠️ Access Denied",
                             description=f"Required role is not set up in {context.guild.name}",
                             color=0x000000)
                         await context.reply(embed=embed)
                 else:
-                    embed = discord.Embed(title="<:CrossIcon:1327829124894429235> Error",
+                    embed = discord.Embed(title="❌ Error",
                         description=f"Roles configuration is not set up in {context.guild.name}",
                         color=0x000000)
                     await context.reply(embed=embed)
@@ -178,12 +178,12 @@ class Customrole(commands.Cog):
     async def staff(self, context: Context, role: discord.Role) -> None:
         if context.author == context.guild.owner or context.author.top_role.position > context.guild.me.top_role.position:
             await self.update_role_data(context.guild.id, 'staff', role.id)
-            embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+            embed = discord.Embed(title="✅ Success",
                 description=f"Added {role.mention} to `Staff` Role\n\n__**How to Use?**__\nUse `staff <user>` Command to **Add {role.mention}** role to User & use again to the same user to **Remove role**. ",
                 color=0x000000)
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -199,12 +199,12 @@ class Customrole(commands.Cog):
     async def girl(self, context: Context, role: discord.Role) -> None:
         if context.author == context.guild.owner or context.author.top_role.position > context.guild.me.top_role.position:
             await self.update_role_data(context.guild.id, 'girl', role.id)
-            embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+            embed = discord.Embed(title="✅ Success",
                 description=f"Added {role.mention} to `Girl` Role\n\n__**How to Use?**__\nUse `girl <user>` Command to **Add {role.mention}** role to User & use again to the same user to **Remove role**.  ",
                 color=0x000000)
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                   description="Your role should be above my top role.",
                   color=0x000000)
             await context.reply(embed=embed)
@@ -225,7 +225,7 @@ class Customrole(commands.Cog):
                 color=0x000000)
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717>Access Denied",
+            embed = discord.Embed(title="⚠️Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -246,7 +246,7 @@ class Customrole(commands.Cog):
                 color=0x000000)
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -267,7 +267,7 @@ class Customrole(commands.Cog):
                 color=0x000000)
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -283,13 +283,13 @@ class Customrole(commands.Cog):
     async def req_role(self, context: Context, role: discord.Role) -> None:
         if context.author == context.guild.owner or context.author.top_role.position > context.guild.me.top_role.position:
             await self.update_role_data(context.guild.id, 'reqrole', role.id)
-            embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+            embed = discord.Embed(title="✅ Success",
                 color=0x000000,
                 description=f"Added {role.mention} for Required role to run custom role commands in {context.guild.name}"
             )
             await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -321,7 +321,7 @@ class Customrole(commands.Cog):
             await context.reply(embed=embed)
             
         else:
-            embed = discord.Embed(title="<:CrossIcon:1327829124894429235> Error",
+            embed = discord.Embed(title="❌ Error",
                 description="No custom role configuration found in this Guild.",
                 color=0x000000
             )
@@ -346,7 +346,7 @@ class Customrole(commands.Cog):
             async with db.execute("SELECT COUNT(*) FROM custom_roles WHERE guild_id = ?", (context.guild.id,)) as cursor:
                 count = await cursor.fetchone()
                 if count[0] >= 56:
-                    embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+                    embed = discord.Embed(title="⚠️ Access Denied",
                         description="You have reached the maximum limit of 56 custom role commands for this guild.",
                         color=0x000000
                     )
@@ -356,7 +356,7 @@ class Customrole(commands.Cog):
             async with db.execute("SELECT name FROM custom_roles WHERE guild_id = ?", (context.guild.id,)) as cursor:
                 existing_role = await cursor.fetchall()
                 if any(name == row[0] for row in existing_role):
-                    embed = discord.Embed(title="<:CrossIcon:1327829124894429235> Error",
+                    embed = discord.Embed(title="❌ Error",
                         description=f"A custom role command with the name `{name}` already exists in this guild. Remove it before creating a new one.",
                         color=0x000000
                     )
@@ -367,7 +367,7 @@ class Customrole(commands.Cog):
                              (context.guild.id, name, role.id))
             await db.commit()
 
-        embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+        embed = discord.Embed(title="✅ Success",
             description=f"Custom role command `{name}` created to assign the role {role.mention}.\n\n__**How to Use?**__\nUse `{name} <user>` Command to Assign/Remove {role.mention} role to User.\n> This will work for the users having `Manage Roles` permissions.",
             color=0x000000
         )
@@ -388,7 +388,7 @@ class Customrole(commands.Cog):
                 existing_role = await cursor.fetchone()
 
         if not existing_role:
-            embed = discord.Embed(title="<:CrossIcon:1327829124894429235> Error",
+            embed = discord.Embed(title="❌ Error",
                 description=f"No custom role command with the name `{name}` was found in this guild.",
                 color=0x000000
             )
@@ -399,7 +399,7 @@ class Customrole(commands.Cog):
             await db.execute("DELETE FROM custom_roles WHERE guild_id = ? AND name = ?", (context.guild.id, name))
             await db.commit()
 
-        embed = discord.Embed(title="<:tick:1327829594954530896> Success",
+        embed = discord.Embed(title="✅ Success",
             description=f"Custom role command `{name}` has been deleted.",
             color=0x000000
         )
@@ -420,7 +420,7 @@ class Customrole(commands.Cog):
 
         if not custom_roles:
             embed = discord.Embed(
-                title="]<:CrossIcon:1327829124894429235> Error",
+                title="]❌ Error",
                 description="No custom roles have been created for this server.",
                 color=0x000000
             )
@@ -476,7 +476,7 @@ class Customrole(commands.Cog):
                     await db.commit()
                     embed = discord.Embed(
             title="Custom Role Configuration Reset",
-            description=f"Deleted All Custom Role commands <:olympus_tick:1227866641027698792>\n\n**Removed Roles:**\n" + "\n".join(removed_roles) if removed_roles else "No roles were previously set.",
+            description=f"Deleted All Custom Role commands ✅\n\n**Removed Roles:**\n" + "\n".join(removed_roles) if removed_roles else "No roles were previously set.",
             color=0x000000
         )
                     
@@ -485,7 +485,7 @@ class Customrole(commands.Cog):
                 embed = discord.Embed(description="No configuration found for this server.", color=0x000000)
                 await context.reply(embed=embed)
         else:
-            embed = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            embed = discord.Embed(title="⚠️ Access Denied",
                                   description="Your role should be above my top role.",
                                   color=0x000000)
             await context.reply(embed=embed)
@@ -538,12 +538,12 @@ class Customrole(commands.Cog):
 
             
             if reqrole is None:
-                await message.channel.send("<:zwarning:1448949627712966717> The required role is not set up in this server. Please set it up using `setup reqrole`.")
+                await message.channel.send("⚠️ The required role is not set up in this server. Please set it up using `setup reqrole`.")
                 return
 
             
             if reqrole not in message.author.roles:
-                await message.channel.send(embed=discord.Embed(description=f"<:zwarning:1448949627712966717> You need the {reqrole.mention} role to use this command.", color=0x000000))
+                await message.channel.send(embed=discord.Embed(description=f"⚠️ You need the {reqrole.mention} role to use this command.", color=0x000000))
                 return
 
             
@@ -564,14 +564,14 @@ class Customrole(commands.Cog):
                 if role in member.roles:
                     await self.remove_role(role_id=role_id, member=member)
                     await message.channel.send(embed=discord.Embed(
-                        title="<:tick:1327829594954530896> Success",
+                        title="✅ Success",
                         description=f"**Removed** the role {role.mention} from {member.mention}.",
                         color=0x000000
                     ))
                 else:
                     await self.add_role(role_id=role_id, member=member)
                     await message.channel.send(embed=discord.Embed(
-                        title="<:tick:1327829594954530896> Success",
+                        title="✅ Success",
                         description=f"**Added** the role {role.mention} to {member.mention}.",
                         color=0x000000
                     ))

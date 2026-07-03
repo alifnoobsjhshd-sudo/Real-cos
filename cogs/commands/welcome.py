@@ -183,7 +183,7 @@ class Welcomer(commands.Cog):
                 return
             if message_content:
                 await self._save_welcome_data(ctx.guild.id, "simple", message_content[0])
-                await interaction.response.send_message("<:ztick:1448951767990796298>> Welcome message setup completed!")
+                await interaction.response.send_message("✅> Welcome message setup completed!")
                 for item in setup_view.children:
                     item.disabled = True
                 await preview_message.edit(view=setup_view)
@@ -219,7 +219,7 @@ class Welcomer(commands.Cog):
         setup_view.add_item(edit_button)
         setup_view.add_item(VariableButton(ctx.author))
 
-        cancel_button = Button(emoji="<:icons_plus:1328966531140288524>", style=discord.ButtonStyle.secondary)
+        cancel_button = Button(emoji="➕", style=discord.ButtonStyle.secondary)
         cancel_button.callback = cancel_callback
         setup_view.add_item(cancel_button)
 
@@ -383,7 +383,7 @@ class Welcomer(commands.Cog):
                 return
 
             await self._save_welcome_data(ctx.guild.id, "embed", embed_data["message"] or "", embed_data)
-            await interaction.response.send_message("<:ztick:1448951767990796298>> Embed welcome message setup completed!")
+            await interaction.response.send_message("✅> Embed welcome message setup completed!")
 
             for item in setup_view.children:
                 item.disabled = True
@@ -444,7 +444,7 @@ class Welcomer(commands.Cog):
                 await db.commit()
 
             embed.color = discord.Color(0xFF0000)
-            embed.title = "<:ztick:1448951767990796298>> Success"
+            embed.title = "✅> Success"
             embed.description = "Welcome message configuration has been successfully reset."
             await interaction.message.edit(embed=embed, view=None)
 
@@ -496,7 +496,7 @@ class Welcomer(commands.Cog):
             select_menu = Select(
                 placeholder="Select a channel for welcome messages",
                 options=[
-                    discord.SelectOption(label=channel.name, emoji="<:icons_channel:1327829380935843941>", value=str(channel.id))
+                    discord.SelectOption(label=channel.name, emoji="#️⃣", value=str(channel.id))
                     for channel in chunks[page]
                 ]
             )
@@ -515,7 +515,7 @@ class Welcomer(commands.Cog):
 
                 embed.description = f"Current Welcome Channel: {selected_channel.mention}"
                 await interaction.response.edit_message(embed=embed, view=None)
-                await ctx.send(f"<:ztick:1448951767990796298>> Welcome channel has been set to {selected_channel.mention}")
+                await ctx.send(f"✅> Welcome channel has been set to {selected_channel.mention}")
 
             select_menu.callback = select_callback
 
@@ -743,7 +743,7 @@ class Welcomer(commands.Cog):
             """, (auto_delete_duration, ctx.guild.id))
             await db.commit()
 
-        await ctx.send(f"<:Ztick:1222750301233090600> Auto delete duration has been set to **{auto_delete_duration}** seconds.")
+        await ctx.send(f"✅ Auto delete duration has been set to **{auto_delete_duration}** seconds.")
 
 
 

@@ -84,13 +84,13 @@ class Extraowner(commands.Cog):
             elif view.value:
                 await self.db.execute('INSERT OR REPLACE INTO extraowners (guild_id, owner_id) VALUES (?, ?)', (guild_id, user.id))
                 await self.db.commit()
-                embed = discord.Embed(title="<:ztick:1448951767990796298> Success",
+                embed = discord.Embed(title="✅ Success",
                     description=f"Added {user.mention} As Extraowner",
                     color=0xFF0000
                 )
                 await message.edit(embed=embed, view=None)
             else:
-                await message.edit(content="<:zcross:1448951756372443296> Action cancelled.", embed=None, view=None)
+                await message.edit(content="❌ Action cancelled.", embed=None, view=None)
 
         
         elif option.lower() == 'reset':
@@ -98,7 +98,7 @@ class Extraowner(commands.Cog):
                 row = await cursor.fetchone()
 
             if not row:
-                embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+                embed = discord.Embed(title="❌ Error",
                     description="No extra owner has been designated for this guild.",
                     color=0xFF0000
                 )
@@ -119,20 +119,20 @@ class Extraowner(commands.Cog):
                 elif view.value:
                     await self.db.execute('DELETE FROM extraowners WHERE guild_id = ?', (guild_id,))
                     await self.db.commit()
-                    embed = discord.Embed(title="<:ztick:1448951767990796298> Success",
+                    embed = discord.Embed(title="✅ Success",
                         description="Disabled Extraowner Configuration!",
                         color=0xFF0000
                     )
                     await message.edit(embed=embed, view=None)
                 else:
-                    await message.edit(content="<:ztick:1448951767990796298> Action canceled.", embed=None, view=None)
+                    await message.edit(content="✅ Action canceled.", embed=None, view=None)
 
         elif option.lower() == 'view':
             async with self.db.execute('SELECT owner_id FROM extraowners WHERE guild_id = ?', (guild_id,)) as cursor:
                 row = await cursor.fetchone()
 
             if not row:
-                embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+                embed = discord.Embed(title="❌ Error",
                     description="No extra owner is currently assigned.",
                     color=0xFF0000
                 )

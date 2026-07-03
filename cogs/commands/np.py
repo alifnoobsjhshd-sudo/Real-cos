@@ -90,7 +90,7 @@ class TimeSelect(Select):
         if log_channel:
             embed = discord.Embed(
                 title="User Added to No Prefix",
-                description=f"**User**: [{self.user}](https://discord.com/users/{self.user.id})\n**User Mention**: {self.user.mention}\n** ID**: {self.user.id}\n\n** Added By**: [{self.author.display_name}](https://discord.com/users/{self.author.id})\n<a:timer:1329404677820911697>**Expiry Time**: {expiry_text}\n<:zdil:1448949605676093540> **Timestamp**: {expiry_timestamp}\n\n<a:premium:1204110058124873889> **Tier**: **{self.values[0].upper()}**",
+                description=f"**User**: [{self.user}](https://discord.com/users/{self.user.id})\n**User Mention**: {self.user.mention}\n** ID**: {self.user.id}\n\n** Added By**: [{self.author.display_name}](https://discord.com/users/{self.author.id})\n⏱️**Expiry Time**: {expiry_text}\n💗 **Timestamp**: {expiry_timestamp}\n\n💎 **Tier**: **{self.values[0].upper()}**",
                 color=0xFF0000
             )
             embed.set_thumbnail(url=self.user.avatar.url if self.user.avatar else self.user.default_avatar.url)
@@ -98,7 +98,7 @@ class TimeSelect(Select):
             
 
         
-        embed = discord.Embed(description=f"**Added Global No Prefix**:\n**<:zHuman:1448951509235531869> User**: **[{self.user}](https://discord.com/users/{self.user.id})**\n**<:zyrox_mention:1448949481776222218> User Mention**: {self.user.mention}\n**<:zyroxsys:1448949469650620426> User ID**: {self.user.id}\n\n__**Additional Info**__:\n**<:zyroxhammer:1448949447617806458> Added By**: **[{self.author.display_name}](https://discord.com/users/{self.author.id})**\n**<:zyrox_time:1448949493012889610> Expiry Time:** {expiry_text}\n**<:boost:1448966463586041906> Timestamp:** {expiry_timestamp}", color=0xFF0000)
+        embed = discord.Embed(description=f"**Added Global No Prefix**:\n**👤 User**: **[{self.user}](https://discord.com/users/{self.user.id})**\n**📣 User Mention**: {self.user.mention}\n**⚙️ User ID**: {self.user.id}\n\n__**Additional Info**__:\n**🔨 Added By**: **[{self.author.display_name}](https://discord.com/users/{self.author.id})**\n**🕒 Expiry Time:** {expiry_text}\n**🚀 Timestamp:** {expiry_timestamp}", color=0xFF0000)
         embed.set_author(name="Added No Prefix", icon_url="https://cdn.discordapp.com/icons/1166303696263585852/eeb00b2cf541438e88cdf842394c5b30.png?size=1024")
         embed.set_footer(text="DM will be sent to the user in case No prefix is expired.")
         await interaction.response.edit_message(embed=embed, view=None)
@@ -204,7 +204,7 @@ class NoPrefix(commands.Cog):
                         
                                     
                         embed = discord.Embed(
-                            description=f"<:icons_warning:1448949538944716922> Your No Prefix status has **Expired**. You will now require the prefix to use commands.",
+                            description=f"⚠️ Your No Prefix status has **Expired**. You will now require the prefix to use commands.",
                             color=0xFF0000
                         )
                         embed.set_author(name="No Prefix Expired", icon_url=user.avatar.url if user.avatar else user.default_avatar.url)
@@ -364,7 +364,7 @@ class NoPrefix(commands.Cog):
                 description=(
                     f"**User**: [{user}](https://discord.com/users/{user.id})\n"
                     f"**User ID**: {user.id}\n\n"
-                    f"**<:zyrox_time:1448949493012889610> Expiry**: {expire_time} ({expire_timestamp})"
+                    f"**🕒 Expiry**: {expire_time} ({expire_timestamp})"
                 ),
                 color=0xFF0000
             )
@@ -508,7 +508,7 @@ class NoPrefix(commands.Cog):
             await db.execute("DELETE FROM np WHERE id = ?", (user.id,))
             await db.commit()
             
-        embed= discord.Embed(title="<:icons_warning:1448949538944716922> Global No Prefix Expired",
+        embed= discord.Embed(title="⚠️ Global No Prefix Expired",
                         description=f"Hey {user.mention}, your global no prefix has expired!\n\n__**Reason:**__ Unboosting our partnered Server.\nIf you think this is a mistake then please reach out [Support Server](https://discord.gg/codexdev).",
                         color=0xFF0000)
             
@@ -576,7 +576,7 @@ class NoPrefix(commands.Cog):
             
             # Send success message
             success_embed = discord.Embed(
-                title="<:ztick:1448951767990796298> No-Prefix Reset Complete",
+                title="✅ No-Prefix Reset Complete",
                 description=f"Successfully removed {count} users from the no-prefix list.",
                 color=0xFF0000
             )
@@ -587,7 +587,7 @@ class NoPrefix(commands.Cog):
             if log_channel:
                 log_embed = discord.Embed(
                     title="No-Prefix List Reset",
-                    description=f"** Reset By**: [{ctx.author.display_name}](https://discord.com/users/{ctx.author.id})\n**<:info:1374723970376405113> Users Removed**: {count}",
+                    description=f"** Reset By**: [{ctx.author.display_name}](https://discord.com/users/{ctx.author.id})\n**ℹ️ Users Removed**: {count}",
                     color=0xFF0000
                 )
                 log_embed.set_footer(text="No Prefix Reset Log")

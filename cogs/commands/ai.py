@@ -969,7 +969,7 @@ Support server: https://discord.gg/codexdev"""
         """Enable AI chatbot in a channel"""
         if not ctx .author .guild_permissions .manage_channels :
             embed =discord .Embed (
-            title ="<:zcross:1448951756372443296> Permission Denied",
+            title ="❌ Permission Denied",
             description ="You need `Manage Channels` permission to activate AI chatbot.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -996,7 +996,7 @@ Support server: https://discord.gg/codexdev"""
         self .chatbot_channels [guild_id ]=channel_id 
 
         embed =discord .Embed (
-        title ="<:ztick:1448951767990796298> AI Chatbot Activated",
+        title ="✅ AI Chatbot Activated",
         description =f"AI chatbot has been enabled in {target_channel.mention}!\nI'll respond to all messages in that channel.",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1009,7 +1009,7 @@ Support server: https://discord.gg/codexdev"""
         """Disable AI chatbot in current server"""
         if not ctx .author .guild_permissions .manage_channels :
             embed =discord .Embed (
-            title ="<:zcross:1448951756372443296> Permission Denied",
+            title ="❌ Permission Denied",
             description ="You need `Manage Channels` permission to deactivate AI chatbot.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1695,7 +1695,7 @@ Support server: https://discord.gg/codexdev"""
         response_message =(
         f"🎉 First to answer! Correct! The answer was **{game['current_answer']}**. +1 point!"
         if is_correct 
-        else f"<:zcross:1448951756372443296> Incorrect. The answer was **{game['current_answer']}**. Your guess: **{selected_answer}**. -1 point."
+        else f"❌ Incorrect. The answer was **{game['current_answer']}**. Your guess: **{selected_answer}**. -1 point."
         )
 
         game ["used_questions"]=game ["used_questions"][-50 :]

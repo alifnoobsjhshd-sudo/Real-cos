@@ -64,7 +64,7 @@ class Nightmode(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def enable_nightmode(self, ctx):
         if ctx.guild.member_count < 50:  
-            return await ctx.send(embed=discord.Embed(title=" <:zcross:1448951756372443296> Access Denied",
+            return await ctx.send(embed=discord.Embed(title=" ❌ Access Denied",
                 color=self.color,
                 description='Your Server Doesn\'t Meet My 50 Member Criteria'
             ))
@@ -72,7 +72,7 @@ class Nightmode(commands.Cog):
         own = ctx.author.id == ctx.guild.owner_id
         check = await self.is_extra_owner(ctx.author, ctx.guild)
         if not own and not check and ctx.author.id not in self.ricky:
-            return await ctx.send(embed=discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+            return await ctx.send(embed=discord.Embed(title="❌ Access Denied",
                 color=self.color,
                 description='Only Server Owner Or Extraowner Can Run This Command.!'
             ))
@@ -80,7 +80,7 @@ class Nightmode(commands.Cog):
         if not own and not (
             ctx.guild.me.top_role.position <= ctx.author.top_role.position
         ) and ctx.author.id not in self.ricky:
-            return await ctx.send(embed=discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            return await ctx.send(embed=discord.Embed(title="⚠️ Access Denied",
                 color=self.color,
                 description='Only Server Owner or Extraowner Having **Higher role than me can run this command**'
             ))
@@ -95,14 +95,14 @@ class Nightmode(commands.Cog):
         ]
 
         if not manageable_roles:
-            return await ctx.send(embed=discord.Embed(title="<:zcross:1448951756372443296> Error",
+            return await ctx.send(embed=discord.Embed(title="❌ Error",
                 color=self.color,
                 description='No Roles Found With Admin Permissions'
             ))
 
         async with self.db.execute('SELECT guildId FROM Nightmode WHERE guildId = ?', (str(ctx.guild.id),)) as cursor:
             if await cursor.fetchone():
-                return await ctx.send(embed=discord.Embed(title="<:zcross:1448951756372443296> Error",
+                return await ctx.send(embed=discord.Embed(title="❌ Error",
                     color=self.color,
                     description='Nightmode is already enabled.'
                 ))
@@ -122,7 +122,7 @@ class Nightmode(commands.Cog):
                     ''', (str(ctx.guild.id), str(role.id), int(admin_permissions.value)))
             await self.db.commit()
 
-        await ctx.send(embed=discord.Embed(title="<:ztick:1448951767990796298> Success",
+        await ctx.send(embed=discord.Embed(title="✅ Success",
             color=self.color,
             description='Nightmode enabled! Dangerous Permissions Disabled For Manageable Roles.'
         ))
@@ -134,7 +134,7 @@ class Nightmode(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def disable_nightmode(self, ctx):
         if ctx.guild.member_count < 50:  
-            return await ctx.send(embed=discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            return await ctx.send(embed=discord.Embed(title="⚠️ Access Denied",
                 color=self.color,
                 description='Your Server Doesn\'t Meet My 50 Member Criteria'
             ))
@@ -142,7 +142,7 @@ class Nightmode(commands.Cog):
         own = ctx.author.id == ctx.guild.owner_id
         check = await self.is_extra_owner(ctx.author, ctx.guild)
         if not own and not check and ctx.author.id not in self.ricky:
-            return await ctx.send(embed=discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            return await ctx.send(embed=discord.Embed(title="⚠️ Access Denied",
                 color=self.color,
                 description='Only Server Owner Or Extraowner Can Run This Command.!'
             ))
@@ -150,7 +150,7 @@ class Nightmode(commands.Cog):
         if not own and not (
             ctx.guild.me.top_role.position <= ctx.author.top_role.position
         ) and ctx.author.id not in self.ricky:
-            return await ctx.send(embed=discord.Embed(title="<:zwarning:1448949627712966717> Access Denied",
+            return await ctx.send(embed=discord.Embed(title="⚠️ Access Denied",
                 color=self.color,
                 description='Only Server Owner or Extraowner Having **Higher role than me can run this command**'
             ))
@@ -159,7 +159,7 @@ class Nightmode(commands.Cog):
             stored_roles = await cursor.fetchall()
 
         if not stored_roles:
-            return await ctx.send(embed=discord.Embed(title="<:zcross:1448951756372443296> Error",
+            return await ctx.send(embed=discord.Embed(title="❌ Error",
                 color=self.color,
                 description='Nightmode is not enabled.'
             ))
@@ -174,7 +174,7 @@ class Nightmode(commands.Cog):
                     await cursor.execute('DELETE FROM Nightmode WHERE guildId = ? AND roleId = ?', (str(ctx.guild.id), role_id))
             await self.db.commit()
 
-        await ctx.send(embed=discord.Embed(title="<:ztick:1448951767990796298> Success",
+        await ctx.send(embed=discord.Embed(title="✅ Success",
             color=self.color,
             description='Nightmode disabled! Restored Permissions For Manageable Roles.'
         ))

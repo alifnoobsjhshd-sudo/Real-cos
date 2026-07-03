@@ -16,7 +16,7 @@ class Autorole(Cog):
         async for entry in guild.audit_logs(limit=3):
             if entry.action == discord.AuditLogAction.bot_add:
                 embed = discord.Embed(
-                   description=f"<:zmodule:1448951340716785744> **Thanks for adding me.**\n\n<a:ArrowRed:1448951520077811806> My default prefix is `>`\n<a:ArrowRed:1448951520077811806>> Use the `>help` command to see a list of commands\n<a:ArrowRed:1448951520077811806> For detailed guides, FAQ and information, visit our **[Support Server](https://discord.gg/codexdev)**",
+                   description=f"🧩 **Thanks for adding me.**\n\n➡️ My default prefix is `>`\n➡️> Use the `>help` command to see a list of commands\n➡️ For detailed guides, FAQ and information, visit our **[Support Server](https://discord.gg/codexdev)**",
                     color=0xFF0000
                )
                 embed.set_thumbnail(url=entry.user.display_avatar.url if entry.user.avatar else entry.user.default_avatar.url)

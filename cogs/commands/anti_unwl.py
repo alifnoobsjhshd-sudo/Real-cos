@@ -24,7 +24,7 @@ class Unwhitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0x08ff00,
-                description="<:zcross:1448951756372443296> | Your Server Doesn't Meet My 30 Member Criteria"
+                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -42,7 +42,7 @@ class Unwhitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+            embed = discord.Embed(title="❌ Access Denied",
                 color=0x08ff00,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -52,9 +52,9 @@ class Unwhitelist(commands.Cog):
             embed = discord.Embed(
                 color=0x08ff00,
                 description=(
-                    f"**{ctx.guild.name} Security Settings <:manager:1394348646803439709>\n"
+                    f"**{ctx.guild.name} Security Settings 🗂️\n"
                     "Ohh NO! looks like your server doesn't enabled security\n\n"
-                    "Current Status : <:zcross:1448951756372443296>\n\n"
+                    "Current Status : ❌\n\n"
                     "To enable use `antinuke enable` **"
                 )
             )
@@ -66,7 +66,7 @@ class Unwhitelist(commands.Cog):
                 title="__**Unwhitelist Commands**__",
                 description="**Removes user from whitelisted users which means that the antinuke module will now take actions on them if they trigger it.**"
             )
-            embed.add_field(name="__**Usage**__", value="<a:reddot:1398280090198081578> `unwhitelist @user/id`\n<a:reddot:1398280090198081578> `unwl @user`")
+            embed.add_field(name="__**Usage**__", value="🔴 `unwhitelist @user/id`\n🔴 `unwl @user`")
             return await ctx.send(embed=embed)
 
         async with self.db.execute(
@@ -76,7 +76,7 @@ class Unwhitelist(commands.Cog):
             data = await cursor.fetchone()
 
         if not data:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+            embed = discord.Embed(title="❌ Error",
                 color=0xFF0000,
                 description=f"<@{member.id}> is not a whitelisted member."
             )
@@ -88,7 +88,7 @@ class Unwhitelist(commands.Cog):
         )
         await self.db.commit()
 
-        embed = discord.Embed(title="<:ztick:1448951767990796298> Success",
+        embed = discord.Embed(title="✅ Success",
             color=0xFF0000,
             description=f"User <@!{member.id}> has been removed from the whitelist."
         )

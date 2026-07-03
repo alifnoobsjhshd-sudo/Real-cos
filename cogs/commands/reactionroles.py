@@ -60,22 +60,22 @@ class ReactionRoles(commands.Cog):
             message = await channel.fetch_message(message_id)
             await message.add_reaction(emoji)
             self.add_reaction_role(ctx.guild.id, message.id, emoji, role.id)
-            await ctx.send(f"<:ztick:1448951767990796298> Reaction role added: React with {emoji} to get {role.name}", ephemeral=True if ctx.interaction else False)
+            await ctx.send(f"✅ Reaction role added: React with {emoji} to get {role.name}", ephemeral=True if ctx.interaction else False)
         except discord.NotFound:
-            await ctx.send("<:zcross:1448951756372443296> Message not found.", ephemeral=True if ctx.interaction else False)
+            await ctx.send("❌ Message not found.", ephemeral=True if ctx.interaction else False)
         except discord.HTTPException as e:
-            await ctx.send(f"<:zcross:1448951756372443296>  Error: {str(e)}", ephemeral=True if ctx.interaction else False)
+            await ctx.send(f"❌  Error: {str(e)}", ephemeral=True if ctx.interaction else False)
 
     @commands.hybrid_command(name="dmrr", help="Enable or disable DM messages for reaction roles.", usage="dmrr <enable|disable>")
     @commands.has_permissions(manage_guild=True)
     async def dmrr(self, ctx: Context, mode: str):
         if mode.lower() not in ["enable", "disable"]:
-            await ctx.send("<:zcross:1448951756372443296> Use `enable` or `disable`.", ephemeral=True if ctx.interaction else False)
+            await ctx.send("❌ Use `enable` or `disable`.", ephemeral=True if ctx.interaction else False)
             return
 
         value = 1 if mode.lower() == "enable" else 0
         self.set_dm_setting(ctx.guild.id, value)
-        await ctx.send(f"<:ztick:1448951767990796298> DM messages for reaction roles {'enabled' if value else 'disabled'}.", ephemeral=True if ctx.interaction else False)
+        await ctx.send(f"✅ DM messages for reaction roles {'enabled' if value else 'disabled'}.", ephemeral=True if ctx.interaction else False)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
@@ -103,7 +103,7 @@ class ReactionRoles(commands.Cog):
                 # DM if enabled
                 if self.get_dm_setting(payload.guild_id):
                     try:
-                        await member.send(f"<:ztick:1448951767990796298> You received the **{role.name}** role from {guild.name}.")
+                        await member.send(f"✅ You received the **{role.name}** role from {guild.name}.")
                     except discord.Forbidden:
                         pass
 

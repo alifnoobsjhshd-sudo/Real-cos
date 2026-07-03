@@ -23,7 +23,7 @@ class Lock(commands.Cog):
         # Check if the channel is already locked
         if not channel.permissions_for(ctx.guild.default_role).send_messages:
             embed = discord.Embed(
-                description=f"**Channel: {channel.mention}\n<:ztick:1448951767990796298> Status: Already Locked**",
+                description=f"**Channel: {channel.mention}\n✅ Status: Already Locked**",
                 color=0xFF0000
             )
             #embed.set_author(name=f"{c", icon_url="")
@@ -37,7 +37,7 @@ class Lock(commands.Cog):
         # Create the confirmation embed
         embed = discord.Embed(
             title="Zyrox | Lockdown",
-            description=f"<:ztick:1448951767990796298> | Successfully Locked {channel.mention}",
+            description=f"✅ | Successfully Locked {channel.mention}",
             color=0xFF0000
         )
         #embed.set_author(name=f"Successfully Locked {channel.name}", icon_url="")

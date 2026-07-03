@@ -45,7 +45,7 @@ from discord import ui
             #    item.disabled = True
        # await self.message.edit(view=self)
 
-   # @ui.button(style=discord.ButtonStyle.gray, emoji="<:delete:1327842168693461022>")
+   # @ui.button(style=discord.ButtonStyle.gray, emoji="🗑️")
   #  async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
       #  await interaction.message.delete()
 
@@ -79,7 +79,7 @@ class Unlock(commands.Cog):
         await channel.set_permissions(ctx.guild.default_role, send_messages=True)
 
         embed = discord.Embed(
-            description=f"**<:ztick:1448951767990796298> | Successfully {channel.mention} is now unhidden",
+            description=f"**✅ | Successfully {channel.mention} is now unhidden",
             color=self.color
         )
        # embed.add_field(name=" **Moderator:**", value=ctx.author.mention, inline=False)

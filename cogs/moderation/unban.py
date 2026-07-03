@@ -31,7 +31,7 @@ from utils.Tools import *
        # modal = ReasonModal(user=self.user, author=self.author, view=self)
       #  await interaction.response.send_modal(modal)
 
-   # @ui.button(style=discord.ButtonStyle.gray, emoji="<:delete:1327842168693461022>")
+   # @ui.button(style=discord.ButtonStyle.gray, emoji="🗑️")
    # async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
       #  await interaction.message.delete()
 
@@ -59,7 +59,7 @@ from utils.Tools import *
      #   modal = ReasonModal(user=self.user, author=self.author, view=self)
      #   await interaction.response.send_modal(modal)
 
-   # @ui.button(style=discord.ButtonStyle.gray, emoji="<:delete:1327842168693461022>")
+   # @ui.button(style=discord.ButtonStyle.gray, emoji="🗑️")
    # async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
      #   await interaction.message.delete()
 
@@ -75,7 +75,7 @@ from utils.Tools import *
     #async def on_submit(self, interaction: discord.Interaction):
       #  reason = self.reason_input.value or "No reason provided"
      #   try:
-          #  await self.user.send(f"<:zwarning:1448949627712966717> You have been Banned from **{self.author.guild.name}** by **{self.author}**. Reason: {reason or 'No reason provided'}")
+          #  await self.user.send(f"⚠️ You have been Banned from **{self.author.guild.name}** by **{self.author}**. Reason: {reason or 'No reason provided'}")
          #   dm_status = "Yes"
         #except discord.Forbidden:
          #   dm_status = "No"
@@ -143,7 +143,7 @@ class Unban(commands.Cog):
             return
 
         try:
-            await user.send(f"<:ztick:1448951767990796298> You have been unbanned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
+            await user.send(f"✅ You have been unbanned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
             dm_status = "Yes"
         except discord.Forbidden:
             dm_status = "No"
@@ -153,7 +153,7 @@ class Unban(commands.Cog):
         await ctx.guild.unban(user, reason=f"Unban requested by {ctx.author} for reason: {reason or 'No reason provided'}")
 
         reasonn = reason or "No reason provided"
-        embed = discord.Embed(description=f"**<:ztick:1448951767990796298> | Successfully Unbaned [{user}](https://discord.com/users/{user.id})\nReason {reasonn}**", color=0xFF0000)
+        embed = discord.Embed(description=f"**✅ | Successfully Unbaned [{user}](https://discord.com/users/{user.id})\nReason {reasonn}**", color=0xFF0000)
         embed.set_author(name=f"Successfully Unbanned {user.name}", icon_url=self.get_user_avatar(user))
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
        # embed.add_field(name=" Moderator:", value=ctx.author.mention, inline=False)

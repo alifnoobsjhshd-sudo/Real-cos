@@ -109,7 +109,7 @@ class AntiInvite(commands.Cog):
                     await message.delete()
 
                     simple_embed = discord.Embed(title="Automod Anti-Invite", color=0xFF0000)
-                    simple_embed.description = f"<:ztick:1448951767990796298> | {user.mention} has been successfully **{action_taken}** for **posting an invite link.**"
+                    simple_embed.description = f"✅ | {user.mention} has been successfully **{action_taken}** for **posting an invite link.**"
                     
                     simple_embed.set_footer(text="Use the “automod logging” command to get automod logs if it is not enabled.", icon_url=self.bot.user.display_avatar.url)
                     await channel.send(embed=simple_embed, delete_after=30)

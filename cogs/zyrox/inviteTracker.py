@@ -24,4 +24,4 @@ class inviteTracker(commands.Cog):
 
     async def __InviteTracker__(self, ctx: commands.Context):
 
-        """`>invites`, `>addinvites`, `>inviteleaderboard`, `>invitelogging`"""
+        """`>invites`, `>addinvites`, `>inviteleaderboard`, `>invitelogging`, `>i`"""

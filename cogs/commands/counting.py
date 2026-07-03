@@ -4,20 +4,18 @@ import json
 import os
 import asyncio
 
-# Emoji Variables (loaded from utils/emojis.py — auto-updated after /upload emojis)
-from utils.emojis import e as _e
-CROSS   = _e("zcross")
-TICK    = _e("ztick")
-WARNING = _e("zwarning")
-BOOK    = _e("RedRulesBook")
-PLAY    = _e("zplay")
-PAUSE   = _e("zpause")
-STOP    = _e("red_button")
-NEXT    = _e("next")
-BACK    = _e("zback")
-ARROW   = _e("ArrowRed")
-PIN     = _e("red_pin")
-STAR    = _e("starr")
+CROSS   = "❌"
+TICK    = "✅"
+WARNING = "⚠️"
+BOOK    = "📕"
+PLAY    = "▶️"
+PAUSE   = "⏸️"
+STOP    = "🔴"
+NEXT    = "▶️"
+BACK    = "◀️"
+ARROW   = "➡️"
+PIN     = "📌"
+STAR    = "⭐"
 
 class Counting(commands.Cog):
     def __init__(self, bot):

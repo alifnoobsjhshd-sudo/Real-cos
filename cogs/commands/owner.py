@@ -50,20 +50,20 @@ BADGE_NAMES = {
 
 # Emojis for official Discord badges
 DISCORD_BADGE_EMOJIS = {
-    "nitro": "<a:nitroboost:1448949639540899921>",
-    "boost": "<a:boosts:1448949652547436654>",
-    "staff": "<a:staff:1448949765931925504>",
-    "partner": "<:PartneredServerOwner:1122549945532297246>",
-    "hypesquad": "<:HypesquadEvents:1448949663821598812>",
-    "bug_hunter_level_1": "<:BugHunterLevel1:1448949674898620518>",
-    "hypesquad_bravery": "<a:a_Hypesquad_Bravery:1448949697577353307>",
-    "hypesquad_brilliance": "<:Hypesquad_Brilliance:1448949708381749370>",
-    "hypesquad_balance": "<a:a_Hypesquad_Balance:1448949777067806720>",
-    "early_supporter": "<:EarlySupporter:1448949719752773703>",
-    "bug_hunter_level_2": "<:BugHunterLvl2:1122549925237375086>",
-    "early_verified_bot_developer": "<a:EarlyVerifiedBotDeveloper:1448949731777839184>",
-    "discord_certified_moderator": "<:CertifiedDiscordModerator:1448949742792085516>",
-    "active_developer": "<a:Active_Developer:1448949755181793280>",
+    "nitro": "🚀",
+    "boost": "🚀",
+    "staff": "🛡️",
+    "partner": "🤝",
+    "hypesquad": "🎉",
+    "bug_hunter_level_1": "🐛",
+    "hypesquad_bravery": "🛡️",
+    "hypesquad_brilliance": "🧡",
+    "hypesquad_balance": "⚖️",
+    "early_supporter": "🌟",
+    "bug_hunter_level_2": "🐞",
+    "early_verified_bot_developer": "🤖",
+    "discord_certified_moderator": "🛡️",
+    "active_developer": "👨‍💻",
 }
 
 
@@ -160,28 +160,28 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def staff_add(self, ctx, user: discord.User):
         if user.id in self.staff:
-            sonu = discord.Embed(title="<:zwarning:1448949627712966717>  Access Denied", description=f"{user} is already in the staff list.", color=0xFF0000)
+            sonu = discord.Embed(title="⚠️  Access Denied", description=f"{user} is already in the staff list.", color=0xFF0000)
             await ctx.reply(embed=sonu, mention_author=False)
         else:
             self.staff.add(user.id)
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute('INSERT OR IGNORE INTO staff (id) VALUES (?)', (user.id,))
                 await db.commit()
-            sonu2 = discord.Embed(title="<:ztick:1448951767990796298> Success", description=f"Added {user} to the staff list.", color=0xFF0000)
+            sonu2 = discord.Embed(title="✅ Success", description=f"Added {user} to the staff list.", color=0xFF0000)
             await ctx.reply(embed=sonu2, mention_author=False)
 
     @commands.command(name="staff_remove", aliases=["staffremove", "removestaff"], help="Removes a user from the staff list.")
     @commands.is_owner()
     async def staff_remove(self, ctx, user: discord.User):
         if user.id not in self.staff:
-            sonu = discord.Embed(title="<:zwarning:1448949627712966717> Access Denied", description=f"{user} is not in the staff list.", color=0xFF0000)
+            sonu = discord.Embed(title="⚠️ Access Denied", description=f"{user} is not in the staff list.", color=0xFF0000)
             await ctx.reply(embed=sonu, mention_author=False)
         else:
             self.staff.remove(user.id)
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute('DELETE FROM staff WHERE id = ?', (user.id,))
                 await db.commit()
-                sonu2 = discord.Embed(title="<:ztick:1448951767990796298> Success", description=f"Removed {user} from the staff list.", color=0xFF0000)
+                sonu2 = discord.Embed(title="✅ Success", description=f"Removed {user} from the staff list.", color=0xFF0000)
             await ctx.reply(embed=sonu2, mention_author=False)
 
     @commands.command(name="staff_list", aliases=["stafflist", "liststaff", "staffs"], help="Lists all staff members.")
@@ -195,7 +195,7 @@ class Owner(commands.Cog):
                 member = await self.client.fetch_user(staff_id)
                 member_list.append(f"{member.name}#{member.discriminator} (ID: {staff_id})")
             staff_display = "\n".join(member_list)
-            sonu = discord.Embed(title="<:ztick:1448951767990796298> Zyrox Staffs", description=f"\n{staff_display}", color=0xFF0000)
+            sonu = discord.Embed(title="✅ Zyrox Staffs", description=f"\n{staff_display}", color=0xFF0000)
             await ctx.send(embed=sonu)
 
     @commands.command(name="slist")
@@ -271,7 +271,7 @@ class Owner(commands.Cog):
     @commands.command(name="reload", help="Restarts the client.")
     @commands.is_owner()
     async def _restart(self, ctx: Context):
-        await ctx.reply("<:ztick:1448951767990796298> | **Successfully Restarting Zyrox It Takes 10 seconds**")
+        await ctx.reply("✅ | **Successfully Restarting Zyrox It Takes 10 seconds**")
         restart_program()
 
     @commands.command(name="sync", help="Syncs all database.")
@@ -326,7 +326,7 @@ class Owner(commands.Cog):
         """ DM the user of your choice """
         try:
             await user.send(message)
-            await ctx.send(f"<:ztick:1448951767990796298> | Successfully Sent a DM to **{user}**")
+            await ctx.send(f"✅ | Successfully Sent a DM to **{user}**")
         except discord.Forbidden:
             await ctx.send("This user might be having DMs blocked or it's a bot account...")           
 
@@ -346,9 +346,9 @@ class Owner(commands.Cog):
         try:
             await ctx.guild.me.edit(nick=name)
             if name:
-                await ctx.send(f"<:ztick:1448951767990796298> | Successfully changed nickname to **{name}**")
+                await ctx.send(f"✅ | Successfully changed nickname to **{name}**")
             else:
-                await ctx.send("<:ztick:1448951767990796298> | Successfully removed nickname")
+                await ctx.send("✅ | Successfully removed nickname")
         except Exception as err:
             await ctx.send(err) 
 
@@ -363,14 +363,14 @@ class Owner(commands.Cog):
                 await member.ban(reason=reason)
                 embed = discord.Embed(
                     title="Successfully Banned",
-                    description=f"<:ztick:1448951767990796298> | **{member.name}** has been successfully banned from {ctx.guild.name} by the Bot Owner.",
+                    description=f"✅ | **{member.name}** has been successfully banned from {ctx.guild.name} by the Bot Owner.",
                     color=0xFF0000)
                 await ctx.reply(embed=embed, mention_author=False, delete_after=3)
                 await ctx.message.delete()
             except discord.Forbidden:
                 embed = discord.Embed(
                     title="Error!",
-                    description=f"<:zwarning:1448949627712966717>  I do not have permission to ban **{member.name}** in this guild.",
+                    description=f"⚠️  I do not have permission to ban **{member.name}** in this guild.",
                     color=0xFF0000
                 )
                 await ctx.reply(embed=embed, mention_author=False, delete_after=5)
@@ -378,7 +378,7 @@ class Owner(commands.Cog):
             except discord.HTTPException:
                 embed = discord.Embed(
                     title="Error!",
-                    description=f"<:zwarning:1448949627712966717>  An error occurred while banning **{member.name}**.",
+                    description=f"⚠️  An error occurred while banning **{member.name}**.",
                     color=0xFF0000
                 )
                 await ctx.reply(embed=embed, mention_author=False, delete_after=5)
@@ -396,21 +396,21 @@ class Owner(commands.Cog):
                 await ctx.guild.unban(user, reason=reason)
                 embed = discord.Embed(
                     title="Successfully Unbanned",
-                    description=f"<:ztick:1448951767990796298> | **{user.name}** has been successfully unbanned from {ctx.guild.name} by the Bot Owner.",
+                    description=f"✅ | **{user.name}** has been successfully unbanned from {ctx.guild.name} by the Bot Owner.",
                     color=0xFF0000
                 )
                 await ctx.reply(embed=embed, mention_author=False)
             except discord.Forbidden:
                 embed = discord.Embed(
                     title="Error!",
-                    description=f"<:zwarning:1448949627712966717>  I do not have permission to unban **{user.name}** in this guild.",
+                    description=f"⚠️  I do not have permission to unban **{user.name}** in this guild.",
                     color=0xFF0000
                 )
                 await ctx.reply(embed=embed, mention_author=False)
             except discord.HTTPException:
                 embed = discord.Embed(
                     title="Error!",
-                    description=f"<:zwarning:1448949627712966717>  An error occurred while unbanning **{user.name}**.",
+                    description=f"⚠️  An error occurred while unbanning **{user.name}**.",
                     color=0xFF0000
                 )
                 await ctx.reply(embed=embed, mention_author=False)
@@ -765,7 +765,7 @@ class Badges(commands.Cog):
         member = member or ctx.author
         
         loading_embed = discord.Embed(
-            title="<a:loadingred:1448966488865247232> Loading Profile...",
+            title="⏳ Loading Profile...",
             color=0xFF0000
         )
         processing_msg = await ctx.send(embed=loading_embed)

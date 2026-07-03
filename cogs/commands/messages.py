@@ -61,7 +61,7 @@ class Messages(commands.Cog):
                 f"**Daily Messages** ``:`` {daily_average}\n"
                 f"**Today Messages** ``:`` {today_count}\n"
                 f"**Total Messages** ``:`` {total}\n\n"
-                f"**<a:ArrowRed:1448951520077811806>Upgrade Your Experience With [Zyrox Noprefix](https://discord.gg/codexdev)**"
+                f"**➡️Upgrade Your Experience With [Zyrox Noprefix](https://discord.gg/codexdev)**"
             ),
             color=0xFF0000
         )

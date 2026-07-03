@@ -14,17 +14,15 @@ import re
 EMBED_COLOR = 0xFF0000
 TICKET_CHANNEL_IMAGE_URL = "https://cdn.discordapp.com/attachments/1403014653214330951/1403022431303630900/images_2.jpg?ex=68a1e776&is=68a095f6&hm=2c4e74b079fa409410920507bfb55549d485aafa89e194d15ab548eaba684555&"
 
-# --- Emoji Variables (loaded from utils/emojis.py — auto-updated after /upload emojis) ---
-from utils.emojis import e as _e
-SUCCESS_EMOJI    = _e("ztick")
-ERROR_EMOJI      = _e("zcross")
-LOCK_EMOJI       = _e("unlock") + " "
-UNLOCK_EMOJI     = _e("lock")
-CLAIM_EMOJI      = _e("handshake")
-CLOSE_EMOJI      = _e("zban")
-DELETE_EMOJI     = _e("delete")
-REOPEN_EMOJI     = _e("zwrench")
-TRANSCRIPT_EMOJI = _e("zmodule")
+SUCCESS_EMOJI    = "✅"
+ERROR_EMOJI      = "❌"
+LOCK_EMOJI       = "🔓" + " "
+UNLOCK_EMOJI     = "🔒"
+CLAIM_EMOJI      = "🤝"
+CLOSE_EMOJI      = "🔨"
+DELETE_EMOJI     = "🗑️"
+REOPEN_EMOJI     = "🔧"
+TRANSCRIPT_EMOJI = "🧩"
 
 # --- Constants ---
 if not os.path.exists('db'):

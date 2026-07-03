@@ -136,7 +136,7 @@ class BetaRockPaperScissors(RockPaperScissors):
         timeout: Optional[float] = None,
     ) -> discord.Message:
         if ctx.author == self.player2:
-            embed = discord.Embed(title="<:warning:1396796622347833378>   Access Denied", description="You cannot play against yourself!", color=0x000000)
+            embed = discord.Embed(title="⚠️   Access Denied", description="You cannot play against yourself!", color=0x000000)
             return await ctx.reply(embed=embed)
             
         """

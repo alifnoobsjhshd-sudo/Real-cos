@@ -50,7 +50,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="<:zcross:1448951756372443296> | Your Server Doesn't Meet My 30 Member Criteria"
+                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -70,7 +70,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+            embed = discord.Embed(title="❌ Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -80,9 +80,9 @@ class Whitelist(commands.Cog):
             embed = discord.Embed(
                 color=0xFF0000,
                 description=(
-                    f"**{ctx.guild.name} Security Settings <:manager:1394348646803439709> \n"
+                    f"**{ctx.guild.name} Security Settings 🗂️ \n"
                     "Ohh No! looks like your server doesn't enabled Antinuke\n\n"
-                    "Current Status : <:zcross:1448951756372443296>\n\n"
+                    "Current Status : ❌\n\n"
                     f"To enable use `{prefix}antinuke enable` **"
                 )
             )
@@ -95,7 +95,7 @@ class Whitelist(commands.Cog):
                 title="__**Whitelist Commands**__",
                 description="**Adding a user to the whitelist means that no actions will be taken against them if they trigger the Anti-Nuke Module.**"
             )
-            embed.add_field(name="__**Usage**__", value=f"<a:ArrowRed:1448951520077811806> `{prefix}whitelist @user/id`\n<a:ArrowRed:1448951520077811806> `{prefix}wl @user`")
+            embed.add_field(name="__**Usage**__", value=f"➡️ `{prefix}whitelist @user/id`\n➡️ `{prefix}wl @user`")
             embed.set_thumbnail(url=ctx.bot.user.display_avatar.url)
             return await ctx.send(embed=embed)
 
@@ -106,7 +106,7 @@ class Whitelist(commands.Cog):
             data = await cursor.fetchone()
 
         if data:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+            embed = discord.Embed(title="❌ Error",
                 color=0xFF0000,
                 description=f"<@{member.id}> is already a whitelisted member, **Unwhitelist** the user and try again."
             )
@@ -146,20 +146,20 @@ class Whitelist(commands.Cog):
             title=ctx.guild.name,
             color=0xFF0000,
             description=(
-                f"<:Disable:1448949515787964417> : **Ban**\n"
-                f"<:Disable:1448949515787964417> : **Kick**\n"
-                f"<:Disable:1448949515787964417> : **Prune**\n"
-                f"<:Disable:1448949515787964417> : **Bot Add**\n"
-                f"<:Disable:1448949515787964417> : **Server Update**\n"
-                f"<:Disable:1448949515787964417> : **Member Update**\n"
-                f"<:Disable:1448949515787964417> : **Channel Create**\n"
-                f"<:Disable:1448949515787964417> : **Channel Delete**\n"
-                f"<:Disable:1448949515787964417> : **Channel Update**\n"
-                f"<:Disable:1448949515787964417> : **Role Create**\n"
-                f"<:Disable:1448949515787964417> : **Role Delete**\n"
-                f"<:Disable:1448949515787964417> : **Role Update**\n"
-                f"<:Disable:1448949515787964417> : **Mention** @everyone\n"
-                f"<:Disable:1448949515787964417> : **Webhook Management**"
+                f"🔴 : **Ban**\n"
+                f"🔴 : **Kick**\n"
+                f"🔴 : **Prune**\n"
+                f"🔴 : **Bot Add**\n"
+                f"🔴 : **Server Update**\n"
+                f"🔴 : **Member Update**\n"
+                f"🔴 : **Channel Create**\n"
+                f"🔴 : **Channel Delete**\n"
+                f"🔴 : **Channel Update**\n"
+                f"🔴 : **Role Create**\n"
+                f"🔴 : **Role Delete**\n"
+                f"🔴 : **Role Update**\n"
+                f"🔴 : **Mention** @everyone\n"
+                f"🔴 : **Webhook Management**"
                 
             )
         )
@@ -188,20 +188,20 @@ class Whitelist(commands.Cog):
                     title=ctx.guild.name,
                     color=0xFF0000,
                     description=(
-                         f"<:Enable:1448949527846322296> : **Ban**\n"
-                f"<:Enable:1448949527846322296> : **Kick**\n"
-                f"<:Enable:1448949527846322296> : **Prune**\n"
-                f"<:Enable:1448949527846322296> : **Bot Add**\n"
-                f"<:Enable:1448949527846322296> : **Server Update**\n"
-                f"<:Enable:1448949527846322296> : **Member Update**\n"
-                f"<:Enable:1448949527846322296> : **Channel Create**\n"
-                f"<:Enable:1448949527846322296> : **Channel Delete**\n"
-                f"<:Enable:1448949527846322296>: **Channel Update**\n"
-                f"<:Enable:1448949527846322296> : **Role Create**\n"
-                f"<:Enable:1448949527846322296> : **Role Delete**\n"
-                f"<:Enable:1448949527846322296> : **Role Update**\n"
-                f"<:Enable:1448949527846322296> : **Mention** @everyone\n"
-                f"<:Enable:1448949527846322296> : **Webhook Management**"
+                         f"🟢 : **Ban**\n"
+                f"🟢 : **Kick**\n"
+                f"🟢 : **Prune**\n"
+                f"🟢 : **Bot Add**\n"
+                f"🟢 : **Server Update**\n"
+                f"🟢 : **Member Update**\n"
+                f"🟢 : **Channel Create**\n"
+                f"🟢 : **Channel Delete**\n"
+                f"🟢: **Channel Update**\n"
+                f"🟢 : **Role Create**\n"
+                f"🟢 : **Role Delete**\n"
+                f"🟢 : **Role Update**\n"
+                f"🟢 : **Mention** @everyone\n"
+                f"🟢 : **Webhook Management**"
                     )
                 )
                 embed.add_field(name="**Executor**", value=f"<@!{ctx.author.id}>", inline=True)
@@ -230,7 +230,7 @@ class Whitelist(commands.Cog):
                 }
 
                 
-                embed_description = "\n".join(f"<:zcross:1448951756372443296><:ztick:1448951767990796298>> : **{name}**" for key, name in fields.items())
+                embed_description = "\n".join(f"❌✅> : **{name}**" for key, name in fields.items())
 
                 
                 for value in interaction.data["values"]:
@@ -238,7 +238,7 @@ class Whitelist(commands.Cog):
                         f"UPDATE whitelisted_users SET {value} = ? WHERE guild_id = ? AND user_id = ?",
                         (True, ctx.guild.id, member.id)
                     )
-                    embed_description = embed_description.replace(f"<:Disable:1448949515787964417> : **{fields[value]}**", f"<:Enable:1448949527846322296> : **{fields[value]}**")
+                    embed_description = embed_description.replace(f"🔴 : **{fields[value]}**", f"🟢 : **{fields[value]}**")
 
                 await self.db.commit()
 
@@ -269,7 +269,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="<:zcross:1448951756372443296> | Your Server Doesn't Meet My 30 Member Criteria"
+                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -289,7 +289,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+            embed = discord.Embed(title="❌ Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -299,9 +299,9 @@ class Whitelist(commands.Cog):
             embed = discord.Embed(
                 color=0xFF0000,
                 description=(
-                    f"**{ctx.guild.name} security settings <:manager:1394348646803439709> \n"
+                    f"**{ctx.guild.name} security settings 🗂️ \n"
                     "Ohh NO! looks like your server doesn't enabled security\n\n"
-                    "Current Status : <:zcross:1448951756372443296>>\n\n"
+                    "Current Status : ❌>\n\n"
                     f"To enable use `{pre}antinuke enable` **"
                 )
             )
@@ -315,7 +315,7 @@ class Whitelist(commands.Cog):
             data = await cursor.fetchall()
 
         if not data:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+            embed = discord.Embed(title="❌ Error",
                 color=0xFF0000,
                 description="No whitelisted users found."
             )
@@ -343,7 +343,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="<:zcross:1448951756372443296> | Your Server Doesn't Meet My 30 Member Criteria"
+                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -363,7 +363,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+            embed = discord.Embed(title="❌ Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -373,9 +373,9 @@ class Whitelist(commands.Cog):
             embed = discord.Embed(
                 color=0xFF0000,
                 description=(
-                    f"**{ctx.guild.name} Security Settings <:manager:1394348646803439709> \n"
+                    f"**{ctx.guild.name} Security Settings 🗂️ \n"
                     "Ohh NO! looks like your server doesn't enabled security\n\n"
-                    "Current Status : <:zcross:1448951756372443296>I\n\n"
+                    "Current Status : ❌I\n\n"
                     f"To enable use `{pre}antinuke enable` **"
                 )
             )
@@ -389,7 +389,7 @@ class Whitelist(commands.Cog):
 
 
         if not data:
-            embed = discord.Embed(title="<:zcross:1448951756372443296> Error",
+            embed = discord.Embed(title="❌ Error",
                 color=0xFF0000,
                 description="No whitelisted users found."
             )
@@ -397,7 +397,7 @@ class Whitelist(commands.Cog):
 
         await self.db.execute("DELETE FROM whitelisted_users WHERE guild_id = ?", (ctx.guild.id,))
         await self.db.commit()
-        embed = discord.Embed(title="<:ztick:1448951767990796298>> Success",
+        embed = discord.Embed(title="✅> Success",
             color=0xFF0000,
             description=f"Removed all whitelisted members from {ctx.guild.name}"
         )

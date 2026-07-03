@@ -28,7 +28,7 @@ from utils.Tools import *
          #   except Exception:
             #    pass
 
-   # @ui.button(style=discord.ButtonStyle.gray, emoji="<:delete:1327842168693461022>")
+   # @ui.button(style=discord.ButtonStyle.gray, emoji="🗑️")
   #  async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
       #  await interaction.message.delete()
 
@@ -126,7 +126,7 @@ class Warn(commands.Cog):
                 dm_status = "No"
 
             
-            embed = discord.Embed(description=f"**<:ztick:1448951767990796298> | Successfully Warned [{user}](https://discord.com/users/{user.id})\nReason {reason_to_send}\nNow He has {total_warns} Warns**",
+            embed = discord.Embed(description=f"**✅ | Successfully Warned [{user}](https://discord.com/users/{user.id})\nReason {reason_to_send}\nNow He has {total_warns} Warns**",
                                               color=self.color)
             embed.set_thumbnail(url=ctx.author.display_avatar.url)
             embed.set_author(name=f"Successfully Warned {user.name}", icon_url=self.get_user_avatar(user))
@@ -155,7 +155,7 @@ class Warn(commands.Cog):
     async def clearwarns(self, ctx, user: discord.Member):
         try:
             await self.reset_warns(ctx.guild.id, user.id)
-            embed = discord.Embed(description=f"<:ztick:1448951767990796298> | All warnings have been cleared for **{user}** in this guild.", color=self.color)
+            embed = discord.Embed(description=f"✅ | All warnings have been cleared for **{user}** in this guild.", color=self.color)
             embed.set_author(name=f"Warnings Cleared", icon_url=self.get_user_avatar(user))
             embed.set_footer(text=f"Requested by {ctx.author}", icon_url=self.get_user_avatar(ctx.author))
             embed.timestamp = discord.utils.utcnow()

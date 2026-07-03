@@ -24,7 +24,7 @@ class Hide(commands.Cog):
         # Check if the channel is already hidden
         if not channel.permissions_for(ctx.guild.default_role).read_messages:
             embed = discord.Embed(
-                description=f"**<:channel:1448951734096625727> Channel**: {channel.mention}\n<:zcross:1448951767990796298> **Status**: Already Hidden",
+                description=f"**#️⃣ Channel**: {channel.mention}\n❌ **Status**: Already Hidden",
                 color=self.color
             )
             embed.set_author(name=f"{channel.name} is Already Hidden")
@@ -39,7 +39,7 @@ class Hide(commands.Cog):
 
         # Create the success embed
         embed = discord.Embed(
-            description=f"**<:ztick:1448951767990796298> | {channel.mention} has been successfully hidden.**",
+            description=f"**✅ | {channel.mention} has been successfully hidden.**",
             color=self.color
         )
         embed.set_author(name=f"Channel Hidden")

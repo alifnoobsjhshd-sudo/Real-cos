@@ -85,7 +85,7 @@ class Ban(commands.Cog):
 
         # Try to DM the user
         try:
-            await user.send(f"<:zwarning:1448949627712966717> You have been banned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
+            await user.send(f"⚠️ You have been banned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
             dm_status = "Yes"
         except discord.Forbidden:
             dm_status = "No"
@@ -100,7 +100,7 @@ class Ban(commands.Cog):
         container.add_item(ui.TextDisplay(f"✅ **Successfully Banned {user.name}**"))
         container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay(
-            f"**<:ztick:1448951767990796298> | [{user}](https://discord.com/users/{user.id}) Has Been Banned Successfully**"
+            f"**✅ | [{user}](https://discord.com/users/{user.id}) Has Been Banned Successfully**"
             f"\n**Reason:** {reason or 'No reason provided'}"
             f"\n**DM Sent:** {dm_status}"
             f"\n**Moderator:** {ctx.author.mention}"

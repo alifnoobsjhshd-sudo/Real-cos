@@ -38,7 +38,7 @@ from datetime import timedelta
               #  item.disabled = True
         #await self.message.edit(view=self)
 
-   # @ui.button(style=discord.ButtonStyle.gray, emoji="<:delete:1327842168693461022>")
+   # @ui.button(style=discord.ButtonStyle.gray, emoji="🗑️")
    # async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
      #   await interaction.message.delete()
 
@@ -71,7 +71,7 @@ from datetime import timedelta
 
         
      #   try:
-        #    await self.user.send(f"<:zwarning:1448949627712966717> You have been muted in **{interaction.guild.name}** for {time_str}. Reason: {reason}")
+        #    await self.user.send(f"⚠️ You have been muted in **{interaction.guild.name}** for {time_str}. Reason: {reason}")
          #   dm_status = "Yes"
        # except discord.Forbidden:
           #  dm_status = "No"
@@ -155,7 +155,7 @@ class Unmute(commands.Cog):
 
             
             try:
-                await user.send(f"<:ztick:1448951767990796298> You have been unmuted in **{ctx.guild.name}**.")
+                await user.send(f"✅ You have been unmuted in **{ctx.guild.name}**.")
                 dm_status = "Yes"
             except discord.Forbidden:
                 dm_status = "No"
@@ -169,7 +169,7 @@ class Unmute(commands.Cog):
             return await ctx.send(embed=error)
 
         embed = discord.Embed(
-            description=f"**<:ztick:1448951767990796298> | Successfully Unmuted [{user}](https://discord.com/users/{user.id})**",
+            description=f"**✅ | Successfully Unmuted [{user}](https://discord.com/users/{user.id})**",
             color=self.color
         )        
         embed.set_thumbnail(url=ctx.author.display_avatar.url)

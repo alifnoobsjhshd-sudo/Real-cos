@@ -36,7 +36,7 @@ class Guild(Cog):
 
             embed.add_field(
                 name="**__About__**",
-                value=f"**Name : ** {guild.name}\n**ID :** {guild.id}\n**Owner <:king:1448951721479901334>  :** {guild.owner} (<@{guild.owner_id}>)\n**Created At : **{guild.created_at.month}/{guild.created_at.day}/{guild.created_at.year}\n**Members :** {len(guild.members)}",
+                value=f"**Name : ** {guild.name}\n**ID :** {guild.id}\n**Owner 👑  :** {guild.owner} (<@{guild.owner_id}>)\n**Created At : **{guild.created_at.month}/{guild.created_at.day}/{guild.created_at.year}\n**Members :** {len(guild.members)}",
                 inline=False
             )
             embed.add_field(
@@ -46,7 +46,7 @@ class Guild(Cog):
             )
             embed.add_field(
                 name="**__Members__**",
-                value=f"""<:zrocket:1448951445989888010> Members : {len(guild.members)}\n <:zHuman:1448951509235531869> Humans : {len(list(filter(lambda m: not m.bot, guild.members)))}\n <:zbot:1448951393216888905> Bots : {len(list(filter(lambda m: m.bot, guild.members)))}
+                value=f"""🚀 Members : {len(guild.members)}\n 👤 Humans : {len(list(filter(lambda m: not m.bot, guild.members)))}\n 🤖 Bots : {len(list(filter(lambda m: m.bot, guild.members)))}
                 """,
                 inline=False
             )
@@ -72,7 +72,7 @@ Threads : {len(guild.threads)}
             if not guild.chunked:
                 await guild.chunk()
 
-            embed = discord.Embed(description="<a:ArrowRed:1448951520077811806> Prefix For This Server is `>`\n<a:ArrowRed:1448951520077811806> Get Started with `>help`\n<a:ArrowRed:1448951520077811806> For detailed guides, FAQ & information, visit our **[Support Server](https://discord.gg/codexdev)**",
+            embed = discord.Embed(description="➡️ Prefix For This Server is `>`\n➡️ Get Started with `>help`\n➡️ For detailed guides, FAQ & information, visit our **[Support Server](https://discord.gg/codexdev)**",
     color=0xFF0000)
             embed.set_author(name="Thanks for adding me!", icon_url=guild.me.display_avatar.url)
             embed.set_footer(text="Powered by Zyrox Development™",)
@@ -117,7 +117,7 @@ Threads : {len(guild.threads)}
 
             embed.add_field(
                 name="**__About__**",
-                value=f"**Name : ** {guild.name}\n**ID :** {guild.id}\n**Owner <:king:1448951721479901334> :** {guild.owner} (<@{guild.owner_id}>)\n**Created At : **{guild.created_at.month}/{guild.created_at.day}/{guild.created_at.year}\n**Members :** {len(guild.members)}",
+                value=f"**Name : ** {guild.name}\n**ID :** {guild.id}\n**Owner 👑 :** {guild.owner} (<@{guild.owner_id}>)\n**Created At : **{guild.created_at.month}/{guild.created_at.day}/{guild.created_at.year}\n**Members :** {len(guild.members)}",
                 inline=False
             )
             embed.add_field(

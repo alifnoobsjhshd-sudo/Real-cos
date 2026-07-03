@@ -52,7 +52,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if result:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description="A media channel is already set. Please remove it before setting a new one.",
                         color=0xFF0000
                     )
@@ -63,7 +63,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="<:ztick:1448951767990796298> Success",
+            title="✅ Success",
             description=f"Successfully set {channel.mention} as the media-only channel.",
             color=0xFF0000
         )
@@ -81,7 +81,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description="There is no media-only channel set for this server.",
                         color=0xFF0000
                     )
@@ -92,7 +92,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="<:ztick:1448951767990796298> Success",
+            title="✅ Success",
             description="Successfully removed the media-only channel.",
             color=0xFF0000
         )
@@ -109,7 +109,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description="There is no media-only channel set for this server.",
                         color=0xFF0000
                     )
@@ -145,7 +145,7 @@ class Media(commands.Cog):
                 count = await cursor.fetchone()
                 if count[0] >= 25:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description="The bypass list can only hold up to 25 users.",
                         color=0xFF0000
                     )
@@ -156,7 +156,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if result:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description=f"{user.mention} is already in the bypass list.",
                         color=0xFF0000
                     )
@@ -167,7 +167,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="<:ztick:1448951767990796298> Success",
+            title="✅ Success",
             description=f"{user.mention} has been added to the bypass list.",
             color=0xFF0000
         )
@@ -184,7 +184,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="<:zcross:1448951756372443296> Error",
+                        title="❌ Error",
                         description=f"{user.mention} is not in the bypass list.",
                         color=0xFF0000
                     )
@@ -195,7 +195,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="<:ztick:1448951767990796298> Success",
+            title="✅ Success",
             description=f"{user.mention} has been removed from the bypass list.",
             color=0xFF0000
         )
@@ -281,7 +281,7 @@ class Media(commands.Cog):
                     embed = discord.Embed(
                         title="You Have Been Blacklisted",
                         description=(
-                            "<:icons_warning:1448949538944716922> You are blacklisted from using my commands due to spamming in the media channel. "
+                            "⚠️ You are blacklisted from using my commands due to spamming in the media channel. "
                             "If you believe this is a mistake, please reach out to the support server with proof."
                         ),
                         color=0xFF0000

@@ -183,9 +183,8 @@ def top_check():
             return True
 
         if ctx.author != ctx.guild.owner and ctx.author.top_role.position <= ctx.guild.me.top_role.position:
-            from utils.emojis import e as _e
             embed = discord.Embed(
-                title=f"{_e('Denied')} Access Denied",
+                title=f"⛔ Access Denied",
                 description="Your top role must be at a **higher** position than my top role.",
                 color=0x000000
             )

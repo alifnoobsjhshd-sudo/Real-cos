@@ -24,7 +24,7 @@ class Unhide(commands.Cog):
         # Check if the channel is already visible
         if channel.permissions_for(ctx.guild.default_role).read_messages:
             embed = discord.Embed(
-                description=f"**<:channel:1448951734096625727> Channel**: {channel.mention}\n<:ztick:1448951767990796298> **Status**: Already Visible",
+                description=f"**#️⃣ Channel**: {channel.mention}\n✅ **Status**: Already Visible",
                 color=self.color
             )
             embed.set_author(name=f"{channel.name} is Already Visible")
@@ -38,7 +38,7 @@ class Unhide(commands.Cog):
 
         # Create the success embed
         embed = discord.Embed(
-            description=f"**<:ztick:1448951767990796298> | {channel.mention} has been successfully unhidden.**",
+            description=f"**✅ | {channel.mention} has been successfully unhidden.**",
             color=self.color
         )
         embed.set_author(name="Channel Unhidden")

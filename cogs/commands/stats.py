@@ -34,10 +34,10 @@ class StatsDropdown(Select):
         self.embeds = embeds
 
         options = [
-            discord.SelectOption(label="System Info", emoji="<:zyrox_system:1448949359159939143>", description="System usage and performance."),
-            discord.SelectOption(label="General Info", emoji="<:zyrox_global:1448949370539217026>", description="General Informations About Bot."),
-            discord.SelectOption(label="Team Info", emoji="<:codebase:1448951697853386826>", description="Bot creators and team."),
-            discord.SelectOption(label="Code Info", emoji="<:zyrox_search:1448949381436014662>", description="Stats of bot's source files."),
+            discord.SelectOption(label="System Info", emoji="⚙️", description="System usage and performance."),
+            discord.SelectOption(label="General Info", emoji="🌐", description="General Informations About Bot."),
+            discord.SelectOption(label="Team Info", emoji="💻", description="Bot creators and team."),
+            discord.SelectOption(label="Code Info", emoji="🔍", description="Stats of bot's source files."),
         ]
 
         super().__init__(placeholder="Zyrox Statistics.", min_values=1, max_values=1, options=options)
@@ -91,7 +91,7 @@ class Stats(commands.Cog):
     @commands.cooldown(1, 7, commands.BucketType.user)
     async def stats(self, ctx):
         
-        loading_embed = discord.Embed(title="", description="<a:loading:1448949404185657354> **Generating Zyrox Statistics...**", color=0x00000)
+        loading_embed = discord.Embed(title="", description="⏳ **Generating Zyrox Statistics...**", color=0x00000)
         loading_msg = await ctx.reply(embed=loading_embed)
         # Uptime & formatting
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.start_time))))
@@ -105,7 +105,7 @@ class Stats(commands.Cog):
         
         
         quick_embed = Embed(title="Zyrox Stats Panel", color=0xFF0000)
-        quick_embed.add_field(name="<:zyroxthunder:1448949415200034907> Quick Overview", value=f"**Servers : {len(self.bot.guilds)}\nUsers : {total_users}\nUptime : {uptime}**")
+        quick_embed.add_field(name="⚡ Quick Overview", value=f"**Servers : {len(self.bot.guilds)}\nUsers : {total_users}\nUptime : {uptime}**")
         quick_embed.set_thumbnail(url=ctx.me.display_avatar.url)
         quick_embed.set_footer(text="Use dropdown menu to view detailed stats.")
 

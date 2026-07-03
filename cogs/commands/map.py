@@ -83,7 +83,7 @@ class MapView(ui.View):
             await self.update_embed(interaction)
             await interaction.response.send_message(embed=discord.Embed(description="Moved up."), ephemeral=True)
 
-    @discord.ui.button(label="", emoji="<:delete:1327842168693461022>", style=ButtonStyle.danger)
+    @discord.ui.button(label="", emoji="🗑️", style=ButtonStyle.danger)
     async def delete_embed(self, interaction: discord.Interaction, button: ui.Button):
         try:
             await interaction.message.delete()

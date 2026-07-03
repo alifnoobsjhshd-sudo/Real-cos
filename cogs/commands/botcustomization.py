@@ -55,7 +55,7 @@ class EmbedColorModal(discord.ui.Modal, title="Change Embed Color"):
         parsed = parse_color(self.color_input.value)
         if parsed is None:
             await interaction.response.send_message(
-                "<:zcross:1448949627712966717> Invalid hex color. Example: `FFD700` or `#FFD700`.",
+                "❌ Invalid hex color. Example: `FFD700` or `#FFD700`.",
                 ephemeral=True,
             )
             return
@@ -175,7 +175,7 @@ class AvatarModal(discord.ui.Modal, title="Set Bot Profile Picture"):
                 async with session.get(url) as resp:
                     if resp.status != 200:
                         await interaction.followup.send(
-                            "<:zcross:1448949627712966717> Could not download the image. Make sure the URL is a direct image link.",
+                            "❌ Could not download the image. Make sure the URL is a direct image link.",
                             ephemeral=True,
                         )
                         return
@@ -187,12 +187,12 @@ class AvatarModal(discord.ui.Modal, title="Set Bot Profile Picture"):
             await interaction.edit_original_response(content=None)
             await interaction.message.edit(embed=embed, view=self.profile_view)
             await interaction.followup.send(
-                "<:ztick:1448949627712966717> Profile picture updated! *(This applies globally to all servers.)*",
+                "✅ Profile picture updated! *(This applies globally to all servers.)*",
                 ephemeral=True,
             )
         except discord.HTTPException as e:
             await interaction.followup.send(
-                f"<:zcross:1448949627712966717> Failed to update avatar: `{e}`. Discord allows changing the avatar a limited number of times per hour.",
+                f"❌ Failed to update avatar: `{e}`. Discord allows changing the avatar a limited number of times per hour.",
                 ephemeral=True,
             )
 
@@ -218,7 +218,7 @@ class ProfileBannerModal(discord.ui.Modal, title="Set Bot Profile Banner"):
                 async with session.get(url) as resp:
                     if resp.status != 200:
                         await interaction.followup.send(
-                            "<:zcross:1448949627712966717> Could not download the image. Make sure the URL is a direct image link.",
+                            "❌ Could not download the image. Make sure the URL is a direct image link.",
                             ephemeral=True,
                         )
                         return
@@ -230,12 +230,12 @@ class ProfileBannerModal(discord.ui.Modal, title="Set Bot Profile Banner"):
             await interaction.edit_original_response(content=None)
             await interaction.message.edit(embed=embed, view=self.profile_view)
             await interaction.followup.send(
-                "<:ztick:1448949627712966717> Profile banner updated! *(This applies globally to all servers.)*",
+                "✅ Profile banner updated! *(This applies globally to all servers.)*",
                 ephemeral=True,
             )
         except discord.HTTPException as e:
             await interaction.followup.send(
-                f"<:zcross:1448949627712966717> Failed to update banner: `{e}`. Discord requires a Nitro-boosted account for profile banners.",
+                f"❌ Failed to update banner: `{e}`. Discord requires a Nitro-boosted account for profile banners.",
                 ephemeral=True,
             )
 
@@ -259,13 +259,13 @@ class AppearanceView(discord.ui.View):
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
         banner_display = f"[View]({self.embed_banner})"  if self.embed_banner   else "Not set"
         embed = discord.Embed(
-            title="<:zwrench:1448951382597177495> __Bot Message Appearance__",
+            title="🔧 __Bot Message Appearance__",
             description=(
-                f"<:zArrow:1448951532837015643> Use the buttons below to customize how the bot looks in this server.\n\n"
-                f"<:zArrow:1448951532837015643> **Branding Name:** `{self.branding_name}`\n"
-                f"<:zArrow:1448951532837015643> **Embed Color:** `{color_to_hex(self.embed_color)}`\n"
-                f"<:zArrow:1448951532837015643> **Embed Thumbnail:** {thumb_display}\n"
-                f"<:zArrow:1448951532837015643> **Embed Banner:** {banner_display}\n"
+                f"➡️ Use the buttons below to customize how the bot looks in this server.\n\n"
+                f"➡️ **Branding Name:** `{self.branding_name}`\n"
+                f"➡️ **Embed Color:** `{color_to_hex(self.embed_color)}`\n"
+                f"➡️ **Embed Thumbnail:** {thumb_display}\n"
+                f"➡️ **Embed Banner:** {banner_display}\n"
             ),
             color=self.embed_color,
         )
@@ -284,23 +284,23 @@ class AppearanceView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="Branding Name", emoji="<:zyrox_global:1448949370539217026>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Branding Name", emoji="🌐", style=discord.ButtonStyle.secondary, row=0)
     async def btn_branding(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(BrandingNameModal(self.guild_id, self))
 
-    @discord.ui.button(label="Embed Color", emoji="<:zArrow:1448951532837015643>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Embed Color", emoji="➡️", style=discord.ButtonStyle.secondary, row=0)
     async def btn_color(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(EmbedColorModal(self.guild_id, self))
 
-    @discord.ui.button(label="Thumbnail", emoji="<:zSafe:1448951403434479626>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Thumbnail", emoji="🛡️", style=discord.ButtonStyle.secondary, row=0)
     async def btn_thumbnail(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(EmbedThumbnailModal(self.guild_id, self))
 
-    @discord.ui.button(label="Banner", emoji="<:zmodule:1448951340716785744>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Banner", emoji="🧩", style=discord.ButtonStyle.secondary, row=0)
     async def btn_banner(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(EmbedBannerModal(self.guild_id, self))
 
-    @discord.ui.button(label="Back", emoji="<:next:1327829548426854522>", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=1)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = self.main_view.build_embed()
         await interaction.response.edit_message(embed=embed, view=self.main_view)
@@ -329,13 +329,13 @@ class ProfileView(discord.ui.View):
         av  = f"[View]({self.avatar_url})" if self.avatar_url else "Not set"
         bn  = f"[View]({self.banner_url})"  if self.banner_url  else "Not set"
         embed = discord.Embed(
-            title="<:zyrox_mention:1448949481776222218> __Bot Server Profile__",
+            title="📣 __Bot Server Profile__",
             description=(
-                f"<:zArrow:1448951532837015643> Customize the bot's profile settings.\n\n"
-                f"<:zArrow:1448951532837015643> **Display Name:** `{dn}`\n"
-                f"<:zArrow:1448951532837015643> **Server Bio:** {bio}\n"
-                f"<:zArrow:1448951532837015643> **Profile Picture:** {av}\n"
-                f"<:zArrow:1448951532837015643> **Profile Banner:** {bn}\n\n"
+                f"➡️ Customize the bot's profile settings.\n\n"
+                f"➡️ **Display Name:** `{dn}`\n"
+                f"➡️ **Server Bio:** {bio}\n"
+                f"➡️ **Profile Picture:** {av}\n"
+                f"➡️ **Profile Banner:** {bn}\n\n"
                 f"-# ⚠️ Profile picture & banner changes apply **globally** to all servers and have Discord rate limits."
             ),
             color=self.embed_color,
@@ -351,23 +351,23 @@ class ProfileView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="Display Name", emoji="<:zyrox_mention:1448949481776222218>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Display Name", emoji="📣", style=discord.ButtonStyle.secondary, row=0)
     async def btn_displayname(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(DisplayNameModal(self.guild_id, self))
 
-    @discord.ui.button(label="Server Bio", emoji="<:zyrox_global:1448949370539217026>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Server Bio", emoji="🌐", style=discord.ButtonStyle.secondary, row=0)
     async def btn_bio(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(BioModal(self.guild_id, self))
 
-    @discord.ui.button(label="Profile Picture", emoji="<:zseed:1448951477640101929>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Profile Picture", emoji="🌱", style=discord.ButtonStyle.secondary, row=0)
     async def btn_avatar(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(AvatarModal(self.guild_id, self))
 
-    @discord.ui.button(label="Profile Banner", emoji="<:zmodule:1448951340716785744>", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Profile Banner", emoji="🧩", style=discord.ButtonStyle.secondary, row=0)
     async def btn_banner(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(ProfileBannerModal(self.guild_id, self))
 
-    @discord.ui.button(label="Back", emoji="<:next:1327829548426854522>", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=1)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = self.main_view.build_embed()
         await interaction.response.edit_message(embed=embed, view=self.main_view)
@@ -388,13 +388,13 @@ class CustomizationDropdown(discord.ui.Select):
             discord.SelectOption(
                 label="Customize Bot Message Appearance",
                 description="Change branding, embed color, thumbnail & banner",
-                emoji="<:zwrench:1448951382597177495>",
+                emoji="🔧",
                 value="appearance",
             ),
             discord.SelectOption(
                 label="Bot Server Profile Customization",
                 description="Change display name, bio, avatar & banner",
-                emoji="<:zyrox_mention:1448949481776222218>",
+                emoji="📣",
                 value="profile",
             ),
         ]
@@ -436,11 +436,11 @@ class MainCustomizationView(discord.ui.View):
 
     def build_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="<:zwrench:1448951382597177495> __Bot Customization__",
+            title="🔧 __Bot Customization__",
             description=(
-                f"<:zArrow:1448951532837015643> Select an option from the dropdown below to customize the bot for this server.\n\n"
-                f"<:zSafe:1448951403434479626> **`»`** Customize Bot Message Appearance\n"
-                f"<:zyrox_mention:1448949481776222218> **`»`** Bot Server Profile Customization\n"
+                f"➡️ Select an option from the dropdown below to customize the bot for this server.\n\n"
+                f"🛡️ **`»`** Customize Bot Message Appearance\n"
+                f"📣 **`»`** Bot Server Profile Customization\n"
             ),
             color=self.branding["embed_color"],
         )
@@ -477,7 +477,7 @@ class BotCustomization(Cog, name="botcustomization"):
     async def botcustomization_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
-                title="<:Denied:1294218790082711553> Access Denied",
+                title="⛔ Access Denied",
                 description="You need the **Manage Server** permission to use this command.",
                 color=0x000000,
             )

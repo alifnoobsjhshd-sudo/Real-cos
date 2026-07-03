@@ -73,7 +73,7 @@ class EmojiUpload(commands.Cog):
 
         if not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(
-                f"{_e('zcross')} You need **Administrator** permission to upload emojis.",
+                f"❌ You need **Administrator** permission to upload emojis.",
                 ephemeral=True,
             )
 
@@ -82,7 +82,7 @@ class EmojiUpload(commands.Cog):
 
         if not emoji_names:
             return await interaction.response.send_message(
-                f"{_e('zcross')} Unknown branch `{branch_name}`.", ephemeral=True
+                f"❌ Unknown branch `{branch_name}`.", ephemeral=True
             )
 
         await interaction.response.defer(ephemeral=False, thinking=True)
@@ -108,7 +108,7 @@ class EmojiUpload(commands.Cog):
         if not final_to_upload:
             return await interaction.followup.send(
                 embed=discord.Embed(
-                    title=f"{_e('zcross')} No Emojis to Upload",
+                    title=f"❌ No Emojis to Upload",
                     description=(
                         f"All {len(to_upload)} emojis in branch **{branch_name}** already exist "
                         f"on this server AND there are no free slots for new ones.\n"
@@ -119,11 +119,11 @@ class EmojiUpload(commands.Cog):
             )
 
         progress_embed = discord.Embed(
-            title=f"{_e('loading')} Uploading **{branch_name}** emoji pack…",
+            title=f"⏳ Uploading **{branch_name}** emoji pack…",
             description=(
                 f"Replacing **{len(replace_names)}** existing + uploading **{len(capped_new)}** new emojis.\n"
                 f"Server slots: `{free_slots}` free / `{guild.emoji_limit}` total\n\n"
-                f"{_e('zwarning')} This replaces old versions — please wait."
+                f"⚠️ This replaces old versions — please wait."
             ),
             color=ACCENT,
         )
@@ -193,27 +193,27 @@ class EmojiUpload(commands.Cog):
         fail_count     = len(failed)
 
         result_embed = discord.Embed(
-            title=f"{_e('ztick')} Emoji Pack Installed — **{branch_name}**",
+            title=f"✅ Emoji Pack Installed — **{branch_name}**",
             color=GREEN if fail_count == 0 else ACCENT,
         )
         if replaced_count:
-            result_embed.add_field(name=f"{_e('ztick')} Replaced",
+            result_embed.add_field(name=f"✅ Replaced",
                                    value=f"`{replaced_count}` old emojis swapped with new design",
                                    inline=True)
         if new_count:
-            result_embed.add_field(name=f"{_e('zplus')} Added",
+            result_embed.add_field(name=f"➕ Added",
                                    value=f"`{new_count}` brand-new emojis uploaded",
                                    inline=True)
         if fail_count:
-            result_embed.add_field(name=f"{_e('zcross')} Failed",
+            result_embed.add_field(name=f"❌ Failed",
                                    value=f"`{fail_count}` could not be uploaded",
                                    inline=True)
         if skipped_no_slot:
-            result_embed.add_field(name=f"{_e('zwarning')} No Slot",
+            result_embed.add_field(name=f"⚠️ No Slot",
                                    value=f"`{len(skipped_no_slot)}` skipped — server emoji limit reached",
                                    inline=False)
         if missing:
-            result_embed.add_field(name=f"{_e('zwarning')} Missing files",
+            result_embed.add_field(name=f"⚠️ Missing files",
                                    value=f"`{len(missing)}` emoji images not found on disk",
                                    inline=False)
 
@@ -224,14 +224,14 @@ class EmojiUpload(commands.Cog):
 
         remaining_branches = [b for b in BRANCHES if b != branch_name]
         result_embed.add_field(
-            name=f"{_e('info')} Next Steps",
+            name=f"ℹ️ Next Steps",
             value=(
-                f"{_e('zArrow')} Upload remaining branches:\n"
+                f"➡️ Upload remaining branches:\n"
                 + "\n".join(
                     f"  `/upload emojis branch:{b}`  — {BRANCH_DESCRIPTIONS[b]}"
                     for b in remaining_branches
                 )
-                + f"\n\n{_e('ztick')} The bot now uses these emojis automatically!"
+                + f"\n\n✅ The bot now uses these emojis automatically!"
             ),
             inline=False,
         )
@@ -269,7 +269,7 @@ class EmojiUpload(commands.Cog):
 
         if not interaction.user.guild_permissions.manage_emojis:
             return await interaction.response.send_message(
-                f"{_e('zcross')} You need **Manage Emojis** permission to delete emojis.",
+                f"❌ You need **Manage Emojis** permission to delete emojis.",
                 ephemeral=True,
             )
 
@@ -290,7 +290,7 @@ class EmojiUpload(commands.Cog):
         if not pool:
             return await interaction.response.send_message(
                 embed=discord.Embed(
-                    description=f"{_e('zwarning')} This server has no **{type_label}** emojis to delete.",
+                    description=f"⚠️ This server has no **{type_label}** emojis to delete.",
                     color=ACCENT,
                 ),
                 ephemeral=True,
@@ -301,7 +301,7 @@ class EmojiUpload(commands.Cog):
         # Confirmation view
         confirm_view = _ConfirmView(interaction.user)
         confirm_embed = discord.Embed(
-            title=f"{_e('zwarning')} Confirm Emoji Deletion",
+            title=f"⚠️ Confirm Emoji Deletion",
             description=(
                 f"You are about to permanently delete **{len(to_delete)}** "
                 f"**{type_label}** emojis from **{guild.name}**.\n\n"
@@ -317,14 +317,14 @@ class EmojiUpload(commands.Cog):
 
         if not confirm_view.confirmed:
             cancelled_embed = discord.Embed(
-                description=f"{_e('zcross')} Emoji deletion **cancelled**.",
+                description=f"❌ Emoji deletion **cancelled**.",
                 color=RED,
             )
             return await interaction.edit_original_response(embed=cancelled_embed, view=None)
 
         # Start deletion
         progress_embed = discord.Embed(
-            title=f"{_e('loading')} Deleting emojis…",
+            title=f"⏳ Deleting emojis…",
             description=f"Deleting **{len(to_delete)}** {type_label} emojis. Please wait.",
             color=ACCENT,
         )
@@ -353,22 +353,22 @@ class EmojiUpload(commands.Cog):
                     failed.append(em.name)
 
         result_embed = discord.Embed(
-            title=f"{_e('ztick')} Emoji Deletion Complete",
+            title=f"✅ Emoji Deletion Complete",
             color=GREEN if not failed else ACCENT,
         )
         result_embed.add_field(
-            name=f"{_e('ztick')} Deleted",
+            name=f"✅ Deleted",
             value=f"`{len(deleted)}` {type_label} emojis removed",
             inline=True,
         )
         if failed:
             result_embed.add_field(
-                name=f"{_e('zcross')} Failed",
+                name=f"❌ Failed",
                 value=f"`{len(failed)}` could not be deleted",
                 inline=True,
             )
         result_embed.add_field(
-            name=f"{_e('info')} Server Slots",
+            name=f"ℹ️ Server Slots",
             value=f"`{len(guild.emojis)}` used / `{guild.emoji_limit}` total after deletion",
             inline=False,
         )
@@ -391,7 +391,7 @@ class EmojiUpload(commands.Cog):
         server_emoji_names = {em.name for em in guild.emojis}
 
         embed = discord.Embed(
-            title=f"{_e('zsettings')} Emoji Pack Status — {guild.name}",
+            title=f"⚙️ Emoji Pack Status — {guild.name}",
             color=ACCENT,
         )
 
@@ -401,15 +401,15 @@ class EmojiUpload(commands.Cog):
             frac    = len(present) / total if total else 0
             bar     = "█" * int(frac * 10) + "░" * (10 - int(frac * 10))
             status  = f"`[{bar}]` {len(present)}/{total}"
-            embed.add_field(name=f"{_e('zmodule')} {branch_name}", value=status, inline=False)
+            embed.add_field(name=f"🧩 {branch_name}", value=status, inline=False)
 
         embed.add_field(
-            name=f"{_e('info')} Stored emoji IDs",
+            name=f"ℹ️ Stored emoji IDs",
             value=f"`{len(store)}` emojis configured from previous uploads",
             inline=False,
         )
         embed.add_field(
-            name=f"{_e('zCloud')} Server emoji slots",
+            name=f"☁️ Server emoji slots",
             value=f"`{len(guild.emojis)}` used / `{guild.emoji_limit}` total",
             inline=False,
         )
@@ -451,11 +451,6 @@ class _ConfirmView(discord.ui.View):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _e(name: str) -> str:
-    from utils.emojis import e
-    return e(name)
-
 
 def _load_store() -> dict:
     try:

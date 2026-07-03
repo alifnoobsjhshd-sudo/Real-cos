@@ -55,7 +55,7 @@ class Antinuke(commands.Cog):
 
     is_owner = ctx.author.id == ctx.guild.owner_id
     if not is_owner and not check:
-      embed = discord.Embed(title="<:zcross:1448951756372443296> Access Denied",
+      embed = discord.Embed(title="❌ Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -65,7 +65,7 @@ class Antinuke(commands.Cog):
 
     if option is None:
       embed = discord.Embed(
-        title='<:zSafe:1448951403434479626> Zyrox Security',
+        title='🛡️ Zyrox Security',
         description="**Antinuke Defense Mode** — Protect your server from harmful admin actions with smart automated security protocols.\n\n"
             "**Core Functionalities**\n"
             "• Auto-ban malicious admin activities instantly.\n"
@@ -73,8 +73,8 @@ class Antinuke(commands.Cog):
             "• Live monitoring of admin actions.\n"
             "• Rapid threat detection & neutralization.\n\n"
             "**Configuration Panel**\n"
-            "<:ztick:1448951767990796298> Enable Protection: `antinuke enable`\n"
-            "<:zcross:1448951756372443296> Disable Protection: `antinuke disable`",
+            "✅ Enable Protection: `antinuke enable`\n"
+            "❌ Disable Protection: `antinuke disable`",
         color=0xFF0000
       )      
       embed.set_thumbnail(url=self.bot.user.display_avatar.url)
@@ -84,7 +84,7 @@ class Antinuke(commands.Cog):
     elif option.lower() == 'enable':
       if is_activated:
         embed = discord.Embed(
-          description=f'**Security Settings For {ctx.guild.name}**\nYour server __**already has Antinuke enabled.**__\n\nCurrent Status: <:ztick:1448951767990796298> Enabled\nTo Disable use `antinuke disable`',
+          description=f'**Security Settings For {ctx.guild.name}**\nYour server __**already has Antinuke enabled.**__\n\nCurrent Status: ✅ Enabled\nTo Disable use `antinuke disable`',
           color=0xFF0000
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
@@ -92,24 +92,24 @@ class Antinuke(commands.Cog):
       else:
         
         setup_embed = discord.Embed(
-          title="Antinuke Setup <a:emote:1448966401887961149>",
-          description="<:ztick:1448951767990796298> | Initializing Quick Setup!",
+          title="Antinuke Setup 😄",
+          description="✅ | Initializing Quick Setup!",
           color=0xFF0000
         )
         setup_message = await ctx.send(embed=setup_embed)
 
         
         if not ctx.guild.me.guild_permissions.administrator:
-          setup_embed.description += "\n<:zcross:1448951756372443296> | **Ops! It seems I Don't Have Administrator Perm To enable antinuke**."
+          setup_embed.description += "\n❌ | **Ops! It seems I Don't Have Administrator Perm To enable antinuke**."
           await setup_message.edit(embed=setup_embed)
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n<:ztick:1448951767990796298> Checking Zyrox's role position for optimal configuration..."
+        setup_embed.description += "\n✅ Checking Zyrox's role position for optimal configuration..."
         await setup_message.edit(embed=setup_embed)
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n<:ztick:1448951767990796298> | Crafting and configuring the Zyrox Supreme role..."
+        setup_embed.description += "\n✅ | Crafting and configuring the Zyrox Supreme role..."
         await setup_message.edit(embed=setup_embed)
         
         try:
@@ -123,34 +123,34 @@ class Antinuke(commands.Cog):
           )
           await ctx.guild.me.add_roles(role)
         except discord.Forbidden:
-          setup_embed.description += "\n<:zcross:1448951756372443296> | **Uh oh! I don't Have perms to enable antinuke**."
+          setup_embed.description += "\n❌ | **Uh oh! I don't Have perms to enable antinuke**."
           await setup_message.edit(embed=setup_embed)
           return
         except discord.HTTPException as e:
-          setup_embed.description += f"\n<:zcross:1448951756372443296> | **Uh: HTTPException: {e}\nCheck Guild Audit Logs**."
+          setup_embed.description += f"\n❌ | **Uh: HTTPException: {e}\nCheck Guild Audit Logs**."
           await setup_message.edit(embed=setup_embed)
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n<:ztick:1448951767990796298>| Ensuring precise placement of the Zyrox Supreme™ role..."
+        setup_embed.description += "\n✅| Ensuring precise placement of the Zyrox Supreme™ role..."
         await setup_message.edit(embed=setup_embed)
         try:
           await ctx.guild.edit_role_positions(positions={role: 1})
         except discord.Forbidden:
-          setup_embed.description += "\n<:zcross:1448951756372443296> | Ops! I don't have sufficient perms to move role."
+          setup_embed.description += "\n❌ | Ops! I don't have sufficient perms to move role."
           await setup_message.edit(embed=setup_embed)
           return
         except discord.HTTPException as e:
-          setup_embed.description += f"\n<:zcross:1448951756372443296> | Setup failed: HTTPException: {e}."
+          setup_embed.description += f"\n❌ | Setup failed: HTTPException: {e}."
           await setup_message.edit(embed=setup_embed)
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n<:ztick:1448951767990796298> | Safeguarding your changes..."
+        setup_embed.description += "\n✅ | Safeguarding your changes..."
         await setup_message.edit(embed=setup_embed)
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n<:ztick:1448951767990796298> | Activating the Antinuke Modules for enhanced security...!!"
+        setup_embed.description += "\n✅ | Activating the Antinuke Modules for enhanced security...!!"
         await setup_message.edit(embed=setup_embed)
 
         await self.db.execute('INSERT OR REPLACE INTO antinuke (guild_id, status) VALUES (?, ?)', (guild_id, True))
@@ -160,11 +160,11 @@ class Antinuke(commands.Cog):
         await setup_message.delete()
 
         embed = discord.Embed(
-          description=f"**Security Settings For {ctx.guild.name} **\n\nTip: For optimal functionality of the AntiNuke Module, please ensure that my role has **Administration** permissions and is positioned at the **Top** of the roles list\n\n<:zsettings:1448951745706459206> __**Modules Enabled**__\n>>> <:ztick:1448951767990796298> **Anti Ban**\n<:ztick:1448951767990796298> **Anti Kick**\n<:ztick:1448951767990796298> **Anti Bot**\n<:ztick:1448951767990796298> **Anti Channel Create**\n<:ztick:1448951767990796298> **Anti Channel Delete**\n<:ztick:1448951767990796298> **Anti Channel Update**\n<:ztick:1448951767990796298> **Anti Everyone/Here**\n<:ztick:1448951767990796298> **Anti Role Create**\n<:ztick:1448951767990796298> **Anti Role Delete**\n<:ztick:1448951767990796298> **Anti Role Update**\n<:ztick:1448951767990796298> **Anti Member Update**\n<:ztick:1448951767990796298> **Anti Guild Update**\n<:ztick:1448951767990796298> **Anti Integration**\n<:ztick:1448951767990796298> **Anti Webhook Create**\n<:ztick:1448951767990796298> **Anti Webhook Delete**\n<:ztick:1448951767990796298> **Anti Webhook Update**",
+          description=f"**Security Settings For {ctx.guild.name} **\n\nTip: For optimal functionality of the AntiNuke Module, please ensure that my role has **Administration** permissions and is positioned at the **Top** of the roles list\n\n⚙️ __**Modules Enabled**__\n>>> ✅ **Anti Ban**\n✅ **Anti Kick**\n✅ **Anti Bot**\n✅ **Anti Channel Create**\n✅ **Anti Channel Delete**\n✅ **Anti Channel Update**\n✅ **Anti Everyone/Here**\n✅ **Anti Role Create**\n✅ **Anti Role Delete**\n✅ **Anti Role Update**\n✅ **Anti Member Update**\n✅ **Anti Guild Update**\n✅ **Anti Integration**\n✅ **Anti Webhook Create**\n✅ **Anti Webhook Delete**\n✅ **Anti Webhook Update**",
           color=0xFF0000
         )
 
-        embed.add_field(name='', value=">>> <:ztick:1448951767990796298> **Anti Prune**\n<:ztick:1448951767990796298> **Auto Recovery**")
+        embed.add_field(name='', value=">>> ✅ **Anti Prune**\n✅ **Auto Recovery**")
 
         embed.set_author(name="Zyrox Antinuke", icon_url=self.bot.user.display_avatar.url)
 
@@ -179,7 +179,7 @@ class Antinuke(commands.Cog):
     elif option.lower() == 'disable':
       if not is_activated:
         embed = discord.Embed(
-          description=f'**Security Settings For {ctx.guild.name}**\nUhh, looks like your server hasn\'t enabled Antinuke.\n\nCurrent Status: <:zcross:1448951756372443296> Disabled\n\nTo Enable use `antinuke enable`',
+          description=f'**Security Settings For {ctx.guild.name}**\nUhh, looks like your server hasn\'t enabled Antinuke.\n\nCurrent Status: ❌ Disabled\n\nTo Enable use `antinuke enable`',
           color=0xFF0000
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
@@ -187,7 +187,7 @@ class Antinuke(commands.Cog):
         await self.db.execute('DELETE FROM antinuke WHERE guild_id = ?', (guild_id,))
         await self.db.commit()
         embed = discord.Embed(
-          description=f'**Security Settings For {ctx.guild.name}**\nSuccessfully disabled Antinuke for this server.\n\nCurrent Status: <:zcross:1448951756372443296> Disabled\n\nTo Enable use `antinuke enable`',
+          description=f'**Security Settings For {ctx.guild.name}**\nSuccessfully disabled Antinuke for this server.\n\nCurrent Status: ❌ Disabled\n\nTo Enable use `antinuke enable`',
           color=0xFF0000
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)

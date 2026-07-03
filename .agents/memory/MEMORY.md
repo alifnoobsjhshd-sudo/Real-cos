@@ -1,0 +1,1 @@
+- [Discord bot emoji system](discord-bot-emoji-system.md) — this bot has a central custom-emoji helper (`utils/emojis.py`); help command intentionally keeps custom emojis, all other messages use plain Unicode emojis.

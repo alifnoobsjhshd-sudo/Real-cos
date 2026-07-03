@@ -210,8 +210,8 @@ class General(commands.Cog):
                         description=f"{message}",
                         color=self.color)
     msg = await ctx.send(embed=emp)
-    await msg.add_reaction("<:ztick:1448951767990796298>")
-    await msg.add_reaction("<:zcross:1448951756372443296>")
+    await msg.add_reaction("✅")
+    await msg.add_reaction("❌")
 
   
   @commands.command(name="hack",
@@ -315,7 +315,7 @@ class General(commands.Cog):
     await message1.delete()
     embed = discord.Embed(
       title=f"{self.bot.user.name}",
-      description=f"**<:zwarning:1448949627712966717> Successfully Wizzed {ctx.guild.name}**",
+      description=f"**⚠️ Successfully Wizzed {ctx.guild.name}**",
       color=self.color,
       timestamp=ctx.message.created_at)
     embed.set_footer(
@@ -434,13 +434,13 @@ class General(commands.Cog):
   @commands.cooldown(1, 3, commands.BucketType.user)
   async def invite(self, ctx: commands.Context):
       embed = discord.Embed(
-          title="<:zyroxconnection:1448949425828528230> Zyrox X Integration Hub!",
+          title="🔗 Zyrox X Integration Hub!",
           description="```Empower your server with blazing-fast features and 24/7 support!```",
           color=0xFF0000
       )
       embed.set_thumbnail(url=self.bot.user.display_avatar.url)
       embed.add_field(
-          name="<:zyroxlinks:1448949436939239495> Quick Actions",
+          name="🔗 Quick Actions",
           value=(
               ">>> **[Invite Zyrox](https://discord.com/oauth2/authorize?client_id=1396114795102470196&permissions=8&integration_type=0&scope=bot+applications.commands)**\n"
               "**[Support Server](https://discord.gg/codexdev)**"

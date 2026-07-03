@@ -53,7 +53,7 @@ class ImageCommands(commands.Cog):
 
     @commands.command(name="anime")
     async def anime_image(self, ctx):
-        url = await self.fetch_waifu_image("waifu")
+        url = await self.fetch_waifu_image(category="waifu")
         await ctx.send(embed=discord.Embed(title="🧚 Anime Waifu").set_image(url=url))
 
 async def setup(bot):

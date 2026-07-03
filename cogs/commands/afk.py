@@ -133,7 +133,7 @@ class afk(commands.Cog):
             # Send the welcome back embed.
             embed = discord.Embed(
                 title=f"{message.author.display_name} Is Back!",
-                description=f"<:ztick:1448951767990796298> **AFK Removed**\n<:zyrox_mention:1448949481776222218> **Mentions:** {mentions}\n<:zyrox_time:1448949493012889610> **AFK Time:** {elapsed_time}",
+                description=f"✅ **AFK Removed**\n📣 **Mentions:** {mentions}\n🕒 **AFK Time:** {elapsed_time}",
                 color=self.theme_color
             )
             embed.set_footer(text=FOOTER_TEXT, icon_url=self.bot.user.display_avatar.url)
@@ -205,8 +205,8 @@ class afk(commands.Cog):
         await self.set_afk(ctx.author, type_view.value, reason, ctx.guild)
         
         confirm_embed = discord.Embed(
-            title="<:ztick:1448951767990796298> AFK Activated",
-            description=f"**<:zyrox_mention:1448949481776222218> You are now marked as {type_view.value.capitalize()} AFK.**\n<:zseed:1448951477640101929> **Reason:** {reason}",
+            title="✅ AFK Activated",
+            description=f"**📣 You are now marked as {type_view.value.capitalize()} AFK.**\n🌱 **Reason:** {reason}",
             color=self.theme_color
         )
         confirm_embed.set_footer(text=FOOTER_TEXT, icon_url=self.bot.user.display_avatar.url)

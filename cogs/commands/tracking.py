@@ -3,7 +3,7 @@ from discord.ext import commands
 import aiosqlite
 
 INVITE_DB = "db/invite.db"
-EMOJI_INVITE = "<a:ArrowRed:1448951520077811806>"
+EMOJI_INVITE = "➡️"
 
 class Tracking(commands.Cog):
     def __init__(self, bot):

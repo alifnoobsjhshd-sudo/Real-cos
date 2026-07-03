@@ -52,7 +52,7 @@ class Kick(commands.Cog):
 
         embed = discord.Embed(
             description=(
-                f"**<:ztick:1448951767990796298> | {member.mention} has been kicked successfully\nReason:{reason}**"
+                f"**✅ | {member.mention} has been kicked successfully\nReason:{reason}**"
             ),
             color=self.color # Uses the red color 0xFF0000
         )

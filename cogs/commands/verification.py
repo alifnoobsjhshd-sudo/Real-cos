@@ -901,7 +901,7 @@ class VerificationSetupView (discord .ui .View ):
             )
             embed .add_field (
             name ="System Status",
-            value ="<:ztick:1448951767990796298> **Verification system is now ENABLED and ready to use!**",
+            value ="✅ **Verification system is now ENABLED and ready to use!**",
             inline =False 
             )
             embed .set_footer (text =f"Setup completed and enabled at {current_time.strftime('%I:%M %p IST')}")

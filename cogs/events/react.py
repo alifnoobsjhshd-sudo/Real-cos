@@ -16,15 +16,15 @@ class React(commands.Cog):
                 try:
                     if owner == 870179991462236170:
                         emojis = [
-                            "<a:BlackCrown:1448949787842973697>",
-                            "<a:Active_Developer:1448949755181793280>",
-                            "<a:staff:1448949765931925504>",
-                            "<a:mingle:1367773396745846895>"                         ]
+                            "👑",
+                            "👨‍💻",
+                            "🛡️",
+                            "🎊"                         ]
                     else:
                         emojis = [
-                            "<a:BlackCrown:1448949787842973697>",
-                            "<a:Active_Developer:1448949755181793280>",
-                            "<a:staff:1448949765931925504>"
+                            "👑",
+                            "👨‍💻",
+                            "🛡️"
                         ]
 
                     for emoji in emojis:

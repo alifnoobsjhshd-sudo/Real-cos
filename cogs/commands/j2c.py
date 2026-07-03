@@ -149,7 +149,7 @@ class JoinToCreate(commands.Cog):
 
     def create_vc_control_embed(self, vc: discord.VoiceChannel, owner: discord.Member) -> discord.Embed:
         embed = discord.Embed(
-            title="<:zyrox_system:1448949359159939143> J2C Control Panel",
+            title="⚙️ J2C Control Panel",
             description=(
                 f"**Your private voice channel is ready!**\n"
                 f"Use the buttons below to manage your VC.\n\n"
@@ -176,7 +176,7 @@ class JoinToCreate(commands.Cog):
 
     def create_info_embed(self, guild: discord.Guild) -> discord.Embed:
         embed = discord.Embed(
-            title="<:zyrox_system:1448949359159939143> J2C System",
+            title="⚙️ J2C System",
             description=(
                 "Join the **➕ Join to Create** voice channel to get your own private VC.\n"
                 "A control panel will appear inside your new channel."
@@ -234,7 +234,7 @@ class JoinToCreate(commands.Cog):
         }
         await self.save_guild_setup(ctx.guild.id, self.setup_data[ctx.guild.id])
 
-        await ctx.send(f"<:zyrox_system:1448949359159939143> J2C system setup complete! Join {join_channel.mention} to create a private VC.")
+        await ctx.send(f"⚙️ J2C system setup complete! Join {join_channel.mention} to create a private VC.")
 
     @commands.command(name='j2creset')
     @commands.has_permissions(administrator=True)
