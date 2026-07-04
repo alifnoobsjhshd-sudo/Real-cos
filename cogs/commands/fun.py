@@ -1,9 +1,28 @@
+"""
+Fun anime-reaction commands.
+
+Slash command (primary, works regardless of MESSAGE_CONTENT intent):
+    /sun action:<keyword> user:<@member>
+
+Message trigger (bonus, requires MESSAGE_CONTENT privileged intent
+in the Discord Developer Portal + discord.Intents.all() in code):
+    sun <keyword> @mention
+
+Supported keywords: bite, boop, bully, cuddle, cry, dance, greet,
+handholding, highfive, hold, hug, insult, kill, kiss, lick, nom,
+pat, poke, punch, slap, snuggle, stare, tickle, wave, blush,
+deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile,
+smug, teehee, thinking, thonking, thumbsup, triggered, wag, headpat
+"""
+
 import discord
+from discord import app_commands
 from discord.ext import commands
 import aiohttp
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 # ─── Keyword data ─────────────────────────────────────────────────────────────
 
@@ -23,7 +42,6 @@ PAST_TENSE = {
     "lick":        "licked",
     "nom":         "nommed",
     "pat":         "patted",
-    "pats":        "patted",
     "poke":        "poked",
     "punch":       "punched",
     "slap":        "slapped",
@@ -48,11 +66,8 @@ PAST_TENSE = {
     "thinking":    "thought about",
     "thonking":    "thonked about",
     "thumbsup":    "gave a thumbs up to",
-    "thumbs":      "gave thumbs to",
     "triggered":   "got triggered by",
     "wag":         "wagged excitedly for",
-    "pic":         "took a pic of",
-    "gif":         "made a gif of",
     "headpat":     "headpatted",
 }
 
@@ -72,7 +87,6 @@ EMOTIONS = {
     "lick":        "W-what?! 👅",
     "nom":         "Yummy! 😋",
     "pat":         "Good job! 🥺",
-    "pats":        "There, there! 🥺",
     "poke":        "Hey! Stop that! 👉",
     "punch":       "That's gonna leave a mark! 💢",
     "slap":        "Did you deserve that? 👋",
@@ -97,15 +111,12 @@ EMOTIONS = {
     "thinking":    "Hmm… 🤔",
     "thonking":    "Big brain time! 🧠",
     "thumbsup":    "Great job! 👍",
-    "thumbs":      "You got it! 👍",
     "triggered":   "TRIGGERED! 😡",
     "wag":         "So excited! 🐕",
-    "pic":         "Say cheese! 📸",
-    "gif":         "GIF time! 🎬",
     "headpat":     "Aww! 🥺",
 }
 
-# Maps keyword → waifu.pics SFW endpoint (free, no API key needed)
+# keyword → waifu.pics SFW endpoint (free, no API key required)
 _WAIFUPICS = {
     "bite":        "bite",
     "boop":        "poke",
@@ -122,7 +133,6 @@ _WAIFUPICS = {
     "lick":        "lick",
     "nom":         "nom",
     "pat":         "pat",
-    "pats":        "pat",
     "poke":        "poke",
     "punch":       "punch",
     "slap":        "slap",
@@ -147,11 +157,8 @@ _WAIFUPICS = {
     "thinking":    "think",
     "thonking":    "think",
     "thumbsup":    "thumbsup",
-    "thumbs":      "thumbsup",
     "triggered":   "triggered",
     "wag":         "wag",
-    "pic":         "lurk",
-    "gif":         "lurk",
     "headpat":     "bonk",
 }
 
@@ -161,15 +168,15 @@ KEYWORDS = frozenset(PAST_TENSE.keys())
 # ─── Cog ──────────────────────────────────────────────────────────────────────
 
 class Fun(commands.Cog):
-    """Fun reaction commands triggered with the sun prefix."""
+    """Fun anime-reaction commands."""
 
     def __init__(self, bot):
         self.bot = bot
 
-    # ── GIF fetcher ───────────────────────────────────────────────────────────
+    # ── Shared helpers ────────────────────────────────────────────────────────
 
-    async def _get_gif(self, keyword):
-        """Fetch a random anime GIF URL for the keyword via waifu.pics."""
+    async def _get_gif(self, keyword: str) -> str:
+        """Return a random GIF URL from waifu.pics for the given keyword."""
         endpoint = _WAIFUPICS.get(keyword, "hug")
         try:
             async with aiohttp.ClientSession() as session:
@@ -183,29 +190,117 @@ class Fun(commands.Cog):
                         if url:
                             return url
         except Exception as exc:
-            logger.warning(f"[Fun] GIF fetch failed for keyword '{keyword}': {exc}")
+            logger.warning("[Fun] GIF fetch failed for '%s': %s", keyword, exc)
         return ""
 
-    # ── Message listener ──────────────────────────────────────────────────────
+    async def _build_embed(
+        self,
+        author: discord.abc.User,
+        target: discord.abc.User,
+        keyword: str,
+    ) -> discord.Embed:
+        """Build the reaction embed (fetches a GIF internally)."""
+        gif_url  = await self._get_gif(keyword)
+        past     = PAST_TENSE[keyword]
+        emotion  = EMOTIONS[keyword]
+
+        embed = discord.Embed(
+            description=f"{target.mention} {emotion}",
+            color=0xFFD700,
+        )
+        embed.set_author(
+            name=f"{author.display_name} {past} {target.display_name}! {emotion}",
+            icon_url=author.display_avatar.url,
+        )
+        if gif_url:
+            embed.set_image(url=gif_url)
+        return embed
+
+    # ── Slash command (/sun action:<keyword> user:<member>) ───────────────────
+
+    @app_commands.command(
+        name="sun",
+        description="Send an anime reaction GIF to someone.",
+    )
+    @app_commands.describe(
+        action="The reaction (e.g. kiss, hug, pat) — start typing to see all options",
+        user="The server member to react to",
+    )
+    @app_commands.guild_only()
+    async def sun(
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        user: discord.Member,
+    ) -> None:
+        # Validate action (autocomplete filters, but manual entry is possible)
+        if action not in KEYWORDS:
+            await interaction.response.send_message(
+                f"❌ Unknown action **{discord.utils.escape_markdown(action)}**. "
+                "Start typing in the `action` field to see all options.",
+                ephemeral=True,
+            )
+            return
+
+        if user.bot:
+            await interaction.response.send_message(
+                "❌ You can't use that on a bot!", ephemeral=True
+            )
+            return
+
+        if user.id == interaction.user.id:
+            await interaction.response.send_message(
+                "❌ You can't use that on yourself!", ephemeral=True
+            )
+            return
+
+        # Defer so we have time to fetch the GIF
+        await interaction.response.defer()
+
+        try:
+            embed = await self._build_embed(interaction.user, user, action)
+            await interaction.followup.send(embed=embed)
+        except Exception as exc:
+            logger.error("[Fun] Error sending slash reaction: %s", exc, exc_info=True)
+            try:
+                await interaction.followup.send(
+                    "❌ Something went wrong sending the reaction.", ephemeral=True
+                )
+            except Exception:
+                pass
+
+    @sun.autocomplete("action")
+    async def _sun_autocomplete(
+        self,
+        interaction: discord.Interaction,
+        current: str,
+    ) -> list[app_commands.Choice[str]]:
+        """Autocomplete for the /sun action parameter."""
+        return [
+            app_commands.Choice(
+                name=f"{kw}  —  {PAST_TENSE[kw]}",
+                value=kw,
+            )
+            for kw in sorted(KEYWORDS)
+            if current.lower() in kw.lower()
+        ][:25]
+
+    # ── Message listener (bonus — needs MESSAGE_CONTENT privileged intent) ────
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message) -> None:
         try:
-            # Ignore bots and DMs
             if message.author.bot or not message.guild:
                 return
 
-            content = message.content.strip()
+            content = message.content  # empty str if MESSAGE_CONTENT intent disabled
             if not content:
                 return
 
-            lower = content.lower()
-
-            # Must start with "sun " (case-insensitive)
+            lower = content.strip().lower()
             if not lower.startswith("sun "):
                 return
 
-            # Parse: sun <keyword> ...
             parts = lower.split()
             if len(parts) < 2:
                 return
@@ -214,7 +309,7 @@ class Fun(commands.Cog):
             if keyword not in KEYWORDS:
                 return
 
-            # Must have at least one non-bot, non-self mention
+            # At least one non-bot, non-self user must be mentioned
             mentions = [
                 m for m in message.mentions
                 if not m.bot and m.id != message.author.id
@@ -222,39 +317,17 @@ class Fun(commands.Cog):
             if not mentions:
                 return
 
-            target = mentions[0]
-
-            # Fetch GIF (graceful fallback if API unavailable)
-            gif_url = await self._get_gif(keyword)
-
-            # Build embed
-            past    = PAST_TENSE[keyword]
-            emotion = EMOTIONS[keyword]
-
-            # Author field carries the profile pic + full action sentence
-            author_line = f"{message.author.display_name} {past} {target.display_name}! {emotion}"
-
-            embed = discord.Embed(
-                # description is required for the embed to be accepted by Discord's API
-                description=f"{target.mention} {emotion}",
-                color=0xFFD700,
-            )
-            embed.set_author(
-                name=author_line,
-                icon_url=message.author.display_avatar.url,
-            )
-            if gif_url:
-                embed.set_image(url=gif_url)
+            embed = await self._build_embed(message.author, mentions[0], keyword)
 
             try:
                 await message.channel.send(embed=embed)
             except discord.Forbidden:
                 logger.warning(
-                    f"[Fun] Missing Embed Links / Send Messages permission in "
-                    f"#{message.channel} ({message.guild})"
+                    "[Fun] Missing Embed Links / Send Messages in #%s (%s)",
+                    message.channel, message.guild,
                 )
             except discord.HTTPException as exc:
-                logger.error(f"[Fun] HTTPException sending embed: {exc}")
+                logger.error("[Fun] HTTP error sending embed: %s", exc)
 
         except Exception as exc:
-            logger.error(f"[Fun] Unhandled error in on_message: {exc}", exc_info=True)
+            logger.error("[Fun] Unhandled error in on_message: %s", exc, exc_info=True)

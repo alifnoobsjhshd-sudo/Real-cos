@@ -129,139 +129,6 @@ class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
         await interaction.response.edit_message(embed=embed, view=self.appearance_view)
 
 
-class DisplayNameModal(discord.ui.Modal, title="Set Bot Display Name"):
-    name_input = discord.ui.TextInput(
-        label="Display Name (leave blank to reset)",
-        placeholder="e.g. Sunlight",
-        max_length=32,
-        required=False,
-    )
-
-    def __init__(self, guild_id: int, profile_view):
-        super().__init__()
-        self.guild_id = guild_id
-        self.profile_view = profile_view
-
-    async def on_submit(self, interaction: discord.Interaction):
-        value = self.name_input.value.strip() or None
-        await set_guild_profile(self.guild_id, display_name=value)
-        self.profile_view.display_name = value
-        try:
-            await interaction.guild.me.edit(nick=value)
-        except discord.Forbidden:
-            pass
-        embed = self.profile_view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=self.profile_view)
-
-
-class BioModal(discord.ui.Modal, title="Set Server Bio"):
-    bio_input = discord.ui.TextInput(
-        label="Server Bio (leave blank to remove)",
-        placeholder="A short description shown in bot info...",
-        max_length=190,
-        style=discord.TextStyle.paragraph,
-        required=False,
-    )
-
-    def __init__(self, guild_id: int, profile_view):
-        super().__init__()
-        self.guild_id = guild_id
-        self.profile_view = profile_view
-
-    async def on_submit(self, interaction: discord.Interaction):
-        value = self.bio_input.value.strip() or None
-        await set_guild_profile(self.guild_id, bio=value)
-        self.profile_view.bio = value
-        embed = self.profile_view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=self.profile_view)
-
-
-class AvatarModal(discord.ui.Modal, title="Set Bot Profile Picture"):
-    url_input = discord.ui.TextInput(
-        label="Image URL",
-        placeholder="https://example.com/avatar.png",
-        max_length=512,
-        required=True,
-    )
-
-    def __init__(self, guild_id: int, profile_view):
-        super().__init__()
-        self.guild_id = guild_id
-        self.profile_view = profile_view
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        url = self.url_input.value.strip()
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        await interaction.followup.send(
-                            "❌ Could not download the image. Make sure the URL is a direct image link.",
-                            ephemeral=True,
-                        )
-                        return
-                    image_bytes = await resp.read()
-            await interaction.client.user.edit(avatar=image_bytes)
-            await set_guild_profile(self.guild_id, avatar_url=url)
-            self.profile_view.avatar_url = url
-            embed = self.profile_view.build_embed()
-            await interaction.edit_original_response(content=None)
-            await interaction.message.edit(embed=embed, view=self.profile_view)
-            await interaction.followup.send(
-                "✅ Profile picture updated! *(This applies globally to all servers.)*",
-                ephemeral=True,
-            )
-        except discord.HTTPException as e:
-            await interaction.followup.send(
-                f"❌ Failed to update avatar: `{e}`. Discord allows changing the avatar a limited number of times per hour.",
-                ephemeral=True,
-            )
-
-
-class ProfileBannerModal(discord.ui.Modal, title="Set Bot Profile Banner"):
-    url_input = discord.ui.TextInput(
-        label="Image URL",
-        placeholder="https://example.com/banner.png",
-        max_length=512,
-        required=True,
-    )
-
-    def __init__(self, guild_id: int, profile_view):
-        super().__init__()
-        self.guild_id = guild_id
-        self.profile_view = profile_view
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        url = self.url_input.value.strip()
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        await interaction.followup.send(
-                            "❌ Could not download the image. Make sure the URL is a direct image link.",
-                            ephemeral=True,
-                        )
-                        return
-                    image_bytes = await resp.read()
-            await interaction.client.user.edit(banner=image_bytes)
-            await set_guild_profile(self.guild_id, banner_url=url)
-            self.profile_view.banner_url = url
-            embed = self.profile_view.build_embed()
-            await interaction.edit_original_response(content=None)
-            await interaction.message.edit(embed=embed, view=self.profile_view)
-            await interaction.followup.send(
-                "✅ Profile banner updated! *(This applies globally to all servers.)*",
-                ephemeral=True,
-            )
-        except discord.HTTPException as e:
-            await interaction.followup.send(
-                f"❌ Failed to update banner: `{e}`. Discord requires a Nitro-boosted account for profile banners.",
-                ephemeral=True,
-            )
-
-
 # ─────────────────────────────────────────────
 #  Appearance sub-page view (per-guild)
 # ─────────────────────────────────────────────
@@ -348,80 +215,16 @@ class AppearanceView(discord.ui.View):
 #  Profile sub-page view (per-guild)
 # ─────────────────────────────────────────────
 
-class ProfileView(discord.ui.View):
-    def __init__(self, invoker: discord.Member, guild_id: int, profile: dict, branding: dict, main_view):
-        super().__init__(timeout=180)
-        self.invoker     = invoker
-        self.guild_id    = guild_id
-        self.main_view   = main_view
-        self.embed_color = branding["embed_color"]
-        self.branding_name = branding["branding_name"]
-        self.display_name = profile["display_name"]
-        self.bio          = profile["bio"]
-        self.avatar_url   = profile["avatar_url"]
-        self.banner_url   = profile["banner_url"]
-
-    def build_embed(self) -> discord.Embed:
-        dn = self.display_name or "Not set (using default)"
-        bio = self.bio or "Not set"
-        av  = f"[View]({self.avatar_url})" if self.avatar_url else "Not set"
-        bn  = f"[View]({self.banner_url})"  if self.banner_url  else "Not set"
-        embed = discord.Embed(
-            title="📣 __Bot Server Profile__",
-            description=(
-                f"➡️ Customize the bot's profile settings.\n\n"
-                f"➡️ **Display Name:** `{dn}`\n"
-                f"➡️ **Server Bio:** {bio}\n"
-                f"➡️ **Profile Picture:** {av}\n"
-                f"➡️ **Profile Banner:** {bn}\n\n"
-                f"-# ⚠️ Profile picture & banner changes apply **globally** to all servers and have Discord rate limits."
-            ),
-            color=self.embed_color,
-        )
-        embed.set_footer(text=f"• {self.branding_name} | Bot Customization")
-        return embed
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user != self.invoker:
-            await interaction.response.send_message(
-                "You must run this command to interact with it.", ephemeral=True
-            )
-            return False
-        return True
-
-    @discord.ui.button(label="Display Name", emoji="📣", style=discord.ButtonStyle.secondary, row=0)
-    async def btn_displayname(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(DisplayNameModal(self.guild_id, self))
-
-    @discord.ui.button(label="Server Bio", emoji="🌐", style=discord.ButtonStyle.secondary, row=0)
-    async def btn_bio(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(BioModal(self.guild_id, self))
-
-    @discord.ui.button(label="Profile Picture", emoji="🌱", style=discord.ButtonStyle.secondary, row=0)
-    async def btn_avatar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(AvatarModal(self.guild_id, self))
-
-    @discord.ui.button(label="Profile Banner", emoji="🧩", style=discord.ButtonStyle.secondary, row=0)
-    async def btn_banner(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ProfileBannerModal(self.guild_id, self))
-
-    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=1)
-    async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = self.main_view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=self.main_view)
-
-
 # ─────────────────────────────────────────────
 #  Main menu view (per-guild) — BUTTONS not dropdown
 # ─────────────────────────────────────────────
 
 class MainCustomizationView(discord.ui.View):
-    def __init__(self, invoker: discord.Member, guild_id: int, branding: dict, profile: dict):
+    def __init__(self, invoker: discord.Member, guild_id: int, branding: dict):
         super().__init__(timeout=180)
         self.invoker   = invoker
         self.guild_id  = guild_id
         self.branding  = branding
-        self.profile   = profile
 
     def build_embed(self) -> discord.Embed:
         embed = discord.Embed(
@@ -871,15 +674,14 @@ class BotCustomization(Cog, name="botcustomization"):
     @commands.command(
         name="botcustomization",
         aliases=["botcustom", "customize", "customizebot"],
-        help="Open the bot customization panel to change branding, embed colors, thumbnails, banners, and the bot's server profile.",
+        help="Open the bot customization panel to change branding, embed colors, thumbnails and banners.",
     )
     @commands.has_permissions(manage_guild=True)
     @ignore_check()
     @blacklist_check()
     async def botcustomization(self, ctx):
         branding = await get_branding(ctx.guild.id)
-        profile  = await get_guild_profile(ctx.guild.id)
-        view     = MainCustomizationView(ctx.author, ctx.guild.id, branding, profile)
+        view     = MainCustomizationView(ctx.author, ctx.guild.id, branding)
         embed    = view.build_embed()
         await ctx.reply(embed=embed, view=view, mention_author=False)
 
@@ -897,7 +699,7 @@ class BotCustomization(Cog, name="botcustomization"):
 
     @app_commands.command(
         name="botcustomization",
-        description="Customize the bot's appearance and profile for this server.",
+        description="Customize the bot's message appearance for this server (branding, colors, thumbnails, banners).",
     )
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.guild_only()
@@ -906,8 +708,7 @@ class BotCustomization(Cog, name="botcustomization"):
             await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
             return
         branding = await get_branding(interaction.guild.id)
-        profile  = await get_guild_profile(interaction.guild.id)
-        view     = MainCustomizationView(interaction.user, interaction.guild.id, branding, profile)
+        view     = MainCustomizationView(interaction.user, interaction.guild.id, branding)
         embed    = view.build_embed()
         await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
 

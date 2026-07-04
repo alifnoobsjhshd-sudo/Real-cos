@@ -1,4 +1,4 @@
 - [Discord bot emoji system](discord-bot-emoji-system.md) — this bot has a central custom-emoji helper (`utils/emojis.py`); help command intentionally keeps custom emojis, all other messages use plain Unicode emojis.
 - [Branding global defaults](branding-global-defaults.md) — guild_id=0 in guild_branding table stores global defaults; get_branding() falls back to global then to hardcoded defaults. reset_branding() deletes guild row to revert.
-- [Fun commands system](fun-commands-system.md) — "sun <keyword> @mention" message listener in Fun cog; waifu.pics SFW API for anime GIFs (free, no key); keyword→past-tense+emotion maps in fun.py.
+- [Fun commands system](fun-commands-system.md) — Root cause: MESSAGE_CONTENT intent missing in Dev Portal → empty content → silent fail. Fix: /sun slash command (no intent needed) + on_message as bonus.
 - [Bot deploys on Render not Replit](bot-deploy-context.md) — discord.py not installed in Replit env; py_compile is the syntax check; never expect `import discord` to succeed in this shell.
