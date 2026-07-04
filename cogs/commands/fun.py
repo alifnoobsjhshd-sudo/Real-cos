@@ -116,7 +116,54 @@ EMOTIONS = {
     "headpat":     "Aww! 🥺",
 }
 
-# keyword → waifu.pics SFW endpoint (free, no API key required)
+# keyword → nekos.best SFW endpoint (primary; free, no API key)
+# Fallback: waifu.pics SFW endpoint (same free/no-key policy)
+# Note: "bully" and "lick" are 404 on nekos.best — mapped to closest alternatives.
+_NEKOSBEST = {
+    "bite":        "bite",
+    "boop":        "poke",
+    "bully":       "slap",       # "bully" returns 404 on nekos.best
+    "cuddle":      "cuddle",
+    "greet":       "wave",
+    "handholding": "handhold",
+    "highfive":    "highfive",
+    "hold":        "hug",
+    "hug":         "hug",
+    "insult":      "slap",       # "bully" returns 404 on nekos.best
+    "kill":        "shoot",
+    "kiss":        "kiss",
+    "lick":        "nom",        # "lick" returns 404 on nekos.best
+    "nom":         "nom",
+    "pat":         "pat",
+    "poke":        "poke",
+    "punch":       "punch",
+    "slap":        "slap",
+    "snuggle":     "cuddle",
+    "stare":       "stare",
+    "tickle":      "pat",       # no tickle on nekos.best
+    "wave":        "wave",
+    "blush":       "blush",
+    "cry":         "cry",
+    "dance":       "dance",
+    "deredere":    "hug",
+    "grin":        "smug",
+    "happy":       "happy",
+    "lewd":        "smug",
+    "pout":        "pout",
+    "scoff":       "smug",
+    "shrug":       "shrug",
+    "sleepy":      "sleep",
+    "smile":       "smile",
+    "smug":        "smug",
+    "teehee":      "laugh",
+    "thinking":    "think",
+    "thonking":    "think",
+    "thumbsup":    "thumbsup",
+    "triggered":   "bully",     # no triggered on nekos.best
+    "wag":         "wag",
+    "headpat":     "bonk",
+}
+
 _WAIFUPICS = {
     "bite":        "bite",
     "boop":        "poke",
@@ -138,7 +185,7 @@ _WAIFUPICS = {
     "slap":        "slap",
     "snuggle":     "cuddle",
     "stare":       "stare",
-    "tickle":      "tickle",
+    "tickle":      "pat",       # no tickle on waifu.pics either
     "wave":        "wave",
     "blush":       "blush",
     "cry":         "cry",
@@ -176,21 +223,56 @@ class Fun(commands.Cog):
     # ── Shared helpers ────────────────────────────────────────────────────────
 
     async def _get_gif(self, keyword: str) -> str:
-        """Return a random GIF URL from waifu.pics for the given keyword."""
-        endpoint = _WAIFUPICS.get(keyword, "hug")
-        try:
-            async with aiohttp.ClientSession() as session:
+        """Return a GIF URL for the keyword.
+
+        Tries nekos.best first (primary), then waifu.pics (fallback).
+        Returns "" if both fail so the embed still posts without an image.
+        """
+        async with aiohttp.ClientSession() as session:
+            # ── Primary: nekos.best ───────────────────────────────────────────
+            nb_endpoint = _NEKOSBEST.get(keyword, "hug")
+            try:
                 async with session.get(
-                    f"https://api.waifu.pics/sfw/{endpoint}",
-                    timeout=aiohttp.ClientTimeout(total=5),
+                    f"https://nekos.best/api/v2/{nb_endpoint}",
+                    timeout=aiohttp.ClientTimeout(total=8),
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        results = data.get("results", [])
+                        if results:
+                            url = results[0].get("url", "")
+                            if url:
+                                return url
+                    logger.warning(
+                        "[Fun] nekos.best returned %s for '%s' (%s)",
+                        resp.status, keyword, nb_endpoint,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "[Fun] nekos.best fetch failed for '%s': %s", keyword, exc
+                )
+
+            # ── Fallback: waifu.pics ──────────────────────────────────────────
+            wp_endpoint = _WAIFUPICS.get(keyword, "hug")
+            try:
+                async with session.get(
+                    f"https://api.waifu.pics/sfw/{wp_endpoint}",
+                    timeout=aiohttp.ClientTimeout(total=8),
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         url = data.get("url", "")
                         if url:
                             return url
-        except Exception as exc:
-            logger.warning("[Fun] GIF fetch failed for '%s': %s", keyword, exc)
+                    logger.warning(
+                        "[Fun] waifu.pics returned %s for '%s' (%s)",
+                        resp.status, keyword, wp_endpoint,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "[Fun] waifu.pics fetch failed for '%s': %s", keyword, exc
+                )
+
         return ""
 
     async def _build_embed(
