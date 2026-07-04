@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _antinuke(commands.Cog):
@@ -9,7 +10,7 @@ class _antinuke(commands.Cog):
     """Antinuke commands"""
   
     def help_custom(self):
-		      emoji = '<:zSafe:1448951403434479626>'
+		      emoji = _e('zSafe')
 		      label = "Security Commands"
 		      description = "Show you Commands of Antinuke"
 		      return emoji, label, description

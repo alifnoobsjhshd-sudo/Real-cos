@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _sticky(commands.Cog):
@@ -9,7 +10,7 @@ class _sticky(commands.Cog):
     """Sticky commands"""
   
     def help_custom(self):
-		      emoji = '<:zpin:1448949810462855249>'
+		      emoji = _e('zpin')
 		      label = "Sticky Commands"
 		      description = "Show you Commands of Sticky"
 		      return emoji, label, description

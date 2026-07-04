@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _extra(commands.Cog):
@@ -9,7 +10,7 @@ class _extra(commands.Cog):
     """Utility commands"""
   
     def help_custom(self):
-		      emoji = '<:zwrench:1448951382597177495>'
+		      emoji = _e('zwrench')
 		      label = "Utility Commands"
 		      description = "Show you Commands of Utility"
 		      return emoji, label, description

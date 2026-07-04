@@ -11,13 +11,10 @@ class _ticket(commands.Cog):
     """Ticket"""
 
     def help_custom(self):
-
-              emoji = '<:zticket:1448951318713470987>'
-
+              from utils.emojis import e as _e
+              emoji = _e('zticket')
               label = "Ticket"
-
               description = "Show you Commands of Ticket"
-
               return emoji, label, description
 
     @commands.group()

@@ -9,7 +9,8 @@ class _fun(commands.Cog):
     """Fun commands"""
 
     def help_custom(self):
-        emoji = '<:zrocket:1448951445989888010>'
+        from utils.emojis import e as _e
+        emoji = _e('zrocket')
         label = "Fun Commands"
         description = "Anime-style reaction commands triggered with the `sun` prefix"
         return emoji, label, description

@@ -19,7 +19,7 @@ import json
 import os
 import asyncio
 
-from utils.emojis import BRANCHES, reload_store
+from utils.emojis import BRANCHES, reload_store, get_store
 
 EMOJI_DIR   = "assets/emojis"
 STORE_PATH  = "data/emoji_store.json"
@@ -374,6 +374,60 @@ class EmojiUpload(commands.Cog):
         )
         result_embed.set_footer(text=f"Requested by {interaction.user} • Zyrox X")
         await interaction.edit_original_response(embed=result_embed, view=None)
+
+    # ── /emoji_export ─────────────────────────────────────────────────────────
+
+    @app_commands.command(
+        name="emoji_export",
+        description="Export the current emoji store as JSON — paste into EMOJI_STORE_JSON env var on Render to persist across redeploys.",
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def emoji_export(self, interaction: discord.Interaction):
+        store = get_store()
+        if not store:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="⚠️ No Emojis Stored",
+                    description=(
+                        "No emoji data found. Run `/upload emojis branch:<name>` first.\n\n"
+                        "After uploading all branches, run `/emoji_export` again to get the JSON."
+                    ),
+                    color=ACCENT,
+                ),
+                ephemeral=True,
+            )
+
+        store_json = json.dumps(store, ensure_ascii=False)
+
+        embed = discord.Embed(
+            title="📦 Emoji Store Export",
+            description=(
+                "**Copy the JSON below and set it as the `EMOJI_STORE_JSON` "
+                "environment variable on Render.**\n\n"
+                "This ensures your custom emojis survive redeploys without needing "
+                "to re-run `/upload emojis`.\n\n"
+                "**Steps:**\n"
+                "1. Copy the JSON from the file attached below\n"
+                "2. Go to Render → Your Service → Environment\n"
+                "3. Add / update variable: `EMOJI_STORE_JSON` = *paste JSON*\n"
+                "4. Redeploy — emojis will load automatically ✅"
+            ),
+            color=GREEN,
+        )
+        embed.add_field(
+            name="ℹ️ Stored entries",
+            value=f"`{len(store)}` emoji IDs configured",
+            inline=True,
+        )
+        embed.set_footer(text="Zyrox X • Emoji Persistence")
+
+        # Send JSON as a text file attachment so it's easy to copy
+        json_bytes = store_json.encode("utf-8")
+        file = discord.File(
+            fp=__import__("io").BytesIO(json_bytes),
+            filename="emoji_store.json",
+        )
+        await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
 
     # ── /emoji_status ─────────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@
 
 import discord 
 from discord .ext import commands 
+from utils.emojis import e as _e
 
 class _ai (commands .Cog ):
     def __init__ (self ,bot ):
@@ -10,7 +11,7 @@ class _ai (commands .Cog ):
     """AI commands"""
 
     def help_custom (self ):
-        emoji ='<:zai:1448949821611446302>'
+        emoji = _e('zai')
         label ="AI Commands"
         description ="Show you the commands of AI"
         return emoji ,label ,description 

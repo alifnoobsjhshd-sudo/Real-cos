@@ -9,7 +9,8 @@ class _general(commands.Cog):
     """General commands"""
 
     def help_custom(self):
-              emoji = '<:zmodule:1448951340716785744>'
+              from utils.emojis import e as _e
+              emoji = _e('zmodule')
               label = "General Commands"
               description = "Show you Commands of General"
               return emoji, label, description

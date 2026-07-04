@@ -11,13 +11,10 @@ class _vanity(commands.Cog):
     """Vanity Roles"""
 
     def help_custom(self):
-
-              emoji = '<:starr:1448951307707748395>'
-
+              from utils.emojis import e as _e
+              emoji = _e('starr')
               label = "Vanity"
-
               description = "Show you Commands of Vanity Roles"
-
               return emoji, label, description
 
     @commands.group()

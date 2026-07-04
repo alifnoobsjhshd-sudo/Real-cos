@@ -8,7 +8,8 @@ class _verify(commands .Cog ):
     """Verification commands help"""
 
     def help_custom (self ):
-        emoji ='<:zyroxthunder:1448949415200034907>'
+        from utils.emojis import e as _e
+        emoji = _e('zyroxthunder')
         label ="Verification Commands"
         description ="Show you the commands of Verification"
         return emoji ,label ,description 

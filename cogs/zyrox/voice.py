@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _voice(commands.Cog):
@@ -9,7 +10,7 @@ class _voice(commands.Cog):
     """Voice commands"""
   
     def help_custom(self):
-		      emoji = '<:zmute:1448951435478700072>'
+		      emoji = _e('zmute')
 		      label = "Voice Commands"
 		      description = "Show you Command Of Voice"
 		      return emoji, label, description

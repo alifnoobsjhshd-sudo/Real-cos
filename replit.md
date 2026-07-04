@@ -37,6 +37,20 @@ Edit `config.yml` to change:
 
 Channel IDs for stats and logs are set at the top of `CodeX.py` (`SERVER_COUNT_CHANNEL_ID`, `USER_COUNT_CHANNEL_ID`, `LOG_CHANNEL_ID`).
 
+## Emoji persistence (Render)
+
+Custom emojis uploaded via `/upload emojis` are saved to `data/emoji_store.json` at runtime.
+Because Render's filesystem resets on each deploy, the emojis appear as raw codes after every redeploy.
+
+**Fix:**
+1. Upload all emoji branches once via `/upload emojis branch:<name>`.
+2. Run `/emoji_export` — the bot sends a `emoji_store.json` file attachment.
+3. Copy the entire JSON content.
+4. In Render → your service → **Environment**, add variable:
+   `EMOJI_STORE_JSON` = `<paste full JSON here>`
+5. Redeploy — the bot loads emojis from the env var automatically.
+
 ## User preferences
 
 - Keep the existing project structure and stack.
+- Bot is deployed on Render as a web service.

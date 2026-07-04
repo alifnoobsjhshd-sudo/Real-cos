@@ -1,5 +1,6 @@
 import discord 
 from discord .ext import commands 
+from utils.emojis import e as _e
 
 
 class __boost(commands .Cog ):
@@ -9,7 +10,7 @@ class __boost(commands .Cog ):
     """Boost commands"""
 
     def help_custom (self ):
-              emoji ='<:boost:1448966463586041906>'
+              emoji = _e('boost')
               label ="Boost Commands"
               description ="Show you the commands of boost"
               return emoji ,label ,description 

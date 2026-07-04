@@ -9,7 +9,8 @@ class _ignore(commands.Cog):
     """Ignore commands"""
 
     def help_custom(self):
-              emoji = '<:zban:1448951424665784373>'
+              from utils.emojis import e as _e
+              emoji = _e('zban')
               label = "Ignore Commands"
               description = "Show you Commands of Ignore"
               return emoji, label, description

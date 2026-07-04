@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 class _server(commands.Cog):
     def __init__(self, bot):
@@ -8,7 +9,7 @@ class _server(commands.Cog):
     """Server commands"""
   
     def help_custom(self):
-		      emoji = '<:zwifi:1448951466931912715>'
+		      emoji = _e('zwifi')
 		      label = "Server Commands"
 		      description = "Show you Commands of Server"
 		      return emoji, label, description

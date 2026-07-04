@@ -1,6 +1,7 @@
 import discord
 
 from discord.ext import commands
+from utils.emojis import e as _e
 
 class inviteTracker(commands.Cog):
 
@@ -12,7 +13,7 @@ class inviteTracker(commands.Cog):
 
     def help_custom(self):
 
-              emoji = '<:zpeople:1448951456861519962>'
+              emoji = _e('zpeople')
 
               label = "Invite Tracker"
 

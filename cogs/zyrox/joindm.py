@@ -6,7 +6,8 @@ class _joindm(commands.Cog):
         self.bot = bot
     """__Join Dm__"""
     def help_custom(self):
-              emoji = '<:zmsg:1448964399166394483>'
+              from utils.emojis import e as _e
+              emoji = _e('zmsg')
               label = "Joindm"
               description = "Show you Commands of Joindm"
               return emoji, label, description

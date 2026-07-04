@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _mc(commands.Cog):
@@ -9,7 +10,7 @@ class _mc(commands.Cog):
     """Minecraft commands"""
   
     def help_custom(self):
-		      emoji = '<:zmc:1448964387426537474>'
+		      emoji = _e('zmc')
 		      label = "Minecraft Commands"
 		      description = "Show you Commands of Minecraft"
 		      return emoji, label, description

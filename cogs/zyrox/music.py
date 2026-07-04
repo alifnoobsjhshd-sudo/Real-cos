@@ -9,7 +9,8 @@ class _music(commands.Cog):
     """Music commands"""
 
     def help_custom(self):
-              emoji = '<:zmusic:1448951372707008533>'
+              from utils.emojis import e as _e
+              emoji = _e('zmusic')
               label = "Music Commands"
               description = "Show you Commands of Music"
               return emoji, label, description

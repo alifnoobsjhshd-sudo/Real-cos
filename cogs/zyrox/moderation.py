@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _moderation(commands.Cog):
@@ -9,7 +10,7 @@ class _moderation(commands.Cog):
     """Moderation commands"""
   
     def help_custom(self):
-		      emoji = '<:zsowrd:1448951362238021682> '
+		      emoji = _e('zsowrd')
 		      label = "Moderation Commands"
 		      description = "Show you Commands of Moderation"
 		      return emoji, label, description

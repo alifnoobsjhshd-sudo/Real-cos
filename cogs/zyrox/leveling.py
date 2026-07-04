@@ -9,7 +9,8 @@ class _leveling(commands.Cog):
     """Leveling commands"""
 
     def help_custom(self):
-        emoji = '<:zlevelup:1448964376504696943>'
+        from utils.emojis import e as _e
+        emoji = _e('zlevelup')
         label = "Leveling Commands"
         description = "Shows you the commands of leveling"
         return emoji, label, description

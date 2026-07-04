@@ -1,6 +1,7 @@
 import discord
 
 from discord.ext import commands
+from utils.emojis import e as _e
 
 class _Counting(commands.Cog):
 
@@ -12,7 +13,7 @@ class _Counting(commands.Cog):
 
     def help_custom(self):
 
-              emoji = '<:zcounting:1448949348103749713>'
+              emoji = _e('zcounting')
 
               label = "Counting"
 

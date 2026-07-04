@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.emojis import e as _e
 
 
 class _welcome(commands.Cog):
@@ -9,7 +10,7 @@ class _welcome(commands.Cog):
     """Welcome commands"""
   
     def help_custom(self):
-		      emoji = '<:zseed:1448951477640101929>'
+		      emoji = _e('zseed')
 		      label = "Welcomer Commands"
 		      description = "Show you Command Of Welcomer"
 		      return emoji, label, description

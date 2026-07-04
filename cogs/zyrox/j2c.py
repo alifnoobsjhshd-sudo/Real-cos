@@ -1,6 +1,7 @@
 import discord
 
 from discord.ext import commands
+from utils.emojis import e as _e
 
 class _J2C(commands.Cog):
 
@@ -12,7 +13,7 @@ class _J2C(commands.Cog):
 
     def help_custom(self):
 
-              emoji = '<:zyrox_system:1448949359159939143>'
+              emoji = _e('zyrox_system')
 
               label = "J2C"
 

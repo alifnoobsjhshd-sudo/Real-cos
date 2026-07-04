@@ -287,7 +287,7 @@ class Fun(commands.Cog):
         emotion  = EMOTIONS[keyword]
 
         embed = discord.Embed(
-            description=f"{target.mention} {emotion}",
+            description="",   # kept empty per design
             color=0xFFD700,
         )
         embed.set_author(
@@ -326,13 +326,13 @@ class Fun(commands.Cog):
 
         if user.bot:
             await interaction.response.send_message(
-                "❌ You can't use that on a bot!", ephemeral=True
+                f"❌ {action} a real human dude!", ephemeral=True
             )
             return
 
         if user.id == interaction.user.id:
             await interaction.response.send_message(
-                "❌ You can't use that on yourself!", ephemeral=True
+                f"❌ lol you can't {action} yourself!", ephemeral=True
             )
             return
 
@@ -391,9 +391,29 @@ class Fun(commands.Cog):
             if keyword not in KEYWORDS:
                 return
 
-            # At least one non-bot, non-self user must be mentioned
+            raw_mentions = message.mentions
+            if not raw_mentions:
+                return
+
+            # Self-mention check
+            if all(m.id == message.author.id for m in raw_mentions):
+                try:
+                    await message.channel.send(f"lol you can't {keyword} yourself")
+                except Exception:
+                    pass
+                return
+
+            # Bot-mention check
+            if all(m.bot for m in raw_mentions):
+                try:
+                    await message.channel.send(f"{keyword} a real human dude")
+                except Exception:
+                    pass
+                return
+
+            # At least one valid (non-bot, non-self) mention required
             mentions = [
-                m for m in message.mentions
+                m for m in raw_mentions
                 if not m.bot and m.id != message.author.id
             ]
             if not mentions:

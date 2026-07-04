@@ -15,6 +15,9 @@ import os
 
 _STORE_PATH = "data/emoji_store.json"
 
+# Pre-read env var once at import time so it's available in _load_store()
+_ENV_STORE_JSON: str = os.getenv("EMOJI_STORE_JSON", "")
+
 _FALLBACK: dict[str, str] = {
     # ── Core status ────────────────────────────────────────────────────────────
     "ztick":                "<:ztick:1448951767990796298>",
@@ -177,6 +180,22 @@ _FALLBACK: dict[str, str] = {
 }
 
 def _load_store() -> dict:
+    # Priority 1: EMOJI_STORE_JSON environment variable (survives Render redeploys)
+    if _ENV_STORE_JSON:
+        try:
+            data = json.loads(_ENV_STORE_JSON)
+            if isinstance(data, dict):
+                # Also write to file so runtime code keeps working
+                try:
+                    os.makedirs(os.path.dirname(_STORE_PATH), exist_ok=True)
+                    with open(_STORE_PATH, "w") as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+                return data
+        except Exception:
+            pass
+    # Priority 2: runtime JSON file (written by /upload emojis)
     try:
         if os.path.exists(_STORE_PATH):
             with open(_STORE_PATH, "r") as f:
@@ -191,6 +210,10 @@ def reload_store() -> None:
     """Call this to hot-reload the emoji store after /upload emojis completes."""
     global _store
     _store = _load_store()
+
+def get_store() -> dict:
+    """Return a snapshot of the current in-memory emoji store (env-var + file merged)."""
+    return dict(_store)
 
 def e(name: str) -> str:
     """
