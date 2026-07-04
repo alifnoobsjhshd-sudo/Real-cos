@@ -379,7 +379,7 @@ class EmojiUpload(commands.Cog):
 
     @app_commands.command(
         name="emoji_export",
-        description="Export the current emoji store as JSON — paste into EMOJI_STORE_JSON env var on Render to persist across redeploys.",
+        description="Export the current emoji store as JSON for the EMOJI_STORE_JSON env var.",
     )
     @app_commands.default_permissions(administrator=True)
     async def emoji_export(self, interaction: discord.Interaction):
@@ -399,18 +399,17 @@ class EmojiUpload(commands.Cog):
 
         store_json = json.dumps(store, ensure_ascii=False)
 
+        # Also save to the project root so the user can download it from Replit
+        export_path = "emoji_store.json"
+        with open(export_path, "w", encoding="utf-8") as f:
+            f.write(store_json)
+
         embed = discord.Embed(
             title="📦 Emoji Store Export",
             description=(
-                "**Copy the JSON below and set it as the `EMOJI_STORE_JSON` "
-                "environment variable on Render.**\n\n"
-                "This ensures your custom emojis survive redeploys without needing "
-                "to re-run `/upload emojis`.\n\n"
-                "**Steps:**\n"
-                "1. Copy the JSON from the file attached below\n"
-                "2. Go to Render → Your Service → Environment\n"
-                "3. Add / update variable: `EMOJI_STORE_JSON` = *paste JSON*\n"
-                "4. Redeploy — emojis will load automatically ✅"
+                "**The JSON has been saved to `emoji_store.json` in the project root.**\n\n"
+                "Download it from the Replit file tree, copy the full contents, and set it as the "
+                "`EMOJI_STORE_JSON` environment variable on Render. This keeps emojis across redeploys."
             ),
             color=GREEN,
         )
@@ -419,9 +418,14 @@ class EmojiUpload(commands.Cog):
             value=f"`{len(store)}` emoji IDs configured",
             inline=True,
         )
+        embed.add_field(
+            name="📁 File saved",
+            value=f"`{export_path}`",
+            inline=True,
+        )
         embed.set_footer(text="Zyrox X • Emoji Persistence")
 
-        # Send JSON as a text file attachment so it's easy to copy
+        # Send JSON as a text file attachment too so it's easy to grab
         json_bytes = store_json.encode("utf-8")
         file = discord.File(
             fp=__import__("io").BytesIO(json_bytes),
