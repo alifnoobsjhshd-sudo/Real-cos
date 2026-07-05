@@ -322,17 +322,9 @@ class Music(commands.Cog):
                 try:
                     ended = discord.Embed(description="Bot has been disconnected due to inactivity (being idle in Voice Channel) for more than 2 minutes." , color=0xFF0000)
                     ended.set_author(name="Inactive Timeout", icon_url=self.client.user.display_avatar.url)
-                    ended.set_footer(text="Thanks for choosing Zyrox X!")
-                    support = Button(label='Support',
-                                 style=discord.ButtonStyle.link,
-                        url=f'https://discord.gg/codexdev')
-                    vote = Button(label='Vote',
-                                 style=discord.ButtonStyle.link,
-                        url=f'https://top.gg/bot//vote')
-                    view = View()
-                    view.add_item(support)
-                    view.add_item(vote)
-                    await player.ctx.channel.send(embed=ended, view=view)
+                    from utils.branding import DEFAULT_BRANDING
+                    ended.set_footer(text=f"Thanks for choosing {DEFAULT_BRANDING}!")
+                    await player.ctx.channel.send(embed=ended)
                 except:
                     pass
 

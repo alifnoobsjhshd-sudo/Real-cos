@@ -146,7 +146,8 @@ class PersonalityModal (discord .ui .Modal ,title ="Set Your AI Personality"):
         self .ai_cog =ai_cog 
 
 
-        default_prompt ="""You are Zyrox, an intelligent and caring Discord bot assistant created by . Evil ! Rexy .! 💕
+        from utils.branding import DEFAULT_BRANDING
+        default_prompt =f"""You are {DEFAULT_BRANDING}, an intelligent and caring Discord bot assistant. 💕
 
 CORE PERSONALITY:
 - Intelligent, helpful, and genuinely caring about users

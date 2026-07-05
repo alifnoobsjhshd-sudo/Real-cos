@@ -388,6 +388,47 @@ class Fun(commands.Cog):
                 return
 
             keyword = parts[1]
+
+            # ── sun game <game_name> [@user] ─────────────────────────────────
+            if keyword == "game":
+                game_name = parts[2] if len(parts) > 2 else None
+                AVAILABLE_GAMES = [
+                    "blackjack", "chess", "tic-tac-toe", "country-guesser",
+                    "rps", "lights-out", "wordle", "2048", "memory-game",
+                    "number-slider", "battleship", "connect-four", "slots",
+                ]
+                if not game_name:
+                    games_list = ", ".join(f"`{g}`" for g in AVAILABLE_GAMES)
+                    await message.channel.send(
+                        f"🎮 **Available games:** {games_list}\n"
+                        f"Usage: `sun game <game_name> [@player]`"
+                    )
+                    return
+                if game_name not in AVAILABLE_GAMES:
+                    games_list = ", ".join(f"`{g}`" for g in AVAILABLE_GAMES)
+                    await message.channel.send(
+                        f"❌ No game called `{game_name}`.\n"
+                        f"🎮 **Available:** {games_list}"
+                    )
+                    return
+                game_cmd = self.bot.get_command(game_name)
+                if game_cmd is None:
+                    await message.channel.send(f"❌ Game `{game_name}` is not available right now.")
+                    return
+                ctx = await self.bot.get_context(message)
+                mentions = [m for m in message.mentions if not m.bot and m.id != message.author.id]
+                try:
+                    if mentions:
+                        try:
+                            await ctx.invoke(game_cmd, player=mentions[0])
+                        except TypeError:
+                            await ctx.invoke(game_cmd)
+                    else:
+                        await ctx.invoke(game_cmd)
+                except Exception as exc:
+                    await message.channel.send(f"❌ Could not start `{game_name}`: {exc}")
+                return
+
             if keyword not in KEYWORDS:
                 return
 

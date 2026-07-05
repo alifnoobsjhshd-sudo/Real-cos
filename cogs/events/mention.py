@@ -4,6 +4,7 @@ from discord.ext import commands
 from utils.Tools import get_ignore_data
 import aiosqlite
 from utils import help as vhelp
+from utils.branding import DEFAULT_BRANDING, get_branding
 
 
 class _MentionCtx:
@@ -110,7 +111,7 @@ def build_help_embed(bot: commands.Bot, user: discord.Member, prefix: str) -> di
     """Build the main help embed identical in style to the >help command."""
     embed = discord.Embed(
         description=(
-            f"**➡️ __Start Zyrox X Today__**\n"
+            f"**➡️ __Get Started Today__**\n"
             f"**➡️ Type `{prefix}antinuke enable`**\n"
             f"**➡️ Server Prefix:** `{prefix}`\n"
             f"**➡️ Total Commands:** `{len(set(bot.walk_commands()))}`\n"
@@ -157,7 +158,7 @@ def build_help_embed(bot: commands.Bot, user: discord.Member, prefix: str) -> di
             " 🎂 `»` Customrole\n"
         ),
     )
-    embed.set_footer(text=f"Requested By {user} | [Support](https://discord.gg/codexdev)")
+    embed.set_footer(text=f"Requested By {user} | {DEFAULT_BRANDING}")
     return embed
 
 
@@ -196,8 +197,7 @@ class MentionDropdown(discord.ui.Select):
             await interaction.response.edit_message(embed=embed, view=self.view)
 
         elif self.values[0] == "Commands":
-            data = await getConfig(interaction.guild.id)
-            prefix = data["prefix"]
+            prefix = ">"  # Prefix is locked to >
 
             ctx = _MentionCtx(interaction, prefix)
             mapping = {cog: cog.get_commands() for cog in self.bot.cogs.values()}
@@ -217,7 +217,7 @@ class Mention(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.color = 0xFF0000
-        self.bot_name = "Zyrox X"
+        self.bot_name = DEFAULT_BRANDING
 
     async def is_blacklisted(self, message):
         async with aiosqlite.connect("db/block.db") as db:
@@ -250,9 +250,9 @@ class Mention(commands.Cog):
 
         if self.bot.user in message.mentions and len(message.content.strip().split()) == 1:
             guild_id = message.guild.id
-            data = await getConfig(guild_id)
-            prefix = data["prefix"]
+            prefix = ">"  # Prefix is locked to >
 
+            branding = await get_branding(guild_id)
             embed = discord.Embed(
                 title=f"{message.guild.name}",
                 description=(
@@ -260,11 +260,11 @@ class Mention(commands.Cog):
                     f"> ➡️ **Prefix For This Server: `{prefix}`**\n\n"
                     f"> ☁️ Type `/help` or `{prefix}help` to explore all commands."
                 ),
-                color=self.color,
+                color=branding["embed_color"],
             )
             embed.set_thumbnail(url=self.bot.user.display_avatar.url)
             embed.set_footer(
-                text="Powered by Zyrox Development™",
+                text=f"Powered by {branding['branding_name']}",
                 icon_url=self.bot.user.display_avatar.url,
             )
 

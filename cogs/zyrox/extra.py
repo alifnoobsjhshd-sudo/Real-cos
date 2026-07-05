@@ -17,4 +17,4 @@ class _extra(commands.Cog):
 
     @commands.group()
     async def __Utility__(self, ctx: commands.Context):
-        """`botinfo` , `stats` , `invite` , `serverinfo` , `userinfo` , `roleinfo` , `boostcount` , `unbanall` ,  `joined-at` , `ping` , `github` , `vcinfo` , `channelinfo` , `badges` , `banner user` , `banner server` , `reminder start` , `reminder clear` , `permissions` , `timer`\n\n__**Media Commands**__\n`media` , `media setup ` , `media remove` , `media config` , `media bypass` , `media bypass add` , `media bypass remove` , `media bypass show`"""
+        """`botinfo` , `stats` , `invite` , `serverinfo` , `userinfo` , `roleinfo` , `ping` , `github` , `channelinfo` , `badges` , `banner user` , `banner server` , `reminder start` , `reminder clear` , `timer`\n\n__**Media Commands**__\n`media` , `media setup` , `media remove` , `media config`"""

@@ -1,5 +1,6 @@
 import aiosqlite
 import sqlite3
+import discord
 
 DEFAULT_BRANDING = "Sunlight"
 DEFAULT_COLOR = 0xFFD700
@@ -25,6 +26,13 @@ def _setup_branding_db():
             bio          TEXT,
             avatar_url   TEXT,
             banner_url   TEXT
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS bot_activity (
+            id            INTEGER PRIMARY KEY CHECK (id = 0),
+            activity_type TEXT,
+            activity_name TEXT
         )
     ''')
     conn.commit()
@@ -152,6 +160,44 @@ async def set_guild_profile(guild_id: int, **kwargs):
                 f"UPDATE guild_profile SET {key} = ? WHERE guild_id = ?",
                 (value, guild_id)
             )
+        await db.commit()
+
+
+async def get_custom_activity() -> dict | None:
+    """Return the saved custom bot activity dict {type, name}, or None if not set."""
+    _type_map = {
+        "playing":   discord.ActivityType.playing,
+        "watching":  discord.ActivityType.watching,
+        "listening": discord.ActivityType.listening,
+        "streaming": discord.ActivityType.streaming,
+    }
+    async with aiosqlite.connect('db/branding.db') as db:
+        async with db.execute(
+            "SELECT activity_type, activity_name FROM bot_activity WHERE id = 0"
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row and row[0] and row[1]:
+                atype = _type_map.get(row[0].lower())
+                if atype:
+                    return {"type": atype, "name": row[1]}
+    return None
+
+
+async def set_custom_activity(activity_type: str, activity_name: str):
+    """Persist a custom bot activity so it survives restarts."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        await db.execute(
+            "INSERT OR REPLACE INTO bot_activity (id, activity_type, activity_name) "
+            "VALUES (0, ?, ?)",
+            (activity_type.lower().strip(), activity_name),
+        )
+        await db.commit()
+
+
+async def clear_custom_activity():
+    """Clear the persisted custom activity so the rotating status resumes."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        await db.execute("DELETE FROM bot_activity WHERE id = 0")
         await db.commit()
 
 

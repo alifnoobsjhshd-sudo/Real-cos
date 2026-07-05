@@ -30,7 +30,6 @@ class zyrox(commands.AutoShardedBot):
         super().__init__(command_prefix=self.get_prefix,
                          case_insensitive=True,
                          intents=intents,
-                         # The status is already set to Do Not Disturb here
                          status=discord.Status.do_not_disturb,
                          strip_after_prefix=True,
                          owner_ids=OWNER_IDS,
@@ -41,9 +40,19 @@ class zyrox(commands.AutoShardedBot):
                          shard_count=1)
         self.status_index = 0
         self.status_list = []
+        # When True the rotating status task will not override the custom activity
+        self.use_custom_activity = False
 
     async def setup_hook(self):
         await self.load_extensions()
+        # Load any persisted custom activity before the rotating task starts
+        from utils.branding import get_custom_activity
+        saved = await get_custom_activity()
+        if saved:
+            self.use_custom_activity = True
+            await self.change_presence(
+                activity=discord.Activity(type=saved["type"], name=saved["name"])
+            )
         self.status_task.start()
 
     async def load_extensions(self):
@@ -60,27 +69,21 @@ class zyrox(commands.AutoShardedBot):
         await self.wait_until_ready()
         if not self.guilds:
             return
-
-        guild = self.guilds[0]  # Use first available guild for prefix
-        try:
-            config = await getConfig(guild.id)
-            prefix = config.get("prefix", ">")
-        except:
-            prefix = ">"
+        # Don't override a custom activity set via /global_customization
+        if self.use_custom_activity:
+            return
 
         user_count = sum(g.member_count or 0 for g in self.guilds)
         guild_count = len(self.guilds)
 
         self.status_list = [
-            (discord.ActivityType.playing, f"{prefix}help | Security in your Server"),
+            (discord.ActivityType.playing, ">help | Protecting your Server"),
             (discord.ActivityType.watching, f"{user_count} users"),
             (discord.ActivityType.watching, f"{guild_count} servers"),
             (discord.ActivityType.listening, "Killing Nukers"),
-            (discord.ActivityType.playing, "Protector Zyrox"),
         ]
 
         current = self.status_list[self.status_index % len(self.status_list)]
-        # This task only changes the activity, not the online status (dnd, idle, etc.)
         await self.change_presence(activity=discord.Activity(type=current[0], name=current[1]))
         self.status_index += 1
 
@@ -95,25 +98,15 @@ class zyrox(commands.AutoShardedBot):
             return msg
 
     async def get_prefix(self, message: discord.Message):
-        if message.guild:
-            guild_id = message.guild.id
-            async with aiosqlite.connect('db/np.db') as db:
-                async with db.execute("SELECT id FROM np WHERE id = ?", (message.author.id,)) as cursor:
-                    row = await cursor.fetchone()
-            data = await getConfig(guild_id)
-            prefix = data["prefix"]
-            if row:
-                return commands.when_mentioned_or(prefix, '')(self, message)
-            else:
-                return commands.when_mentioned_or(prefix)(self, message)
-        else:
-            async with aiosqlite.connect('db/np.db') as db:
-                async with db.execute("SELECT id FROM np WHERE id = ?", (message.author.id,)) as cursor:
-                    row = await cursor.fetchone()
-            if row:
-                return commands.when_mentioned_or('?', '')(self, message)
-            else:
-                return commands.when_mentioned_or('')(self, message)
+        # Prefix is locked to ">" — cannot be changed per-guild
+        prefix = ">"
+        async with aiosqlite.connect('db/np.db') as db:
+            async with db.execute("SELECT id FROM np WHERE id = ?", (message.author.id,)) as cursor:
+                row = await cursor.fetchone()
+        if row:
+            # Noprefix users can omit the prefix entirely
+            return commands.when_mentioned_or(prefix, '')(self, message)
+        return commands.when_mentioned_or(prefix)(self, message)
 
     async def on_message_edit(self, before, after):
         ctx: Context = await self.get_context(after, cls=Context)

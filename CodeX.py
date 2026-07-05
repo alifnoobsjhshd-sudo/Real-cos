@@ -97,7 +97,8 @@ async def on_guild_join(guild: discord.Guild):
     # Log when the bot joins a server
     log_channel = client.get_channel(LOG_CHANNEL_ID)
     if log_channel:
-        await log_channel.send(f"Zyrox X has been added to the server: **{guild.name}** (ID: `{guild.id}`)")
+        from utils.branding import DEFAULT_BRANDING
+        await log_channel.send(f"{DEFAULT_BRANDING} has been added to the server: **{guild.name}** (ID: `{guild.id}`)")
 
 @client.event
 async def on_command_completion(context: commands.Context) -> None:
@@ -262,7 +263,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return f"Zyrox Development™ 2025"
+    from utils.branding import DEFAULT_BRANDING
+    return f"{DEFAULT_BRANDING} © 2025"
 
 def run():
     app.run(host='0.0.0.0', port=19346)

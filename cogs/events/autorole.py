@@ -41,7 +41,7 @@ class Autorole2(Cog):
             role = member.guild.get_role(role_id)
             if role:
                 try:
-                    await member.add_roles(role, reason="Zyrox X Autoroles")
+                    await member.add_roles(role, reason="Autoroles")
                 except discord.Forbidden:
                     print(f"Bot lacks permissions to add role in a guild during Autorole Event .")
                 except discord.HTTPException as e:

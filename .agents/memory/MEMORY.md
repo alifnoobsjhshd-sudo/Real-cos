@@ -2,3 +2,5 @@
 - [Branding global defaults](branding-global-defaults.md) — guild_id=0 in guild_branding table stores global defaults; get_branding() falls back to global then to hardcoded defaults. reset_branding() deletes guild row to revert.
 - [Fun commands system](fun-commands-system.md) — Root cause: MESSAGE_CONTENT intent missing in Dev Portal → empty content → silent fail. Fix: /sun slash command (no intent needed) + on_message as bonus.
 - [Bot deploys on Render not Replit](bot-deploy-context.md) — discord.py not installed in Replit env; py_compile is the syntax check; never expect `import discord` to succeed in this shell.
+- [Prefix locked to > and activity persistence](prefix-activity-decisions.md) — prefix hard-locked in get_prefix; custom activity persisted via bot_activity table in branding.db; use_custom_activity flag on bot stops rotating status task.
+- [Slash command prefix alternatives pattern](slash-prefix-alt-pattern.md) — add @commands.command methods in the same Cog class; watch indentation (methods nested inside module-level helpers become local fns, not bot commands).

@@ -17,5 +17,5 @@ class _birth(commands .Cog ):
 
     @commands.group ()
     async def __Birthday__ (self ,ctx :commands .Context ):
-        """`birthdaysetup` , `setbirthday` , `removebirthday` , `listbirthdays` , `birthday`"""
+        """`setbirthday` , `listbirthdays` , `birthday`"""
         pass

@@ -171,7 +171,8 @@ class JoinToCreate(commands.Cog):
         limit = vc_data.get("limit", 2)
         status_parts.append(f"⏳ Limit: {limit if limit else 'None'}")
         embed.add_field(name="Status", value=" | ".join(status_parts), inline=False)
-        embed.set_footer(text="Zyrox X J2C System")
+        from utils.branding import DEFAULT_BRANDING
+        embed.set_footer(text=f"{DEFAULT_BRANDING} J2C System")
         return embed
 
     def create_info_embed(self, guild: discord.Guild) -> discord.Embed:

@@ -60,8 +60,7 @@ class Messages(commands.Cog):
                 f"**User** ``:`` {member.mention}\n\n"
                 f"**Daily Messages** ``:`` {daily_average}\n"
                 f"**Today Messages** ``:`` {today_count}\n"
-                f"**Total Messages** ``:`` {total}\n\n"
-                f"**➡️Upgrade Your Experience With [Zyrox Noprefix](https://discord.gg/codexdev)**"
+                f"**Total Messages** ``:`` {total}"
             ),
             color=0xFF0000
         )

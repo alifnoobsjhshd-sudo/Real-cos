@@ -20,7 +20,18 @@ class Errors(Cog):
       return
 
     if isinstance(error, commands.MissingRequiredArgument):
-      await ctx.send_help(ctx.command)
+      prefix = ctx.prefix or ">"
+      usage = f"`{prefix}{ctx.command.qualified_name}"
+      if ctx.command.usage:
+          usage += f" {ctx.command.usage}"
+      usage += "`"
+      embed = discord.Embed(
+          color=0xFF0000,
+          description=f"❌ **Missing argument:** `{error.param.name}`\n\n**How to use:** {usage}",
+      )
+      embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
+      embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
+      await ctx.reply(embed=embed, mention_author=False)
       ctx.command.reset_cooldown(ctx)
       return
 
@@ -55,7 +66,18 @@ class Errors(Cog):
       return
 
     if isinstance(error, commands.TooManyArguments):
-      await ctx.send_help(ctx.command)
+      prefix = ctx.prefix or ">"
+      usage = f"`{prefix}{ctx.command.qualified_name}"
+      if ctx.command.usage:
+          usage += f" {ctx.command.usage}"
+      usage += "`"
+      embed = discord.Embed(
+          color=0xFF0000,
+          description=f"❌ **Too many arguments.**\n\n**How to use:** {usage}",
+      )
+      embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
+      embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
+      await ctx.reply(embed=embed, mention_author=False)
       ctx.command.reset_cooldown(ctx)
       return
 
@@ -88,7 +110,18 @@ class Errors(Cog):
       return
 
     if isinstance(error, commands.BadArgument):
-      await ctx.send_help(ctx.command)
+      prefix = ctx.prefix or ">"
+      usage = f"`{prefix}{ctx.command.qualified_name}"
+      if ctx.command.usage:
+          usage += f" {ctx.command.usage}"
+      usage += "`"
+      embed = discord.Embed(
+          color=0xFF0000,
+          description=f"❌ **Invalid argument:** {error}\n\n**How to use:** {usage}",
+      )
+      embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
+      embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
+      await ctx.reply(embed=embed, mention_author=False)
       ctx.command.reset_cooldown(ctx)
       return
 

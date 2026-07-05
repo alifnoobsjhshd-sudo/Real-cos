@@ -508,6 +508,85 @@ class _ConfirmView(discord.ui.View):
         await interaction.response.defer()
 
 
+    # ── Prefix alternatives for slash commands ─────────────────────────────────
+
+    @commands.command(name="emoji_export", help="Export the emoji store JSON so you can set EMOJI_STORE_JSON on Render.")
+    @commands.has_permissions(administrator=True)
+    async def cmd_emoji_export(self, ctx: commands.Context):
+        store = get_store()
+        if not store:
+            return await ctx.reply("❌ No emojis stored yet. Run `/upload` first.", mention_author=False)
+        store_json = json.dumps(store, ensure_ascii=False)
+        export_path = "emoji_store.json"
+        with open(export_path, "w", encoding="utf-8") as f:
+            f.write(store_json)
+        import io as _io
+        file = discord.File(fp=_io.BytesIO(store_json.encode()), filename="emoji_store.json")
+        await ctx.reply(
+            f"✅ Exported **{len(store)}** emoji IDs to `{export_path}`.\n"
+            f"Copy the JSON and set it as `EMOJI_STORE_JSON` on Render to persist emojis across redeploys.",
+            file=file, mention_author=False,
+        )
+
+    @commands.command(name="emoji_status", help="Check which emoji branches have been uploaded to this server.")
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def cmd_emoji_status(self, ctx: commands.Context):
+        store = _load_store()
+        server_emoji_names = {em.name for em in ctx.guild.emojis}
+        embed = discord.Embed(title=f"⚙️ Emoji Status — {ctx.guild.name}", color=ACCENT)
+        for branch_name, names in BRANCHES.items():
+            found    = [n for n in names if n in server_emoji_names and n in store]
+            missing  = [n for n in names if n not in server_emoji_names or n not in store]
+            status   = "✅ Uploaded" if not missing else (f"⚠️ Partial ({len(found)}/{len(names)})" if found else "❌ Not uploaded")
+            embed.add_field(name=f"Branch: `{branch_name}`", value=status, inline=False)
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="upload_emojis", aliases=["uploademoji"], help="Upload an emoji branch. Usage: >upload_emojis <branch>  (branches: core, features, music, badges)")
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
+    async def cmd_upload(self, ctx: commands.Context, branch: str = None):
+        if not branch or branch not in BRANCHES:
+            branches_list = ", ".join(f"`{b}`" for b in BRANCHES)
+            return await ctx.reply(
+                f"❌ Please specify a valid branch.\n**Available:** {branches_list}\n**Usage:** `>upload_emojis <branch>`",
+                mention_author=False,
+            )
+        emoji_names = BRANCHES[branch]
+        existing    = {em.name: em for em in ctx.guild.emojis}
+        to_upload   = [n for n in emoji_names if n not in existing]
+        if not to_upload:
+            return await ctx.reply(f"✅ All emojis from branch `{branch}` are already uploaded.", mention_author=False)
+
+        msg = await ctx.reply(f"⏳ Uploading `{branch}` branch ({len(to_upload)} emojis)…", mention_author=False)
+        uploaded, failed = [], []
+        for name in to_upload:
+            path = os.path.join(EMOJI_DIR, f"{name}.png")
+            if not os.path.exists(path):
+                path = os.path.join(EMOJI_DIR, f"{name}.gif")
+            if not os.path.exists(path):
+                failed.append(name)
+                continue
+            try:
+                with open(path, "rb") as f:
+                    data = f.read()
+                em = await ctx.guild.create_custom_emoji(name=name, image=data, reason=f"Emoji upload: {branch}")
+                uploaded.append({name: str(em.id)})
+                await asyncio.sleep(0.5)
+            except Exception:
+                failed.append(name)
+        if uploaded:
+            merged = {}
+            for d in uploaded:
+                merged.update(d)
+            _save_uploaded(merged)
+        result = f"✅ Uploaded {len(uploaded)} emojis from `{branch}`."
+        if failed:
+            result += f"\n❌ Failed: {len(failed)} ({', '.join(failed[:5])}{'…' if len(failed) > 5 else ''})"
+        await msg.edit(content=result)
+
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _load_store() -> dict:
@@ -527,7 +606,6 @@ def _save_uploaded(new_emojis: dict[str, str]) -> None:
     with open(STORE_PATH, "w") as f:
         json.dump(store, f, indent=2, ensure_ascii=False)
     reload_store()
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(EmojiUpload(bot))

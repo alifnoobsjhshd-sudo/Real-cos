@@ -17,5 +17,5 @@ class _antinuke(commands.Cog):
 
     @commands.group()
     async def __Antinuke__(self, ctx: commands.Context):
-        """`antinuke` , `antinuke enable` , `antinuke disable` , `whitelist` , `whitelist @user` , `unwhitelist` , `whitelisted` , `whitelist reset` , `extraowner` , `extraowner set` , `extraowner view` , `extraowner reset`, `nightmode` , `nightmode enable` , `nightmode disable`\n"""
+        """`antinuke` , `antinuke enable` , `antinuke disable` , `whitelist` , `whitelist @user` , `unwhitelist` , `whitelisted` , `whitelist reset` , `extraowner` , `nightmode` , `nightmode enable` , `nightmode disable`\n"""
 

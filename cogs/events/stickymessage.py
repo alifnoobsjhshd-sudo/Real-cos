@@ -139,7 +139,8 @@ class StickyMessageListener(commands.Cog):
                     if data.get("footer"):
                         embed.set_footer(text=data["footer"])
                     else:
-                        embed.set_footer(text="ZyroxX Development")
+                        from utils.branding import DEFAULT_BRANDING
+                        embed.set_footer(text=DEFAULT_BRANDING)
 
                     embed.timestamp = discord.utils.utcnow()
                     return await channel.send(embed=embed)

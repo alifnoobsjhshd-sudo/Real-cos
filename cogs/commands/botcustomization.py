@@ -438,6 +438,10 @@ class GlobalActivityModal(discord.ui.Modal, title="Set Bot Activity"):
         name = self.activity_name.value.strip()
         activity = discord.Activity(type=atype, name=name)
         await interaction.client.change_presence(activity=activity)
+        # Persist so the activity survives restarts and overrides the rotating task
+        from utils.branding import set_custom_activity
+        await set_custom_activity(self.activity_type.value.lower().strip(), name)
+        interaction.client.use_custom_activity = True
         self.profile_view.activity_text = f"{self.activity_type.value.capitalize()} {name}"
         embed = self.profile_view.build_embed()
         await interaction.response.edit_message(embed=embed, view=self.profile_view)
@@ -582,6 +586,17 @@ class GlobalBotProfileView(discord.ui.View):
         status = status_map[chosen]
         await interaction.client.change_presence(status=status)
         self.status_text = chosen.capitalize()
+        embed = self.build_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Reset Activity", emoji="🔄", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_reset_activity(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Clear the custom activity and resume the rotating status task."""
+        from utils.branding import clear_custom_activity
+        await clear_custom_activity()
+        interaction.client.use_custom_activity = False
+        self.activity_text = "Not set (rotating status resumed)"
+        await interaction.client.change_presence(activity=None)
         embed = self.build_embed()
         await interaction.response.edit_message(embed=embed, view=self)
 

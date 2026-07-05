@@ -72,19 +72,15 @@ Threads : {len(guild.threads)}
             if not guild.chunked:
                 await guild.chunk()
 
-            embed = discord.Embed(description="➡️ Prefix For This Server is `>`\n➡️ Get Started with `>help`\n➡️ For detailed guides, FAQ & information, visit our **[Support Server](https://discord.gg/codexdev)**",
+            from utils.branding import DEFAULT_BRANDING
+            embed = discord.Embed(description=f"➡️ Prefix For This Server is `>`\n➡️ Get Started with `>help`\n➡️ Use `/help` to explore all commands.",
     color=0xFF0000)
             embed.set_author(name="Thanks for adding me!", icon_url=guild.me.display_avatar.url)
-            embed.set_footer(text="Powered by Zyrox Development™",)
+            embed.set_footer(text=f"Powered by {DEFAULT_BRANDING}",)
             if guild.icon:
                 embed.set_thumbnail(url=guild.icon.url)
 
-            support = Button(label='Support',
-                             style=discord.ButtonStyle.link,
-                    url=f'https://discord.gg/codexdev')
-            
             view = View()
-            view.add_item(support)
             channel = discord.utils.get(guild.text_channels, name="general")
             if not channel:
                 channels = [channel for channel in guild.text_channels if channel.permissions_for(guild.me).send_messages]

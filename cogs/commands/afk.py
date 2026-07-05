@@ -10,7 +10,8 @@ from utils.Tools import blacklist_check, ignore_check
 
 DB_PATH = "db/afk.db"
 THEME_COLOR = 0xFF0000
-FOOTER_TEXT = "Developed by Zyrox Development"
+from utils.branding import DEFAULT_BRANDING
+FOOTER_TEXT = f"Powered by {DEFAULT_BRANDING}"
 
 # --- View for Buttons ---
 class AfkTypeView(ui.View):

@@ -511,41 +511,18 @@ class Moderation(commands.Cog):
   @commands.hybrid_command(
         name="prefix",
         aliases=["setprefix", "prefixset"],
-        help="Allows you to change the prefix of the bot for this server"
+        help="Shows the bot prefix (locked to >)"
     )
   @blacklist_check()
   @ignore_check()
-  @commands.has_permissions(administrator=True)
-  @commands.cooldown(1, 10, commands.BucketType.user)
-  @commands.max_concurrency(1, per=commands.BucketType.default, wait=False)
   @commands.guild_only()
-  async def _prefix(self, ctx: commands.Context, prefix: str):
-      if not prefix:
-          await ctx.reply(embed=discord.Embed(title="❌ Error",
-                description="Prefix cannot be empty. Please provide a valid prefix.",
-                color=self.color
-            ))
-          return
-          
-      data = await getConfig(ctx.guild.id)
-      if ctx.author == ctx.guild.owner or ctx.author.top_role.position > ctx.guild.me.top_role.position:
-          data["prefix"] = str(prefix)
-          await updateConfig(ctx.guild.id, data)
-          embed1=discord.Embed(title="✅> Success",
-                description=f"Changed Prefix For this guild to `{prefix}`\n\nNew Prefix for **{ctx.guild.name}** is : `{prefix}`\nUse `{prefix}help` For More.",
-                color=self.color
-                             )
-          await ctx.reply(embed=embed1)
-      else:
-          denied = discord.Embed(title="⚠️ Access Denied",
-              description="Your role should be above my top role.",
-              color=0xFF0000)
-          denied.set_footer(text=f"“{ctx.command.qualified_name}” Command executed by {ctx.author}",
-                     icon_url=ctx.author.display_avatar.url if ctx.author.avatar else ctx.author.default_avatar.url)
-          await ctx.send(embed=denied, mention_author=False)
-        
-
-
+  async def _prefix(self, ctx: commands.Context):
+      embed = discord.Embed(
+          title="ℹ️ Bot Prefix",
+          description=f"The bot prefix is locked to **`>`** and cannot be changed.\n\nFun commands use **`sun`** (e.g. `sun hug @user`).",
+          color=self.color,
+      )
+      await ctx.reply(embed=embed, mention_author=False)
   @commands.hybrid_command(name="clone", help="Clones a channel.")
   @blacklist_check()
   @ignore_check()

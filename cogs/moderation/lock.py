@@ -36,7 +36,7 @@ class Lock(commands.Cog):
 
         # Create the confirmation embed
         embed = discord.Embed(
-            title="Zyrox | Lockdown",
+            title="🔒 Lockdown",
             description=f"✅ | Successfully Locked {channel.mention}",
             color=0xFF0000
         )
