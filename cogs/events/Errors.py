@@ -6,6 +6,28 @@ from utils.config import serverLink
 from core import zyrox, Cog, Context
 from utils.Tools import get_ignore_data
 
+
+def _friendly_type_hint(param) -> str:
+    """Return a plain-language description of what should be put in an argument,
+    based on its type annotation. Falls back to a generic hint if unknown."""
+    annotation = param.annotation
+    name = getattr(annotation, "__name__", str(annotation)).lower()
+
+    hints = {
+        "member": "mention a server member or paste their user ID (example: `@username`)",
+        "user": "mention a user or paste their user ID (example: `@username`)",
+        "role": "mention a role or paste its role ID (example: `@RoleName`)",
+        "textchannel": "mention a text channel or paste its channel ID (example: `#general`)",
+        "voicechannel": "mention a voice channel or paste its channel ID (example: `#voice-chat`)",
+        "categorychannel": "mention a category or paste its category ID",
+        "int": "enter a whole number (example: `5`)",
+        "float": "enter a number (example: `2.5`)",
+        "bool": "enter `true` or `false`",
+        "str": "enter some text",
+    }
+    return hints.get(name, "fill in a value for this")
+
+
 class Errors(Cog):
   def __init__(self, client: zyrox):
     self.client = client
@@ -24,10 +46,17 @@ class Errors(Cog):
       usage = f"`{prefix}{ctx.command.qualified_name}"
       if ctx.command.usage:
           usage += f" {ctx.command.usage}"
+      else:
+          usage += f" {ctx.command.signature}"
       usage += "`"
+      hint = _friendly_type_hint(error.param)
       embed = discord.Embed(
           color=0xFF0000,
-          description=f"❌ **Missing argument:** `{error.param.name}`\n\n**How to use:** {usage}",
+          description=(
+              f"❌ **You're missing something:** `{error.param.name}`\n\n"
+              f"**What to do:** {hint}.\n\n"
+              f"**How to use:** {usage}"
+          ),
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
       embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")

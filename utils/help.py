@@ -1,10 +1,59 @@
 import discord
 import re
+import inspect
 from discord.ext import commands as _commands
 from discord.ext.commands import CheckFailure, CommandError
 from utils.Tools import *
 from utils.branding import DEFAULT_COLOR, DEFAULT_BRANDING
 from utils.emojis import e as _e
+
+
+def _is_noop_bare_group(cmd_obj) -> bool:
+    """True if cmd_obj is a Group whose own body does nothing but redirect
+    to help when invoked without a subcommand (e.g. `>ticket`, `>media`
+    alone). Such bare invocations are not functional on their own and
+    should not be listed/runnable from the help menu."""
+    if not isinstance(cmd_obj, _commands.Group):
+        return False
+    try:
+        src = inspect.getsource(cmd_obj.callback)
+    except (OSError, TypeError):
+        return False
+
+    src_lines = src.splitlines()
+    def_index = next(
+        (i for i, l in enumerate(src_lines) if re.match(r'\s*(async\s+)?def\s', l)),
+        None,
+    )
+    if def_index is None:
+        return False
+
+    body_lines = []
+    for raw_line in src_lines[def_index + 1:]:
+        line = raw_line.strip()
+        if not line or line.startswith('"""') or line.startswith("'''") or line.startswith("#"):
+            continue
+        body_lines.append(line)
+
+    if not body_lines:
+        return False
+
+    return all(
+        re.search(r'send_help\s*\(', line)
+        or re.search(r'reset_cooldown\s*\(', line)
+        or line.startswith(("if ", "else", "elif "))
+        for line in body_lines
+    )
+
+
+def _is_bare_group_pattern(clean: str, bot) -> bool:
+    """True if `clean` refers to a top-level group command with no
+    subcommand word, and that group is a help-only no-op when run bare."""
+    parts = clean.split()
+    if len(parts) != 1:
+        return False
+    cmd_obj = bot.get_command(parts[0])
+    return _is_noop_bare_group(cmd_obj)
 
 
 # ── Command-invocation Modal ───────────────────────────────────────────────────
@@ -361,6 +410,8 @@ class View(discord.ui.View):
                 clean = re.sub(r'\s*[@#<>\[\]]\S*', '', stripped.lstrip("/").lstrip(">")).strip()
                 if not clean or clean in seen:
                     continue
+                if not is_slash and _is_bare_group_pattern(clean, self.ctx.bot):
+                    continue
                 seen.add(clean)
                 display = f"{'/' if is_slash else '>'}{clean}"
                 desc = _lookup_desc(clean.split()[0]) if not is_slash else ""
@@ -522,6 +573,8 @@ class View(discord.ui.View):
             # Remove leading prefix indicators and user/channel hints
             clean = re.sub(r'\s*[@#<>\[\]]\S*', '', stripped.lstrip("/").lstrip(">")).strip()
             if not clean:
+                continue
+            if not is_slash and _is_bare_group_pattern(clean, self.ctx.bot):
                 continue
 
             prefix_char = "/" if is_slash else ">"

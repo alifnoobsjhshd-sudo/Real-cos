@@ -54,6 +54,24 @@ class zyrox(commands.AutoShardedBot):
                 activity=discord.Activity(type=saved["type"], name=saved["name"])
             )
         self.status_task.start()
+        self.tree.on_error = self.on_app_command_error
+
+    async def on_app_command_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        """Global fallback for slash command errors.
+
+        Without this, an unhandled exception raised after `interaction.response.defer()`
+        leaves the interaction stuck on "thinking..." forever, since discord.py's default
+        behaviour is just to log the error without ever responding to the user.
+        """
+        print(f"{Fore.RED}{Style.BRIGHT}App command error in /{interaction.command.qualified_name if interaction.command else '?'}: {error}")
+        message = "❌ Something went wrong while running this command. Please try again."
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException:
+            pass
 
     async def load_extensions(self):
         for extension in extensions:

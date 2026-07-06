@@ -132,17 +132,25 @@ class Games(Cog):
         game = btn.BetaBattleShip(player1=ctx.author, player2=player)
         await game.start(ctx)
 
-    @commands.group(name="country-guesser",
+    @commands.hybrid_group(name="country-guesser",
                     help="Guess name of the country by flag.",
                     aliases=["guess", "guesser", "countryguesser"],
-                    usage="country-guesser")
+                    usage="country-guesser",
+                    invoke_without_command=True)
+    @blacklist_check()
+    @ignore_check()
     @commands.guild_only()
     async def _country_guesser(self, ctx: Context):
         if ctx.invoked_subcommand is None:
-            await ctx.send_help("country-guesser")
+            await ctx.send_help(ctx.command)
 
     @_country_guesser.command(name="start",
                               help="Starts the country guesser game. It's a 100 Seconds Game so suggested to play in a SPECIFIC CHANNEL.")
+    @blacklist_check()
+    @ignore_check()
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    @commands.max_concurrency(3, per=commands.BucketType.default, wait=False)
+    @commands.guild_only()
     async def _start_country_guesser(self, ctx: Context):
         game = games.CountryGuesser(is_flags=True, hints=2)
         await game.start(ctx)

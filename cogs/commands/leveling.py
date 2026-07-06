@@ -1783,9 +1783,9 @@ class Leveling (commands .Cog ):
 
             final_embed .add_field (
             name ="🚀 Next Steps",
-            value ="• Use `!level channel #channel` to set announcement channel\n"
-            "• Use `!level rewards add <level> @role` to add level rewards\n"
-            "• Use `!level leaderboard` to view the server leaderboard\n"
+            value =f"• Use `{ctx.prefix}level channel #channel` to set announcement channel\n"
+            f"• Use `{ctx.prefix}level rewards add <level> @role` to add level rewards\n"
+            f"• Use `{ctx.prefix}level leaderboard` to view the server leaderboard\n"
             "• Users will now gain XP from messages!",
             inline =False 
             )
@@ -2914,9 +2914,9 @@ class Leveling (commands .Cog ):
             title ="✅ Leveling System Enabled",
             description ="The leveling system has been successfully enabled for this server!\n\n"
             "**Next Steps:**\n"
-            "• Use `/level settings` to configure XP rates and messages\n"
-            "• Use `/level channel` to set level-up announcement channel\n"
-            "• Use `/level rewards add` to set up level rewards",
+            f"• Use `{ctx.prefix}level settings` to configure XP rates and messages\n"
+            f"• Use `{ctx.prefix}level channel` to set level-up announcement channel\n"
+            f"• Use `{ctx.prefix}level rewards add` to set up level rewards",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
             )

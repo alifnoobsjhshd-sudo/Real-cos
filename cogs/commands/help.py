@@ -308,6 +308,23 @@ class Help(Cog, name="help"):
   async def slash_help(self, interaction: Interaction):
     await interaction.response.defer(ephemeral=False)
 
+    try:
+      await asyncio.wait_for(self._build_and_send_help(interaction), timeout=10)
+    except asyncio.TimeoutError:
+      with suppress(discord.HTTPException):
+        await interaction.followup.send(
+          "❌ The help menu took too long to load. Please try again.",
+          ephemeral=True,
+        )
+    except Exception as e:
+      print(f"slash_help failed: {e}")
+      with suppress(discord.HTTPException):
+        await interaction.followup.send(
+          "❌ Something went wrong while loading the help menu. Please try again.",
+          ephemeral=True,
+        )
+
+  async def _build_and_send_help(self, interaction: Interaction):
     ctx = _SlashCtx(interaction)
     bot = interaction.client
     mapping = {cog: cog.get_commands() for cog in bot.cogs.values()}
