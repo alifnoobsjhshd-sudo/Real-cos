@@ -4,3 +4,4 @@
 - [Bot deploys on Render not Replit](bot-deploy-context.md) — discord.py not installed in Replit env; py_compile is the syntax check; never expect `import discord` to succeed in this shell.
 - [Prefix locked to > and activity persistence](prefix-activity-decisions.md) — prefix hard-locked in get_prefix; custom activity persisted via bot_activity table in branding.db; use_custom_activity flag on bot stops rotating status task.
 - [Slash command prefix alternatives pattern](slash-prefix-alt-pattern.md) — add @commands.command methods in the same Cog class; watch indentation (methods nested inside module-level helpers become local fns, not bot commands).
+- [hybrid_group bare-invoke pitfall](hybrid-group-bare-invoke.md) — bot.get_command(name) on a group always returns the parent; bare callback should perform the action, not just send_help, if bare invocation is expected to work.

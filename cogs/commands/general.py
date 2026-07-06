@@ -200,18 +200,9 @@ class General(commands.Cog):
 
         await ctx.send(embed=embed)
 
-  @commands.hybrid_command(name="poll", usage="Poll <message>")
-  @blacklist_check()
-  @ignore_check()
-  @commands.cooldown(1, 3, commands.BucketType.user)
-  async def poll(self, ctx: commands.Context, *, message):
-    author = ctx.author
-    emp = discord.Embed(title=f"**Poll raised by {author}!**",
-                        description=f"{message}",
-                        color=self.color)
-    msg = await ctx.send(embed=emp)
-    await msg.add_reaction("✅")
-    await msg.add_reaction("❌")
+  # NOTE: the old reaction-based `poll` command was replaced by the full
+  # interactive poll builder in cogs/commands/poll.py (PollCog). See there
+  # for the `/poll` and `>poll` implementation.
 
   
   @commands.command(name="hack",

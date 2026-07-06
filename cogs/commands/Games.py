@@ -139,10 +139,13 @@ class Games(Cog):
                     invoke_without_command=True)
     @blacklist_check()
     @ignore_check()
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    @commands.max_concurrency(3, per=commands.BucketType.default, wait=False)
     @commands.guild_only()
     async def _country_guesser(self, ctx: Context):
         if ctx.invoked_subcommand is None:
-            await ctx.send_help(ctx.command)
+            game = games.CountryGuesser(is_flags=True, hints=2)
+            await game.start(ctx)
 
     @_country_guesser.command(name="start",
                               help="Starts the country guesser game. It's a 100 Seconds Game so suggested to play in a SPECIFIC CHANNEL.")

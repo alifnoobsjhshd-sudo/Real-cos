@@ -131,7 +131,6 @@ class Tracking(commands.Cog):
             )
         )
         embed.set_thumbnail(url=member.display_avatar.url if member.avatar else member.default_avatar.url)
-        embed.set_footer(text="Powered By Zyrox X Development™", icon_url=ctx.author.display_avatar.url if ctx.author.avatar else ctx.author.default_avatar.url)
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["addinvs"])

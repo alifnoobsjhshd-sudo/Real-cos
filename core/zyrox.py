@@ -43,8 +43,39 @@ class zyrox(commands.AutoShardedBot):
         # When True the rotating status task will not override the custom activity
         self.use_custom_activity = False
 
+    # Default bot customization (used to seed fresh installs; admins can still
+    # override any of these later via /global_customization, and their choice
+    # will be preserved across restarts).
+    DEFAULT_EMBED_THUMBNAIL = "https://cdn.discordapp.com/attachments/1475147783437811901/1522602829947343119/file_0000000023a87207a3bdcfadd18c59bc.png"
+    DEFAULT_EMBED_BANNER = "https://cdn.discordapp.com/attachments/1475147783437811901/1522486762318860298/yellow-header-gif-yellow-header.gif"
+    DEFAULT_ACTIVITY_TYPE = "watching"
+    DEFAULT_ACTIVITY_NAME = "/help | .gg/thesunlight"
+
+    async def _seed_default_customization(self):
+        """Seed hardcoded defaults on first run without clobbering admin changes."""
+        from utils.branding import (
+            get_global_branding,
+            set_global_branding,
+            get_custom_activity,
+            set_custom_activity,
+        )
+
+        global_branding = await get_global_branding()
+        updates = {}
+        if not global_branding.get("embed_thumbnail"):
+            updates["embed_thumbnail"] = self.DEFAULT_EMBED_THUMBNAIL
+        if not global_branding.get("embed_banner"):
+            updates["embed_banner"] = self.DEFAULT_EMBED_BANNER
+        if updates:
+            await set_global_branding(**updates)
+
+        if not await get_custom_activity():
+            await set_custom_activity(self.DEFAULT_ACTIVITY_TYPE, self.DEFAULT_ACTIVITY_NAME)
+
     async def setup_hook(self):
         await self.load_extensions()
+        await self._seed_default_customization()
+
         # Load any persisted custom activity before the rotating task starts
         from utils.branding import get_custom_activity
         saved = await get_custom_activity()

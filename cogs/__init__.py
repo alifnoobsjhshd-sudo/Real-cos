@@ -5,6 +5,7 @@ from colorama import Fore, Style, init
 
 from .commands.help import Help
 from .commands.general import General
+from .commands.poll import PollCog
 #from .commands.music import Music
 from .commands.automod import Automod
 from .commands.welcome import Welcomer
@@ -194,6 +195,7 @@ async def setup(bot: zyrox):
 
   await bot.add_cog(Help(bot))
   await bot.add_cog(General(bot))
+  await bot.add_cog(PollCog(bot))
   #await bot.add_cog(Music(bot))
   await bot.add_cog(Automod(bot))
   await bot.add_cog(Welcomer(bot))
