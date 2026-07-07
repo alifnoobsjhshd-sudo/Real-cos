@@ -12,7 +12,10 @@ Supported keywords: bite, boop, bully, cuddle, cry, dance, greet,
 handholding, highfive, hold, hug, insult, kill, kiss, lick, nom,
 pat, poke, punch, slap, snuggle, stare, tickle, wave, blush,
 deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile,
-smug, teehee, thinking, thonking, thumbsup, triggered, wag, headpat
+smug, teehee, thinking, thonking, thumbsup, triggered, wag, headpat,
+kick, tackle, bonk, nuzzle, yeet
+
+Blocked keywords (respond with 'I can't show that'): sex, fuck
 """
 
 import discord
@@ -38,6 +41,7 @@ PAST_TENSE = {
     "hug":         "hugged",
     "insult":      "insulted",
     "kill":        "killed",
+    "kick":        "kicked",
     "kiss":        "kissed",
     "lick":        "licked",
     "nom":         "nommed",
@@ -69,6 +73,10 @@ PAST_TENSE = {
     "triggered":   "got triggered by",
     "wag":         "wagged excitedly for",
     "headpat":     "headpatted",
+    "tackle":      "tackled",
+    "bonk":        "bonked",
+    "nuzzle":      "nuzzled",
+    "yeet":        "yeeted",
 }
 
 EMOTIONS = {
@@ -83,6 +91,7 @@ EMOTIONS = {
     "hug":         "Group hug! 🤗",
     "insult":      "That was really rude! 😤",
     "kill":        "Chill dude! 💀",
+    "kick":        "That's a powerful kick! 🦵",
     "kiss":        "Ahh! So cute! 😍",
     "lick":        "W-what?! 👅",
     "nom":         "Yummy! 😋",
@@ -114,7 +123,14 @@ EMOTIONS = {
     "triggered":   "TRIGGERED! 😡",
     "wag":         "So excited! 🐕",
     "headpat":     "Aww! 🥺",
+    "tackle":      "Oof! You got tackled! 💨",
+    "bonk":        "No horny! 🔨",
+    "nuzzle":      "So affectionate! 🐾",
+    "yeet":        "They're gone! 🚀",
 }
+
+# Keywords that get a blocked response instead of a GIF
+BLOCKED_KEYWORDS: frozenset[str] = frozenset({"sex", "fuck"})
 
 # keyword → nekos.best SFW endpoint (primary; free, no API key)
 # Fallback: waifu.pics SFW endpoint (same free/no-key policy)
@@ -162,6 +178,11 @@ _NEKOSBEST = {
     "triggered":   "bully",     # no triggered on nekos.best
     "wag":         "wag",
     "headpat":     "bonk",
+    "kick":        "kick",
+    "tackle":      "slap",      # no tackle on nekos.best
+    "bonk":        "bonk",
+    "nuzzle":      "cuddle",    # no nuzzle on nekos.best
+    "yeet":        "throw",     # no yeet on nekos.best
 }
 
 _WAIFUPICS = {
@@ -207,9 +228,15 @@ _WAIFUPICS = {
     "triggered":   "triggered",
     "wag":         "wag",
     "headpat":     "bonk",
+    "kick":        "kick",
+    "tackle":      "slap",      # no tackle on waifu.pics
+    "bonk":        "bonk",
+    "nuzzle":      "cuddle",    # no nuzzle on waifu.pics
+    "yeet":        "throw",     # no yeet on waifu.pics
 }
 
 KEYWORDS = frozenset(PAST_TENSE.keys())
+ALL_TRIGGER_KEYWORDS = KEYWORDS | BLOCKED_KEYWORDS
 
 
 # ─── Cog ──────────────────────────────────────────────────────────────────────
@@ -315,6 +342,15 @@ class Fun(commands.Cog):
         action: str,
         user: discord.Member,
     ) -> None:
+        action = action.strip().lower()
+
+        # Blocked keywords — politely decline
+        if action in BLOCKED_KEYWORDS:
+            await interaction.response.send_message(
+                "I can't show that", ephemeral=True
+            )
+            return
+
         # Validate action (autocomplete filters, but manual entry is possible)
         if action not in KEYWORDS:
             await interaction.response.send_message(
@@ -366,6 +402,7 @@ class Fun(commands.Cog):
             for kw in sorted(KEYWORDS)
             if current.lower() in kw.lower()
         ][:25]
+        # Note: BLOCKED_KEYWORDS (sex, fuck) are intentionally excluded from autocomplete
 
     # ── Message listener (bonus — needs MESSAGE_CONTENT privileged intent) ────
 
@@ -427,6 +464,14 @@ class Fun(commands.Cog):
                         await ctx.invoke(game_cmd)
                 except Exception as exc:
                     await message.channel.send(f"❌ Could not start `{game_name}`: {exc}")
+                return
+
+            # Blocked keywords — reply and stop
+            if keyword in BLOCKED_KEYWORDS:
+                try:
+                    await message.channel.send("I can't show that")
+                except Exception:
+                    pass
                 return
 
             if keyword not in KEYWORDS:

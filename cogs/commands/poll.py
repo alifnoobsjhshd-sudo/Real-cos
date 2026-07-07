@@ -304,6 +304,8 @@ class PollChannelSelect(discord.ui.ChannelSelect):
             channel_types=[discord.ChannelType.text, discord.ChannelType.news],
             min_values=1,
             max_values=1,
+            custom_id="poll_channel_select",
+            row=0,
         )
         self.builder_view = builder_view
 
@@ -408,7 +410,7 @@ class PollBuilderView(discord.ui.View):
             await interaction.response.send_message("Please select a channel to send the poll to.", ephemeral=True)
             return
 
-        perms = self.channel.permissions_for(self.ctx.guild.me)
+        perms = self.channel.permissions_for(interaction.guild.me)
         if not (perms.send_messages and perms.embed_links):
             await interaction.response.send_message(
                 f"I don't have permission to send embeds in {self.channel.mention}.", ephemeral=True
@@ -488,13 +490,6 @@ class PollCog(Cog):
 
     def __init__(self, client: zyrox):
         self.client = client
-
-    def help_custom(self):
-        from utils.emojis import e as _e
-        emoji = _e('zpeople')
-        label = "Poll"
-        description = "Create interactive polls with configurable voting"
-        return emoji, label, description
 
     async def cog_load(self):
         await _setup_poll_db()

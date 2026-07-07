@@ -1,4 +1,6 @@
-keywords : bite, boop, bully, cuddle, greet, handholding, highfive, hold, hug, insult, kill, kiss, lick, nom, pat, pats, poke, punch, slap, snuggle, stare, tickle, wave, blush, cry, dance, deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile, smug, teehee, thinking, thonking, thumbsup, thumbs, triggered, wag, pic, gif, headpat
+keywords : bite, boop, bully, cuddle, greet, handholding, highfive, hold, hug, insult, kill, kick, kiss, lick, nom, pat, pats, poke, punch, slap, snuggle, stare, tickle, wave, blush, cry, dance, deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile, smug, teehee, thinking, thonking, thumbsup, thumbs, triggered, wag, pic, gif, headpat, tackle, bonk, nuzzle, yeet
+
+blocked keywords (respond with "I can't show that") : sex, fuck
 
 
 
@@ -22,6 +24,24 @@ describing the emotion sentence at the last lf the embed title: according to the
 
    keyword = kill
    title = "(author pfp) (author display mame) killed (mentioned user display name) Chill dude!"
+
+   keyword = kick
+   title = "(author pfp) (author display name) kicked (mentioned user display name) That's a powerful kick! 🦵"
+
+   keyword = tackle
+   title = "(author pfp) (author display name) tackled (mentioned user display name) Oof! You got tackled! 💨"
+
+   keyword = bonk
+   title = "(author pfp) (author display name) bonked (mentioned user display name) No horny! 🔨"
+
+   keyword = nuzzle
+   title = "(author pfp) (author display name) nuzzled (mentioned user display name) So affectionate! 🐾"
+
+   keyword = yeet
+   title = "(author pfp) (author display name) yeeted (mentioned user display name) They're gone! 🚀"
+
+   keyword = sex / fuck
+   response = "I can't show that"  (no embed, no gif — plain text only)
 
 
 if for emotion sentence need ai integration know me. if no need ai will be much better.
