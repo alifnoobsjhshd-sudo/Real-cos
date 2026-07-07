@@ -53,4 +53,4 @@ pytz
 PyYAML
 requests
 tasksio
-wavelink
+wavelink>=2.0.0
