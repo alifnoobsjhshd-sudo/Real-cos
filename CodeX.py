@@ -382,9 +382,12 @@ async def main():
             print("="*60 + "\n")
         except discord.HTTPException as e:
             if e.status == 429:
-                # Rate limited on first login — exit cleanly.
-                # Render will restart the service automatically, adding natural delay.
-                print(f"[startup] Discord login rate-limited (HTTP 429). Exiting so Render can restart with delay...")
+                # Sleep 2 minutes INSIDE the process (Flask keeps Render's health check
+                # passing during this time), then exit cleanly.  By the time Render
+                # restarts us the Discord identify rate-limit will have cleared.
+                print("[startup] Discord login rate-limited (HTTP 429). Sleeping 120s for rate limit to clear...")
+                await asyncio.sleep(120)
+                print("[startup] Waking up — exiting so Render restarts with a fresh login.")
             else:
                 raise
 
