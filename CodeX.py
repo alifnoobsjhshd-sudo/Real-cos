@@ -87,7 +87,7 @@ from threading import Thread
 from datetime import datetime
 import random
 import time
-from utils.db_sync import restore_from_neon, start_sync_loop
+from db_sync import restore_from_neon, start_sync_loop
 
 import aiohttp
 import discord
