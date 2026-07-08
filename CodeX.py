@@ -362,34 +362,60 @@ async def main():
     if not TOKEN:
         print("\n" + "="*60)
         print("ERROR: Discord bot TOKEN is missing!")
-        print("Go to the Secrets tab and add your bot token as TOKEN.")
+        print("Check that TOKEN is set in Render → Environment.")
         print("="*60 + "\n")
         return
 
-    # Small startup delay — prevents hammering Discord's login endpoint
-    # on rapid redeploys (which triggers the identify rate limit).
     await asyncio.sleep(5)
+    await restore_from_neon()
+    await client.load_extension("jishaku")
 
-    async with client:
-        await restore_from_neon()
-        await client.load_extension("jishaku")
+    # ── Login with rate-limit retry ────────────────────────────────────────────
+    # We separate login() from connect() so we can retry login on 429 without
+    # creating a new client.  discord.py closes and recreates its HTTP session
+    # on each login() call, so this is safe to loop.
+    attempt = 0
+    while True:
+        attempt += 1
         try:
-            await client.start(TOKEN)
+            print(f"[startup] Login attempt {attempt} …")
+            await client.login(TOKEN)
+            break  # success
         except discord.LoginFailure:
             print("\n" + "="*60)
             print("ERROR: Invalid bot TOKEN — login failed.")
-            print("Check that TOKEN is set correctly in Render → Environment.")
+            print("Check TOKEN in Render → Environment.")
             print("="*60 + "\n")
+            return
         except discord.HTTPException as e:
             if e.status == 429:
-                # Sleep 2 minutes INSIDE the process (Flask keeps Render's health check
-                # passing during this time), then exit cleanly.  By the time Render
-                # restarts us the Discord identify rate-limit will have cleared.
-                print("[startup] Discord login rate-limited (HTTP 429). Sleeping 120s for rate limit to clear...")
-                await asyncio.sleep(120)
-                print("[startup] Waking up — exiting so Render restarts with a fresh login.")
+                retry_after = getattr(e, 'retry_after', None)
+                wait = max(float(retry_after) if retry_after else 120, 60)
+                print(f"[startup] Rate limited by Discord. Waiting {wait:.0f}s before retry …")
+                await asyncio.sleep(wait)
             else:
                 raise
+        except Exception as e:
+            print(f"[startup] Unexpected login error: {e}. Retrying in 30s …")
+            await asyncio.sleep(30)
+
+    # ── Gateway connection — discord.py reconnects automatically ───────────────
+    print("[startup] Login successful. Connecting to gateway …")
+    await client.connect(reconnect=True)
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"[fatal] Bot crashed: {e}")
+        traceback.print_exc()
+    finally:
+        # ── CRITICAL: force-kill the whole process ─────────────────────────────
+        # Without this the Flask background thread keeps the process alive
+        # with a permanently offline bot — Render sees "live" but Discord
+        # sees the bot as offline and nothing ever restarts it.
+        print("[fatal] Bot exited. Killing process so Render restarts cleanly.")
+        os._exit(1)
