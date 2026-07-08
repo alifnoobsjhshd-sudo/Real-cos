@@ -347,6 +347,10 @@ def home():
     from utils.branding import DEFAULT_BRANDING
     return f"{DEFAULT_BRANDING} © 2025"
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204  # No Content — silences browser 404 noise
+
 def run():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
@@ -380,24 +384,45 @@ async def main():
         try:
             print(f"[startup] Login attempt {attempt} …")
             await client.login(TOKEN)
-            break  # success
+            break  # success — move on to connect()
         except discord.LoginFailure:
             print("\n" + "="*60)
             print("ERROR: Invalid bot TOKEN — login failed.")
             print("Check TOKEN in Render → Environment.")
             print("="*60 + "\n")
             return
+        except discord.RateLimited as e:
+            # discord.py 2.x raises this specific exception on 429 during login.
+            # It carries the correct retry_after from Discord's response header.
+            wait = max(float(e.retry_after), 60)
+            print(f"[startup] Rate limited (RateLimited). Waiting {wait:.0f}s …")
+            # Close the internal HTTP session so the next attempt starts clean.
+            try:
+                await client.close()
+            except Exception:
+                pass
+            await asyncio.sleep(wait)
         except discord.HTTPException as e:
             if e.status == 429:
+                # Fallback: plain HTTPException with status 429 (older path).
+                # Try to read retry_after from the JSON body discord.py attaches.
                 retry_after = getattr(e, 'retry_after', None)
-                wait = max(float(retry_after) if retry_after else 120, 60)
-                print(f"[startup] Rate limited by Discord. Waiting {wait:.0f}s before retry …")
+                wait = max(float(retry_after) if retry_after else 300, 60)
+                print(f"[startup] Rate limited (HTTP 429). Waiting {wait:.0f}s …")
+                try:
+                    await client.close()
+                except Exception:
+                    pass
                 await asyncio.sleep(wait)
             else:
                 raise
         except Exception as e:
-            print(f"[startup] Unexpected login error: {e}. Retrying in 30s …")
-            await asyncio.sleep(30)
+            print(f"[startup] Unexpected login error: {e}. Retrying in 60s …")
+            try:
+                await client.close()
+            except Exception:
+                pass
+            await asyncio.sleep(60)
 
     # ── Gateway connection — discord.py reconnects automatically ───────────────
     print("[startup] Login successful. Connecting to gateway …")
