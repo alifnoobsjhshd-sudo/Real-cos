@@ -515,7 +515,7 @@ class PollCog(Cog):
 
     @commands.hybrid_command(
         name="poll",
-        help="Create an interactive poll with a question, custom options, single/multiple choice, and a target channel.",
+        help="Create an interactive poll with custom options, single/multiple choice, and a target channel.",
         usage="poll",
     )
     @blacklist_check()
