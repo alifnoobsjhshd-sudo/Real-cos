@@ -87,6 +87,7 @@ from threading import Thread
 from datetime import datetime
 import random
 import time
+from utils.db_sync import restore_from_neon, start_sync_loop
 
 import aiohttp
 import discord
@@ -167,7 +168,8 @@ async def on_ready():
         print(f"Synced Total {len(all_commands)} Client Commands and {len(synced)} Slash Commands")
     except Exception as e:
         print(e)
-        
+
+    start_sync_loop(client.loop)
     client.loop.create_task(update_stats())
 
 
@@ -366,6 +368,7 @@ async def main():
 
     async with client:
         os.system("clear")
+        await restore_from_neon()
         await client.load_extension("jishaku")
         
         max_retries = 5

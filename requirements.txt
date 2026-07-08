@@ -1,3 +1,4 @@
+asyncpg
 discord.py
 jishaku
 pytz
