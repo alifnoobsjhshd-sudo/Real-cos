@@ -366,31 +366,27 @@ async def main():
         print("="*60 + "\n")
         return
 
+    # Small startup delay — prevents hammering Discord's login endpoint
+    # on rapid redeploys (which triggers the identify rate limit).
+    await asyncio.sleep(5)
+
     async with client:
-        os.system("clear")
         await restore_from_neon()
         await client.load_extension("jishaku")
-        
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                await client.start(TOKEN)
-                break
-            except discord.LoginFailure:
-                print("\n" + "="*60)
-                print("ERROR: Invalid bot TOKEN — login failed.")
-                print("Go to the Secrets tab and update your TOKEN.")
-                print("="*60 + "\n")
-                return
-            except discord.HTTPException as e:
-                if e.status == 429: # Rate limited
-                    wait_time = min((2 ** attempt) + random.random(), 60)
-                    print(f"Rate limited. Retrying in {wait_time:.2f} seconds...")
-                    await asyncio.sleep(wait_time)
-                else:
-                    raise
-        else:
-            raise Exception("Bot failed to start after multiple retries due to rate limiting.")
+        try:
+            await client.start(TOKEN)
+        except discord.LoginFailure:
+            print("\n" + "="*60)
+            print("ERROR: Invalid bot TOKEN — login failed.")
+            print("Check that TOKEN is set correctly in Render → Environment.")
+            print("="*60 + "\n")
+        except discord.HTTPException as e:
+            if e.status == 429:
+                # Rate limited on first login — exit cleanly.
+                # Render will restart the service automatically, adding natural delay.
+                print(f"[startup] Discord login rate-limited (HTTP 429). Exiting so Render can restart with delay...")
+            else:
+                raise
 
 if __name__ == "__main__":
     asyncio.run(main())
