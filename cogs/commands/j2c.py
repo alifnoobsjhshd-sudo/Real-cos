@@ -4,6 +4,7 @@ from discord import ui, SelectOption
 import aiosqlite
 import asyncio
 from typing import Dict, List, Optional
+from utils.emojis import e
 
 class JoinToCreate(commands.Cog):
     def __init__(self, bot):
@@ -175,31 +176,60 @@ class JoinToCreate(commands.Cog):
         embed.set_footer(text=f"{DEFAULT_BRANDING} J2C System")
         return embed
 
+    async def create_interface_embed(self, guild: discord.Guild, join_channel: discord.VoiceChannel) -> discord.Embed:
+        """Branded static embed for the #interface channel — NO buttons."""
+        from utils.branding import get_branding
+        branding = await get_branding(guild.id)
+
+        # Emoji helper with unicode fallback
+        def em(key: str, fallback: str) -> str:
+            val = e(key)
+            return val if val else fallback
+
+        lines = [
+            f"{em('zsettings', '⚙️')} **- (Rename)** your channel",
+            f"{em('ztimer', '⏳')} **- (Limit)** your channel members",
+            f"{em('lock', '🔒')} **- (Lock)** your channel",
+            f"{em('j2c_wait', '🛋️')} **- (Waiting Room)** hold members outside",
+            f"{em('zmsg', '💬')} **- (Thread)** create a discussion thread",
+            f"{em('zcross', '❌')} **- (Untrust)** remove a member's access",
+            f"{em('zplus', '✉️')} **- (Invite)** a member to your channel",
+            f"{em('zban', '👢')} **- (Kick)** a member from your vc",
+            f"{em('zyrox_global', '🌍')} **- (Region)** change your vc region",
+            f"{em('Denied', '🚫')} **- (Block)** a member from joining",
+            f"{em('unlock', '🔓')} **- (Unblock)** a blocked member",
+            f"{em('BlackCrown', '⭐')} **- (Claim)** an abandoned vc",
+            f"{em('zArrow', '🔄')} **- (Transfer)** ownership to someone",
+            f"{em('delete', '🗑️')} **- (Delete)** your channel",
+        ]
+
+        embed = discord.Embed(
+            description=(
+                f"Go on {join_channel.mention} to create a vc channel.\n\n"
+                f"**__Ctrl Panel__**\n"
+                + "\n".join(lines)
+            ),
+            color=branding.get("embed_color", 0xFFD700)
+        )
+
+        banner = branding.get("embed_banner")
+        if banner:
+            embed.set_image(url=banner)
+
+        branding_name = branding.get("branding_name", "CodeX")
+        embed.set_footer(text=f"{branding_name} • J2C System")
+        return embed
+
     def create_info_embed(self, guild: discord.Guild) -> discord.Embed:
+        """Legacy fallback embed — kept for backward compatibility."""
         embed = discord.Embed(
             title="⚙️ J2C System",
             description=(
                 "Join the **➕ Join to Create** voice channel to get your own private VC.\n"
                 "A control panel will appear inside your new channel."
             ),
-            color=0xFF0000
+            color=0xFFD700
         )
-        active_vcs = []
-        for vc_id, data in self.private_channels.items():
-            if guild.get_channel(vc_id):
-                owner = guild.get_member(data["owner"])
-                if owner:
-                    status = []
-                    if data["is_locked"]:
-                        status.append("🔒")
-                    if data["has_waiting_room"]:
-                        status.append("🛋️")
-                    vc_info = f"<#{vc_id}> — 👑 {owner.mention}"
-                    if status:
-                        vc_info += f" {' '.join(status)}"
-                    active_vcs.append(vc_info)
-        if active_vcs:
-            embed.add_field(name="Active Private VCs", value="\n".join(active_vcs), inline=False)
         return embed
 
     @commands.command(name='j2csetup')
@@ -219,18 +249,27 @@ class JoinToCreate(commands.Cog):
             reason="J2C System Setup"
         )
 
-        control_channel = await ctx.guild.create_text_channel(
-            "ctrl-panel",
+        # Interface channel — read-only for members, shows the button guide
+        interface_channel = await ctx.guild.create_text_channel(
+            "interface",
             category=category,
             reason="J2C System Setup"
         )
+        try:
+            await interface_channel.set_permissions(
+                ctx.guild.default_role,
+                send_messages=False,
+                reason="J2C interface is read-only"
+            )
+        except Exception:
+            pass
 
-        embed = self.create_info_embed(ctx.guild)
-        info_message = await control_channel.send(embed=embed)
+        embed = await self.create_interface_embed(ctx.guild, join_channel)
+        info_message = await interface_channel.send(embed=embed)
 
         self.setup_data[ctx.guild.id] = {
             "join_channel_id": join_channel.id,
-            "control_channel_id": control_channel.id,
+            "control_channel_id": interface_channel.id,
             "control_message_id": info_message.id
         }
         await self.save_guild_setup(ctx.guild.id, self.setup_data[ctx.guild.id])
@@ -329,17 +368,21 @@ class JoinToCreate(commands.Cog):
                 await self.update_info_panel(member.guild)
 
     async def update_info_panel(self, guild: discord.Guild):
+        """Update the static interface embed (e.g. after guild branding changes)."""
         if guild.id not in self.setup_data:
             return
         guild_data = self.setup_data[guild.id]
-        control_channel = guild.get_channel(guild_data["control_channel_id"])
-        if not control_channel or not guild_data["control_message_id"]:
+        interface_channel = guild.get_channel(guild_data["control_channel_id"])
+        if not interface_channel or not guild_data["control_message_id"]:
+            return
+        join_channel = guild.get_channel(guild_data["join_channel_id"])
+        if not join_channel:
             return
         try:
-            msg = await control_channel.fetch_message(guild_data["control_message_id"])
-            embed = self.create_info_embed(guild)
+            msg = await interface_channel.fetch_message(guild_data["control_message_id"])
+            embed = await self.create_interface_embed(guild, join_channel)
             await msg.edit(embed=embed)
-        except:
+        except Exception:
             pass
 
     async def update_vc_panel(self, vc: discord.VoiceChannel, guild: discord.Guild):

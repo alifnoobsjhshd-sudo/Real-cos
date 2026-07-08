@@ -37,18 +37,50 @@ Edit `config.yml` to change:
 
 Channel IDs for stats and logs are set at the top of `CodeX.py` (`SERVER_COUNT_CHANNEL_ID`, `USER_COUNT_CHANNEL_ID`, `LOG_CHANNEL_ID`).
 
-## Emoji persistence (Render)
+## Persistent data (Render — IMPORTANT)
 
-Custom emojis uploaded via `/upload emojis` are saved to `data/emoji_store.json` at runtime.
-Because Render's filesystem resets on each deploy, the emojis appear as raw codes after every redeploy.
+Render's filesystem is **ephemeral** — it resets on every redeploy, wiping all SQLite databases and config.
 
-**Fix:**
+### Fix: Render Persistent Disk + DATA_DIR
+
+1. In Render → your service → **Disks**, add a disk mounted at `/data` (1 GB is plenty).
+2. In Render → **Environment**, add: `DATA_DIR` = `/data`
+3. Redeploy — on first boot the bot copies all `.db` files to `/data` and replaces the local paths
+   with symlinks, so they persist across every future redeploy automatically.
+
+All 40+ SQLite databases in `db/`, root-level `j2c_data.db` / `rr.db`, and the emoji store in
+`data/` are covered by this single env var.
+
+### Emoji persistence (alternative / additional)
+
+Custom emojis uploaded via `/upload emojis` are also saved to `data/emoji_store.json` (covered by
+`DATA_DIR` above). As an extra fallback without a disk:
+
 1. Upload all emoji branches once via `/upload emojis branch:<name>`.
 2. Run `/emoji_export` — the bot sends a `emoji_store.json` file attachment.
 3. Copy the entire JSON content.
-4. In Render → your service → **Environment**, add variable:
-   `EMOJI_STORE_JSON` = `<paste full JSON here>`
-5. Redeploy — the bot loads emojis from the env var automatically.
+4. In Render → **Environment**, add: `EMOJI_STORE_JSON` = `<paste full JSON here>`
+5. Redeploy — the bot loads emojis from the env var automatically even without a disk.
+
+### New emoji: j2c_wait
+
+A new couch/sofa emoji for the J2C Waiting Room button was added.
+
+1. Run `python generate_emojis.py` — creates `assets/emojis/j2c_wait.png`.
+2. Upload it via `/upload emojis branch:features` in your Discord server.
+3. The J2C interface embed and control panel will use it automatically.
+
+## J2C system
+
+After `>j2csetup` the bot creates:
+- **➕ Join to Create** — voice channel (join to auto-create a private VC)
+- **#interface** — read-only text channel with the branded button guide embed
+  (no buttons here; buttons appear only inside the created private VC)
+
+## Voice commands
+
+- `/join-vc <channel>` — bot joins the selected VC and stays (admin only)
+- `/leave-vc` — bot disconnects from the current VC (admin only)
 
 ## User preferences
 

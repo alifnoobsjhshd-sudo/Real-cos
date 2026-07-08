@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 from discord.utils import get
 import os
 from utils.Tools import *
@@ -736,4 +737,84 @@ class Voice(commands.Cog):
         embed2.set_thumbnail(url="https://cdn.discordapp.com/emojis/1279464563150032991.png")
         return await ctx.reply(embed=embed2)
 
- 
+    # ── /join-vc and /leave-vc slash commands ──────────────────────────────────
+
+    @app_commands.command(name="join-vc", description="Make the bot join a voice channel and stay.")
+    @app_commands.describe(channel="The voice channel for the bot to join")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.guild_only()
+    async def join_vc(self, interaction: discord.Interaction, channel: discord.VoiceChannel):
+        """Bot joins the specified voice channel and stays until /leave-vc."""
+        voice_client = interaction.guild.voice_client
+
+        try:
+            if voice_client and voice_client.is_connected():
+                if voice_client.channel.id == channel.id:
+                    embed = discord.Embed(
+                        title="❌ Already Here",
+                        description=f"I'm already in {channel.mention}.",
+                        color=self.color
+                    )
+                    return await interaction.response.send_message(embed=embed, ephemeral=True)
+                await voice_client.move_to(channel)
+            else:
+                await channel.connect(self_deaf=True)
+
+            embed = discord.Embed(
+                title="✅ Joined Voice Channel",
+                description=f"Successfully joined {channel.mention}.\nUse `/leave-vc` to disconnect.",
+                color=0x00AA00
+            )
+            embed.set_footer(text=f"Requested by: {interaction.user}")
+            await interaction.response.send_message(embed=embed)
+
+        except discord.Forbidden:
+            embed = discord.Embed(
+                title="❌ No Permission",
+                description=f"I don't have permission to join {channel.mention}.",
+                color=self.color
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except Exception as e:
+            embed = discord.Embed(
+                title="❌ Error",
+                description=f"Could not join {channel.mention}: {e}",
+                color=self.color
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @join_vc.error
+    async def join_vc_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("❌ You need **Administrator** permission to use this.", ephemeral=True)
+
+    @app_commands.command(name="leave-vc", description="Make the bot leave the current voice channel.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.guild_only()
+    async def leave_vc(self, interaction: discord.Interaction):
+        """Disconnect the bot from whichever voice channel it's currently in."""
+        voice_client = interaction.guild.voice_client
+
+        if not voice_client or not voice_client.is_connected():
+            embed = discord.Embed(
+                title="❌ Not in Voice",
+                description="I'm not connected to any voice channel right now.",
+                color=self.color
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        channel_mention = voice_client.channel.mention
+        await voice_client.disconnect()
+
+        embed = discord.Embed(
+            title="✅ Left Voice Channel",
+            description=f"Disconnected from {channel_mention}.",
+            color=0x00AA00
+        )
+        embed.set_footer(text=f"Requested by: {interaction.user}")
+        await interaction.response.send_message(embed=embed)
+
+    @leave_vc.error
+    async def leave_vc_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("❌ You need **Administrator** permission to use this.", ephemeral=True)

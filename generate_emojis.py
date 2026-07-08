@@ -297,6 +297,22 @@ def draw_unlock(d, pad=18):
     d.arc([sp, pad - 14, SIZE - sp, CY - 4], start=200, end=340, fill=WHITE, width=7)
 
 
+def draw_couch(d, pad=16):
+    """🛋️ sofa / couch — Waiting Room."""
+    # Back rest (tall top bar)
+    d.rounded_rectangle([pad, pad + 8, SIZE - pad, CY + 4], radius=8, fill=WHITE)
+    # Left armrest
+    d.rounded_rectangle([pad, CY - 2, pad + 16, SIZE - pad - 10], radius=6, fill=WHITE)
+    # Right armrest
+    d.rounded_rectangle([SIZE - pad - 16, CY - 2, SIZE - pad, SIZE - pad - 10], radius=6, fill=WHITE)
+    # Seat cushion (between arms)
+    d.rounded_rectangle([pad + 14, CY + 4, SIZE - pad - 14, SIZE - pad - 10], radius=5, fill=WHITE)
+    # Left leg
+    d.rectangle([pad + 4, SIZE - pad - 10, pad + 10, SIZE - pad], fill=WHITE)
+    # Right leg
+    d.rectangle([SIZE - pad - 10, SIZE - pad - 10, SIZE - pad - 4, SIZE - pad], fill=WHITE)
+
+
 def draw_trash(d, pad=18):
     bx1, by1, bx2, by2 = pad + 4, CY - 6, SIZE - pad - 4, SIZE - pad
     d.rectangle([bx1, by1, bx2, by2], outline=WHITE, width=6)
@@ -1098,6 +1114,7 @@ EMOJI_MAP: dict = {
     "zcounting":           lambda d: draw_123(d),
     "zlevelup":            lambda d: draw_level_up(d),
     "zseed":               lambda d: draw_leaf(d),
+    "j2c_wait":            lambda d: draw_couch(d),
     "zcircle":             lambda d: draw_circle_full(d),
     "zcircle2":            lambda d: draw_circle_outline(d),
     "zmc":                 lambda d: draw_minecraft_creeper(d),

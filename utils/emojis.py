@@ -122,6 +122,7 @@ _FALLBACK: dict[str, str] = {
     "zcounting":            "<:zcounting:1448949348103749713>",
     "zlevelup":             "<:zlevelup:1448964376504696943>",
     "zseed":                "<:zseed:1448951477640101929>",
+    "j2c_wait":             "",  # Generated via generate_emojis.py → uploaded via /upload
     "zcircle":              "<:zcircle:1448964410155470848>",
     "zcircle2":             "<:zcircle:1448951351601270814>",
     "zmc":                  "<:zmc:1448964387426537474>",
@@ -261,6 +262,7 @@ BRANCHES: dict[str, list[str]] = {
         "boost", "boosts", "nitroboost", "TADAA", "ztada",
         "games", "zticket", "zcounting", "zlevelup", "zseed",
         "zcircle", "zcircle2", "zmc", "staff", "zdil", "RedHeart",
+        "j2c_wait",
     ],
     "music": [
         "music", "zmusic", "icons_music", "zmusicpause",

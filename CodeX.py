@@ -2,6 +2,85 @@ import os
 os.system("")
 # Pin working directory to the script's location so all relative DB paths always resolve correctly
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# ── Persistent disk support (Render / any host with ephemeral filesystem) ──────
+# Set DATA_DIR env var to your Render persistent disk mount path (e.g. /data).
+# All SQLite databases and the emoji store are symlinked there on startup so
+# they survive redeploys — no other code needs to change.
+import shutil as _shutil
+
+_DATA_DIR = os.getenv("DATA_DIR", "").strip()
+if _DATA_DIR:
+    try:
+        os.makedirs(_DATA_DIR, exist_ok=True)
+
+        def _migrate_dir(local: str, persistent: str):
+            """
+            Recursively copy local/ to persistent/ (first run only, non-destructive),
+            then atomically replace local/ with a symlink to persistent/.
+            Safe to call on every startup — idempotent once the symlink is in place.
+            """
+            # Already a symlink pointing to the right place — nothing to do.
+            if os.path.islink(local):
+                return
+
+            os.makedirs(persistent, exist_ok=True)
+
+            if os.path.isdir(local):
+                # Copy everything recursively; don't overwrite files already on disk.
+                for _root, _dirs, _files in os.walk(local):
+                    _rel = os.path.relpath(_root, local)
+                    _dst_root = os.path.join(persistent, _rel)
+                    os.makedirs(_dst_root, exist_ok=True)
+                    for _fname in _files:
+                        _src_f = os.path.join(_root, _fname)
+                        _dst_f = os.path.join(_dst_root, _fname)
+                        if not os.path.exists(_dst_f):
+                            _shutil.copy2(_src_f, _dst_f)
+                # Atomic-ish replace: rename away, then symlink.
+                _tmp = local + ".__migrate_bak__"
+                os.rename(local, _tmp)
+                try:
+                    os.symlink(persistent, local)
+                    _shutil.rmtree(_tmp, ignore_errors=True)
+                except Exception:
+                    # Roll back on failure so the bot can still start.
+                    os.rename(_tmp, local)
+                    raise
+            elif not os.path.exists(local):
+                os.symlink(persistent, local)
+
+        def _migrate_file(local: str, persistent: str):
+            """
+            Copy single file to persistent/ (first run only), then replace with symlink.
+            Idempotent — safe on every restart.
+            """
+            if os.path.islink(local):
+                return  # already migrated
+            if os.path.isfile(local):
+                if not os.path.exists(persistent):
+                    _shutil.copy2(local, persistent)
+                # Atomic-ish replace.
+                _tmp = local + ".__migrate_bak__"
+                os.rename(local, _tmp)
+                try:
+                    os.symlink(persistent, local)
+                    os.remove(_tmp)
+                except Exception:
+                    os.rename(_tmp, local)
+                    raise
+            elif not os.path.exists(local):
+                os.symlink(persistent, local)
+
+        _migrate_dir("db",   os.path.join(_DATA_DIR, "db"))
+        _migrate_dir("data", os.path.join(_DATA_DIR, "data"))
+        for _dbf in ["j2c_data.db", "rr.db"]:
+            _migrate_file(_dbf, os.path.join(_DATA_DIR, _dbf))
+
+        print(f"[DATA_DIR] Persistent storage linked → {_DATA_DIR}")
+    except Exception as _data_err:
+        print(f"[DATA_DIR] Warning: could not link persistent storage: {_data_err}")
+# ───────────────────────────────────────────────────────────────────────────────
 import asyncio
 import traceback
 from threading import Thread
