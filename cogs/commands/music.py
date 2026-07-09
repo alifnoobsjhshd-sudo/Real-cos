@@ -67,7 +67,10 @@ class SpotifyAPI:
     async def get_playlist(self, playlist_id):
         return await self.get(f"playlists/{playlist_id}")
 
-spotify_api = SpotifyAPI(client_id="ac2b614ca5ce46a18dfd1d3475fd6fd9", client_secret="df7bec95ae88438e8286db597bac8621")
+spotify_api = SpotifyAPI(
+    client_id=os.getenv("SPOTIFY_CLIENT_ID", ""),
+    client_secret=os.getenv("SPOTIFY_CLIENT_SECRET", ""),
+)
 
 class PlatformSelectView(View):
     def __init__(self, ctx, query):
@@ -567,7 +570,8 @@ class Music(commands.Cog):
         bar = '█' * filled_length + '░' * (length - filled_length)
         return bar
 
-    @commands.command(name="play", aliases=['p'], usage="play <query>", help="Plays a song or playlist.")
+    @commands.hybrid_command(name="play", aliases=['p'], usage="play <query>", help="Plays a song or playlist.")
+    @discord.app_commands.describe(query="A song name, YouTube/Spotify/SoundCloud link, or playlist link.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -774,7 +778,7 @@ class Music(commands.Cog):
         else:
             await ctx.send(embed=discord.Embed(description="Queue is empty.", color=0xFF0000))
 
-    @commands.command(name="stop", usage="stop", help="Stops the current song and clears the queue.")
+    @commands.hybrid_command(name="stop", usage="stop", help="Stops the current song and clears the queue.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -900,7 +904,7 @@ class Music(commands.Cog):
         else:
             await ctx.send(embed=discord.Embed(description="You need to join a voice channel first.", color=0xFF0000))
 
-    @commands.hybrid_command(name="disconnect", aliases=["dc", "leave"], usage="disconnect", help="Disconnects the bot from the voice channel.")
+    @commands.command(name="disconnect", aliases=["dc", "leave"], usage="disconnect", help="Disconnects the bot from the voice channel.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)

@@ -6,7 +6,7 @@ from colorama import Fore, Style, init
 from .commands.help import Help
 from .commands.general import General
 from .commands.poll import PollCog
-#from .commands.music import Music
+from .commands.music import Music
 from .commands.automod import Automod
 from .commands.welcome import Welcomer
 from .commands.fun import Fun
@@ -98,7 +98,7 @@ from .zyrox.general import _general
 from .zyrox.automod import _automod 
 from .zyrox.moderation import _moderation
 #from .zyrox.inviteTracker import _inviteTracker
-#from .zyrox.music import _music
+from .zyrox.music import _music
 from .zyrox.fun import _fun
 from .zyrox.games import _games
 from .zyrox.ignore import _ignore
@@ -196,7 +196,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(Help(bot))
   await bot.add_cog(General(bot))
   await bot.add_cog(PollCog(bot))
-  #await bot.add_cog(Music(bot))
+  await bot.add_cog(Music(bot))
   await bot.add_cog(Automod(bot))
   await bot.add_cog(Welcomer(bot))
   await bot.add_cog(Fun(bot))
@@ -267,7 +267,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(_general(bot))
   await bot.add_cog(_automod(bot))  
   await bot.add_cog(_moderation(bot))
-  #await bot.add_cog(_music(bot))
+  await bot.add_cog(_music(bot))
   await bot.add_cog(_fun(bot))
   await bot.add_cog(_games(bot))
   await bot.add_cog(_ignore(bot))
