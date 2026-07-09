@@ -334,6 +334,10 @@ class Music(commands.Cog):
     async def connect_nodes(self) -> None:
         lavalink_uri = os.getenv("LAVALINK_URI", "https://lava-v4.ajieblogs.eu.org")
         lavalink_pass = os.getenv("LAVALINK_PASSWORD", "https://dsc.gg/ajidevserver")
+        if lavalink_uri and not lavalink_uri.startswith(("http://", "https://", "ws://", "wss://")):
+            # Public nodes are usually HTTPS; self-hosted with a port is usually plain HTTP.
+            scheme = "http://" if ":" in lavalink_uri else "https://"
+            lavalink_uri = f"{scheme}{lavalink_uri}"
         nodes = [wavelink.Node(uri=lavalink_uri, password=lavalink_pass)]
         try:
             await wavelink.Pool.connect(nodes=nodes, client=self.client, cache_capacity=None)

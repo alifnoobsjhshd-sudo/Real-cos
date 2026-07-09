@@ -162,12 +162,11 @@ async def on_ready():
     print(f"Logged in as: {client.user}")
     print(f"Connected to: {len(client.guilds)} guilds")
     print(f"Connected to: {len(client.users)} users")
+    # Guild-only slash sync is handled by the zyrox class to avoid Discord's 100 global command cap.
     try:
-        synced = await client.tree.sync()
-        all_commands = list(client.commands)
-        print(f"Synced Total {len(all_commands)} Client Commands and {len(synced)} Slash Commands")
+        await zyrox.on_ready(client)
     except Exception as e:
-        print(e)
+        print(f"[on_ready] Guild sync delegation failed: {e}")
 
     start_sync_loop(client.loop)
     client.loop.create_task(update_stats())
@@ -175,6 +174,12 @@ async def on_ready():
 
 @client.event
 async def on_guild_join(guild: discord.Guild):
+    # Sync slash commands to the new guild (guild-only, avoids global 100 cap)
+    try:
+        await zyrox.on_guild_join(client, guild)
+    except Exception as e:
+        print(f"[on_guild_join] Guild sync delegation failed: {e}")
+
     # Log when the bot joins a server
     log_channel = client.get_channel(LOG_CHANNEL_ID)
     if log_channel:
