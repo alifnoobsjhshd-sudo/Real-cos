@@ -1,4 +1,5 @@
 import discord
+import re
 from discord.ext import commands
 import aiosqlite
 from utils.Tools import *
@@ -281,11 +282,17 @@ class Automod(commands.Cog):
             }
 
             try:
+                from utils.branding import get_branding, DEFAULT_BRANDING
+                branding = await get_branding(interaction.guild.id)
+                branding_name = branding.get("branding_name", DEFAULT_BRANDING)
+                channel_name = re.sub(r"[^a-z0-9-]", "", branding_name.lower().replace(" ", "-")) or DEFAULT_BRANDING.lower()
+                channel_name = f"{channel_name[:80]}-automod"
+
                 for channel in interaction.guild.channels:
-                    if channel.name == "zyrox-automod":
-                        await interaction.response.send_message(f"A logging channel with the name \"zyrox-automod\" already exists.", ephemeral=True)
+                    if channel.name == channel_name:
+                        await interaction.response.send_message(f"A logging channel with the name \"{channel_name}\" already exists.", ephemeral=True)
                         return
-                log_channel = await interaction.guild.create_text_channel("zyrox-automod", overwrites=overwrites)
+                log_channel = await interaction.guild.create_text_channel(channel_name, overwrites=overwrites)
                 guild_id = interaction.guild.id
 
                 async with aiosqlite.connect("db/automod.db") as db:

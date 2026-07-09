@@ -152,7 +152,12 @@ async def _get_or_create_log_channel(db, guild):
             return ch
     overwrites = {guild.default_role: discord.PermissionOverwrite(view_channel=False)}
     try:
-        ch = await guild.create_text_channel("zyrox-ticket-logs", overwrites=overwrites)
+        from utils.branding import get_branding, DEFAULT_BRANDING
+        branding = await get_branding(guild.id)
+        branding_name = branding.get("branding_name", DEFAULT_BRANDING)
+        channel_name = re.sub(r"[^a-z0-9-]", "", branding_name.lower().replace(" ", "-")) or DEFAULT_BRANDING.lower()
+        channel_name = channel_name[:80]
+        ch = await guild.create_text_channel(f"{channel_name}-ticket-logs", overwrites=overwrites)
         db.execute(
             "INSERT INTO guild_configs (guild_id, logging_channel_id) VALUES (?,?) "
             "ON CONFLICT(guild_id) DO UPDATE SET logging_channel_id=excluded.logging_channel_id",
@@ -499,12 +504,36 @@ class ButtonManagerView(discord.ui.View):
             disabled=disabled
         ))
 
-        # Row 2 — Send Panel
+        # Row 2 — "Delete Category" dropdown
+        if self.buttons:
+            del_opts = [
+                discord.SelectOption(
+                    label=b["name"][:100],
+                    value=str(i),
+                    emoji=_parse_emoji(b.get("emoji")),
+                    description="Click to delete this category"
+                )
+                for i, b in enumerate(self.buttons)
+            ]
+            del_disabled = False
+        else:
+            del_opts = [discord.SelectOption(label="No categories yet", value="__none__")]
+            del_disabled = True
+
+        self.add_item(discord.ui.Select(
+            placeholder="🗑️ Delete Category — pick a category to remove",
+            custom_id="bmv:delete",
+            options=del_opts,
+            row=2,
+            disabled=del_disabled
+        ))
+
+        # Row 3 — Send Panel
         self.add_item(discord.ui.Button(
             label="Send Panel ✅",
             style=discord.ButtonStyle.primary,
             custom_id="bmv:send",
-            row=2
+            row=3
         ))
 
     def _build_embed(self):
@@ -569,6 +598,12 @@ class ButtonManagerView(discord.ui.View):
                 await self._configure_ticket(inter, int(val))
             else:
                 await inter.response.defer()
+        elif cid == "bmv:delete":
+            val = (inter.data.get("values") or ["__none__"])[0]
+            if val != "__none__":
+                await self._delete_category(inter, int(val))
+            else:
+                await inter.response.defer()
         elif cid == "bmv:send":
             await self._send_panel(inter)
         return True
@@ -610,6 +645,17 @@ class ButtonManagerView(discord.ui.View):
         self._rebuild_components()
         await self.message.edit(embed=self._build_embed(), view=self)
         await inter.followup.send(f"✅ Button **{name}** added!", ephemeral=True)
+
+    async def _delete_category(self, inter: discord.Interaction, idx: int):
+        if idx >= len(self.buttons):
+            await inter.response.defer()
+            return
+        removed = self.buttons.pop(idx)
+        self._rebuild_components()
+        await inter.response.edit_message(embed=self._build_embed(), view=self)
+        await inter.followup.send(
+            f"🗑️ Removed category **{removed['name']}** from the panel.", ephemeral=True
+        )
 
     async def _configure_ticket(self, inter: discord.Interaction, idx: int):
         if idx >= len(self.buttons):

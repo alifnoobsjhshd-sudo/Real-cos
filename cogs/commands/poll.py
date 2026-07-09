@@ -96,7 +96,7 @@ async def _build_results_embed(poll_id: int, poll_row, options, ended: bool) -> 
 
     embed = discord.Embed(
         title=f"📊 {question}",
-        description=description or discord.Embed.Empty,
+        description=description or None,
         color=discord.Color.gold() if not ended else discord.Color.dark_grey(),
     )
 

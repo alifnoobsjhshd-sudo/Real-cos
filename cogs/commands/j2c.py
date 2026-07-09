@@ -23,7 +23,6 @@ def _make_emoji(key: str, fallback: str) -> discord.PartialEmoji:
 _CTRL_EMOJI: dict[str, tuple[str, str]] = {
     "j2c:limit":    ("ztimer",       "⏳"),
     "j2c:privacy":  ("lock",         "🔒"),
-    "j2c:waiting":  ("j2c_wait",     "🛋️"),
     "j2c:thread":   ("zmsg",         "💬"),
     "j2c:untrust":  ("zcross",       "❌"),
     "j2c:invite":   ("zplus",        "✉️"),
@@ -62,7 +61,7 @@ class JoinToCreate(commands.Cog):
                     vc_id INTEGER PRIMARY KEY,
                     guild_id INTEGER,
                     owner_id INTEGER,
-                    member_limit INTEGER DEFAULT 2,
+                    member_limit INTEGER DEFAULT 99,
                     region TEXT DEFAULT '',
                     is_locked BOOLEAN DEFAULT FALSE,
                     has_waiting_room BOOLEAN DEFAULT FALSE,
@@ -141,7 +140,7 @@ class JoinToCreate(commands.Cog):
                 """, (
                     vc_id, guild_id,
                     data["owner"],
-                    data.get("limit", 2),
+                    data.get("limit", 99),
                     data.get("region", ""),
                     data.get("is_locked", False),
                     data.get("has_waiting_room", False),
@@ -215,14 +214,13 @@ class JoinToCreate(commands.Cog):
         is_locked = vc_data.get("is_locked", False)
         has_wr    = vc_data.get("has_waiting_room", False)
         has_th    = vc_data.get("has_thread", False)
-        limit     = vc_data.get("limit", 2)
+        limit     = vc_data.get("limit", 99)
 
         em = self._em  # shortcut
 
         # Status line
         status_parts = [
             f"{em('lock','🔒') if is_locked else em('unlock','🔓')} {'Locked' if is_locked else 'Unlocked'}",
-            f"{em('j2c_wait','🛋️')} Waiting Room: {'On' if has_wr else 'Off'}",
             f"{'💬 Thread: On' if has_th else ''}",
             f"{em('ztimer','⏳')} Limit: {limit if limit else '∞'}",
         ]
@@ -233,7 +231,6 @@ class JoinToCreate(commands.Cog):
             f"{em('zsettings','⚙️')} **(Rename)** — rename your channel",
             f"{em('ztimer','⏳')} **(Limit)** — change member limit",
             f"{em('lock','🔒')} **(Privacy)** — lock / unlock your VC",
-            f"{em('j2c_wait','🛋️')} **(Waiting Room)** — hold members outside",
             f"{em('zmsg','💬')} **(Thread)** — create a discussion thread",
             f"{em('zcross','❌')} **(Untrust)** — remove a member's access",
             f"{em('zplus','✉️')} **(Invite)** — send a DM invite",
@@ -277,7 +274,6 @@ class JoinToCreate(commands.Cog):
             f"{em('zsettings','⚙️')} **— (Rename)** your channel",
             f"{em('ztimer','⏳')} **— (Limit)** your channel members",
             f"{em('lock','🔒')} **— (Lock)** your channel",
-            f"{em('j2c_wait','🛋️')} **— (Waiting Room)** hold members outside",
             f"{em('zmsg','💬')} **— (Thread)** create a discussion thread",
             f"{em('zcross','❌')} **— (Untrust)** remove a member's access",
             f"{em('zplus','✉️')} **— (Invite)** a member to your channel",
@@ -417,13 +413,13 @@ class JoinToCreate(commands.Cog):
                 f"{member.name}'s VC",
                 category=category,
                 reason="Private VC Creation",
-                user_limit=2
+                user_limit=99
             )
             await member.move_to(vc)
 
             self.private_channels[vc.id] = {
                 "owner": member.id,
-                "limit": 2,
+                "limit": 99,
                 "region": "",
                 "is_locked": False,
                 "has_waiting_room": False,
@@ -547,20 +543,6 @@ class ControlPanelView(ui.View):
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
         await interaction.response.send_message(
             f"VC is now {'🔒 locked' if is_locked else '🔓 unlocked'}!", ephemeral=True
-        )
-        await self.cog.update_vc_panel(vc, interaction.guild)
-
-    @ui.button(label="WAITING ROOM", style=discord.ButtonStyle.secondary, row=0, custom_id="j2c:waiting", emoji="🛋️")
-    async def waiting_room(self, interaction: discord.Interaction, button: ui.Button):
-        vc = await self.get_owned_vc(interaction)
-        if not vc:
-            await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
-            return
-        has_waiting = not self.cog.private_channels[vc.id]["has_waiting_room"]
-        self.cog.private_channels[vc.id]["has_waiting_room"] = has_waiting
-        await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
-        await interaction.response.send_message(
-            f"Waiting room {'enabled' if has_waiting else 'disabled'} for your VC!", ephemeral=True
         )
         await self.cog.update_vc_panel(vc, interaction.guild)
 

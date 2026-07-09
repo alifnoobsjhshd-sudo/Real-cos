@@ -28,6 +28,18 @@ def _friendly_type_hint(param) -> str:
     return hints.get(name, "fill in a value for this")
 
 
+def _slash_alternative_hint(ctx: Context) -> str:
+    """If a slash command with the same name exists, return a
+    'use /(command) instead' hint string, otherwise an empty string."""
+    try:
+        slash_cmd = ctx.bot.tree.get_command(ctx.command.qualified_name)
+        if slash_cmd is None:
+            return ""
+        return f"\n\n💡 Use `/{slash_cmd.qualified_name}` instead."
+    except Exception:
+        return ""
+
+
 class Errors(Cog):
   def __init__(self, client: zyrox):
     self.client = client
@@ -56,6 +68,7 @@ class Errors(Cog):
               f"❌ **You're missing something:** `{error.param.name}`\n\n"
               f"**What to do:** {hint}.\n\n"
               f"**How to use:** {usage}"
+              f"{_slash_alternative_hint(ctx)}"
           ),
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
@@ -102,7 +115,7 @@ class Errors(Cog):
       usage += "`"
       embed = discord.Embed(
           color=0xFF0000,
-          description=f"❌ **Too many arguments.**\n\n**How to use:** {usage}",
+          description=f"❌ **Too many arguments.**\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
       embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
@@ -146,7 +159,7 @@ class Errors(Cog):
       usage += "`"
       embed = discord.Embed(
           color=0xFF0000,
-          description=f"❌ **Invalid argument:** {error}\n\n**How to use:** {usage}",
+          description=f"❌ **Invalid argument:** {error}\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
       embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
