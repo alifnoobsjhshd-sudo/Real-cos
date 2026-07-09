@@ -310,7 +310,10 @@ class PollChannelSelect(discord.ui.ChannelSelect):
         self.builder_view = builder_view
 
     async def callback(self, interaction: discord.Interaction):
+        # self.values[0] is an AppCommandChannel (no .send()).  Store it for
+        # .mention display but resolve to a real channel before sending.
         self.builder_view.channel = self.values[0]
+        self.builder_view.channel_id = self.values[0].id
         await interaction.response.edit_message(embed=self.builder_view.build_embed(), view=self.builder_view)
 
 
@@ -323,7 +326,8 @@ class PollBuilderView(discord.ui.View):
         self.description: Optional[str] = None
         self.options: list[str] = []
         self.multiple = False
-        self.channel: Optional[discord.abc.GuildChannel] = None
+        self.channel: Optional[discord.abc.GuildChannel] = None  # AppCommandChannel (for .mention)
+        self.channel_id: Optional[int] = None                    # raw ID for actual resolution
 
         self.add_item(PollChannelSelect(self))
 
@@ -410,7 +414,23 @@ class PollBuilderView(discord.ui.View):
             await interaction.response.send_message("Please select a channel to send the poll to.", ephemeral=True)
             return
 
-        perms = self.channel.permissions_for(interaction.guild.me)
+        # Resolve AppCommandChannel → real TextChannel so .send() works
+        real_channel = None
+        if self.channel_id:
+            real_channel = interaction.guild.get_channel(self.channel_id)
+        if real_channel is None and self.channel is not None:
+            # Try resolve() as fallback (returns None if not in cache)
+            try:
+                real_channel = self.channel.resolve()
+            except Exception:
+                pass
+        if real_channel is None:
+            await interaction.response.send_message(
+                "Could not find the selected channel. Please select it again.", ephemeral=True
+            )
+            return
+
+        perms = real_channel.permissions_for(interaction.guild.me)
         if not (perms.send_messages and perms.embed_links):
             await interaction.response.send_message(
                 f"I don't have permission to send embeds in {self.channel.mention}.", ephemeral=True
@@ -423,7 +443,7 @@ class PollBuilderView(discord.ui.View):
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     self.ctx.guild.id,
-                    self.channel.id,
+                    real_channel.id,
                     self.ctx.author.id,
                     self.question,
                     self.description,
@@ -445,7 +465,7 @@ class PollBuilderView(discord.ui.View):
 
         embed = await _build_results_embed(poll_id, poll_row, options, ended=False)
         view = PollVoteView(poll_id, options, self.multiple)
-        poll_message = await self.channel.send(embed=embed, view=view)
+        poll_message = await real_channel.send(embed=embed, view=view)
 
         async with aiosqlite.connect(POLL_DB) as db:
             await db.execute(

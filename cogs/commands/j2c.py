@@ -1,3 +1,4 @@
+import re
 import discord
 from discord.ext import commands
 from discord import ui, SelectOption
@@ -5,6 +6,37 @@ import aiosqlite
 import asyncio
 from typing import Dict, List, Optional
 from utils.emojis import e
+
+
+def _make_emoji(key: str, fallback: str) -> discord.PartialEmoji:
+    """Return a PartialEmoji from an e() key, falling back to unicode."""
+    raw = e(key) or fallback
+    m = re.match(r'<(a?):(\w+):(\d+)>', raw)
+    if m:
+        return discord.PartialEmoji(
+            animated=bool(m.group(1)), name=m.group(2), id=int(m.group(3))
+        )
+    return discord.PartialEmoji(name=raw)
+
+
+# Map button custom_id → (emoji_key, unicode_fallback)
+_CTRL_EMOJI: dict[str, tuple[str, str]] = {
+    "j2c:limit":    ("ztimer",       "⏳"),
+    "j2c:privacy":  ("lock",         "🔒"),
+    "j2c:waiting":  ("j2c_wait",     "🛋️"),
+    "j2c:thread":   ("zmsg",         "💬"),
+    "j2c:untrust":  ("zcross",       "❌"),
+    "j2c:invite":   ("zplus",        "✉️"),
+    "j2c:kick":     ("zban",         "👢"),
+    "j2c:region":   ("zyrox_global", "🌍"),
+    "j2c:unblock":  ("unlock",       "🔓"),
+    "j2c:claim":    ("BlackCrown",   "⭐"),
+    "j2c:transfer": ("zArrow",       "🔄"),
+    "j2c:delete":   ("delete",       "🗑️"),
+    "j2c:rename":   ("zsettings",    "✏️"),
+    "j2c:block":    ("Denied",       "🚫"),
+}
+
 
 class JoinToCreate(commands.Cog):
     def __init__(self, bot):
@@ -40,7 +72,7 @@ class JoinToCreate(commands.Cog):
             """)
             try:
                 await db.execute("ALTER TABLE private_channels ADD COLUMN ctrl_msg_id INTEGER DEFAULT NULL")
-            except:
+            except Exception:
                 pass
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS blocked_users (
@@ -62,9 +94,13 @@ class JoinToCreate(commands.Cog):
                         "control_message_id": control_message_id
                     }
 
-            async with db.execute("SELECT vc_id, guild_id, owner_id, member_limit, region, is_locked, has_waiting_room, has_thread, ctrl_msg_id FROM private_channels") as cursor:
+            async with db.execute(
+                "SELECT vc_id, guild_id, owner_id, member_limit, region, "
+                "is_locked, has_waiting_room, has_thread, ctrl_msg_id FROM private_channels"
+            ) as cursor:
                 async for row in cursor:
-                    vc_id, guild_id, owner_id, member_limit, region, is_locked, has_waiting_room, has_thread, ctrl_msg_id = row
+                    vc_id, guild_id, owner_id, member_limit, region, \
+                        is_locked, has_waiting_room, has_thread, ctrl_msg_id = row
                     self.private_channels[vc_id] = {
                         "owner": owner_id,
                         "limit": member_limit,
@@ -86,7 +122,8 @@ class JoinToCreate(commands.Cog):
     async def save_guild_setup(self, guild_id: int, data: Dict):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
-                INSERT OR REPLACE INTO guild_setup (guild_id, join_channel_id, control_channel_id, control_message_id)
+                INSERT OR REPLACE INTO guild_setup
+                (guild_id, join_channel_id, control_channel_id, control_message_id)
                 VALUES (?, ?, ?, ?)
             """, (guild_id, data["join_channel_id"], data["control_channel_id"], data["control_message_id"]))
             await db.commit()
@@ -97,8 +134,9 @@ class JoinToCreate(commands.Cog):
                 self.private_channels[vc_id] = data
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("""
-                    INSERT OR REPLACE INTO private_channels 
-                    (vc_id, guild_id, owner_id, member_limit, region, is_locked, has_waiting_room, has_thread, ctrl_msg_id)
+                    INSERT OR REPLACE INTO private_channels
+                    (vc_id, guild_id, owner_id, member_limit, region,
+                     is_locked, has_waiting_room, has_thread, ctrl_msg_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     vc_id, guild_id,
@@ -111,8 +149,8 @@ class JoinToCreate(commands.Cog):
                     data.get("ctrl_msg_id", None)
                 ))
                 await db.commit()
-        except Exception as e:
-            print(f"Error saving private channel: {e}")
+        except Exception as err:
+            print(f"Error saving private channel: {err}")
 
     async def delete_private_channel(self, vc_id: int):
         async with aiosqlite.connect(self.db_path) as db:
@@ -124,12 +162,17 @@ class JoinToCreate(commands.Cog):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("DELETE FROM guild_setup WHERE guild_id = ?", (guild_id,))
             await db.execute("DELETE FROM private_channels WHERE guild_id = ?", (guild_id,))
-            await db.execute("DELETE FROM blocked_users WHERE vc_id IN (SELECT vc_id FROM private_channels WHERE guild_id = ?)", (guild_id,))
+            await db.execute(
+                "DELETE FROM blocked_users WHERE vc_id IN "
+                "(SELECT vc_id FROM private_channels WHERE guild_id = ?)", (guild_id,)
+            )
             await db.commit()
 
     async def block_user(self, vc_id: int, user_id: int):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("INSERT OR IGNORE INTO blocked_users (vc_id, user_id) VALUES (?, ?)", (vc_id, user_id))
+            await db.execute(
+                "INSERT OR IGNORE INTO blocked_users (vc_id, user_id) VALUES (?, ?)", (vc_id, user_id)
+            )
             await db.commit()
         if vc_id not in self.blocked_users:
             self.blocked_users[vc_id] = []
@@ -138,7 +181,9 @@ class JoinToCreate(commands.Cog):
 
     async def unblock_user(self, vc_id: int, user_id: int):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("DELETE FROM blocked_users WHERE vc_id = ? AND user_id = ?", (vc_id, user_id))
+            await db.execute(
+                "DELETE FROM blocked_users WHERE vc_id = ? AND user_id = ?", (vc_id, user_id)
+            )
             await db.commit()
         if vc_id in self.blocked_users and user_id in self.blocked_users[vc_id]:
             self.blocked_users[vc_id].remove(user_id)
@@ -148,59 +193,101 @@ class JoinToCreate(commands.Cog):
         await self.init_db()
         await self.load_data()
 
-    def create_vc_control_embed(self, vc: discord.VoiceChannel, owner: discord.Member) -> discord.Embed:
-        embed = discord.Embed(
-            title="⚙️ J2C Control Panel",
-            description=(
-                f"**Your private voice channel is ready!**\n"
-                f"Use the buttons below to manage your VC.\n\n"
-                f"👑 **Owner:** {owner.mention}\n"
-                f"🔊 **Channel:** {vc.mention}"
-            ),
-            color=0xFF0000
-        )
-        status_parts = []
+    # ── Embeds ────────────────────────────────────────────────────────────────
+
+    def _em(self, key: str, fallback: str) -> str:
+        """Return the emoji string for a key, falling back to unicode."""
+        val = e(key)
+        return val if val else fallback
+
+    async def create_vc_control_embed(
+        self, vc: discord.VoiceChannel, owner: discord.Member
+    ) -> discord.Embed:
+        """
+        Async embed for the control panel posted inside the private VC.
+        Shows owner/status info + the same button guide as the interface channel,
+        with the branding banner at the bottom.
+        """
+        from utils.branding import get_branding, DEFAULT_BRANDING
+        branding = await get_branding(vc.guild.id)
+
         vc_data = self.private_channels.get(vc.id, {})
-        if vc_data.get("is_locked"):
-            status_parts.append("🔒 Locked")
-        else:
-            status_parts.append("🔓 Unlocked")
-        if vc_data.get("has_waiting_room"):
-            status_parts.append("🛋️ Waiting Room")
-        if vc_data.get("has_thread"):
-            status_parts.append("💬 Thread")
-        limit = vc_data.get("limit", 2)
-        status_parts.append(f"⏳ Limit: {limit if limit else 'None'}")
-        embed.add_field(name="Status", value=" | ".join(status_parts), inline=False)
-        from utils.branding import DEFAULT_BRANDING
-        embed.set_footer(text=f"{DEFAULT_BRANDING} J2C System")
+        is_locked = vc_data.get("is_locked", False)
+        has_wr    = vc_data.get("has_waiting_room", False)
+        has_th    = vc_data.get("has_thread", False)
+        limit     = vc_data.get("limit", 2)
+
+        em = self._em  # shortcut
+
+        # Status line
+        status_parts = [
+            f"{em('lock','🔒') if is_locked else em('unlock','🔓')} {'Locked' if is_locked else 'Unlocked'}",
+            f"{em('j2c_wait','🛋️')} Waiting Room: {'On' if has_wr else 'Off'}",
+            f"{'💬 Thread: On' if has_th else ''}",
+            f"{em('ztimer','⏳')} Limit: {limit if limit else '∞'}",
+        ]
+        status_line = " │ ".join(p for p in status_parts if p)
+
+        # Button guide lines (matches interface embed)
+        guide_lines = [
+            f"{em('zsettings','⚙️')} **(Rename)** — rename your channel",
+            f"{em('ztimer','⏳')} **(Limit)** — change member limit",
+            f"{em('lock','🔒')} **(Privacy)** — lock / unlock your VC",
+            f"{em('j2c_wait','🛋️')} **(Waiting Room)** — hold members outside",
+            f"{em('zmsg','💬')} **(Thread)** — create a discussion thread",
+            f"{em('zcross','❌')} **(Untrust)** — remove a member's access",
+            f"{em('zplus','✉️')} **(Invite)** — send a DM invite",
+            f"{em('zban','👢')} **(Kick)** — disconnect a member",
+            f"{em('zyrox_global','🌍')} **(Region)** — change voice region",
+            f"{em('Denied','🚫')} **(Block)** — block a member from joining",
+            f"{em('unlock','🔓')} **(Unblock)** — unblock a member",
+            f"{em('BlackCrown','⭐')} **(Claim)** — claim an abandoned VC",
+            f"{em('zArrow','🔄')} **(Transfer)** — transfer ownership",
+            f"{em('delete','🗑️')} **(Delete)** — permanently delete the VC",
+        ]
+
+        embed = discord.Embed(
+            description=(
+                f"👑 **Owner:** {owner.mention} │ 🔊 **Channel:** {vc.mention}\n"
+                f"{status_line}\n\n"
+                f"**__Ctrl Panel__**\n"
+                + "\n".join(guide_lines)
+            ),
+            color=branding.get("embed_color", 0xFF0000)
+        )
+
+        banner = branding.get("embed_banner")
+        if banner:
+            embed.set_image(url=banner)
+
+        branding_name = branding.get("branding_name", DEFAULT_BRANDING)
+        embed.set_footer(text=f"{branding_name} • J2C Control Panel")
         return embed
 
-    async def create_interface_embed(self, guild: discord.Guild, join_channel: discord.VoiceChannel) -> discord.Embed:
-        """Branded static embed for the #interface channel — NO buttons."""
+    async def create_interface_embed(
+        self, guild: discord.Guild, join_channel: discord.VoiceChannel
+    ) -> discord.Embed:
+        """Branded static embed for the #interface channel — no buttons."""
         from utils.branding import get_branding
         branding = await get_branding(guild.id)
 
-        # Emoji helper with unicode fallback
-        def em(key: str, fallback: str) -> str:
-            val = e(key)
-            return val if val else fallback
+        em = self._em
 
         lines = [
-            f"{em('zsettings', '⚙️')} **- (Rename)** your channel",
-            f"{em('ztimer', '⏳')} **- (Limit)** your channel members",
-            f"{em('lock', '🔒')} **- (Lock)** your channel",
-            f"{em('j2c_wait', '🛋️')} **- (Waiting Room)** hold members outside",
-            f"{em('zmsg', '💬')} **- (Thread)** create a discussion thread",
-            f"{em('zcross', '❌')} **- (Untrust)** remove a member's access",
-            f"{em('zplus', '✉️')} **- (Invite)** a member to your channel",
-            f"{em('zban', '👢')} **- (Kick)** a member from your vc",
-            f"{em('zyrox_global', '🌍')} **- (Region)** change your vc region",
-            f"{em('Denied', '🚫')} **- (Block)** a member from joining",
-            f"{em('unlock', '🔓')} **- (Unblock)** a blocked member",
-            f"{em('BlackCrown', '⭐')} **- (Claim)** an abandoned vc",
-            f"{em('zArrow', '🔄')} **- (Transfer)** ownership to someone",
-            f"{em('delete', '🗑️')} **- (Delete)** your channel",
+            f"{em('zsettings','⚙️')} **— (Rename)** your channel",
+            f"{em('ztimer','⏳')} **— (Limit)** your channel members",
+            f"{em('lock','🔒')} **— (Lock)** your channel",
+            f"{em('j2c_wait','🛋️')} **— (Waiting Room)** hold members outside",
+            f"{em('zmsg','💬')} **— (Thread)** create a discussion thread",
+            f"{em('zcross','❌')} **— (Untrust)** remove a member's access",
+            f"{em('zplus','✉️')} **— (Invite)** a member to your channel",
+            f"{em('zban','👢')} **— (Kick)** a member from your vc",
+            f"{em('zyrox_global','🌍')} **— (Region)** change your vc region",
+            f"{em('Denied','🚫')} **— (Block)** a member from joining",
+            f"{em('unlock','🔓')} **— (Unblock)** a blocked member",
+            f"{em('BlackCrown','⭐')} **— (Claim)** an abandoned vc",
+            f"{em('zArrow','🔄')} **— (Transfer)** ownership to someone",
+            f"{em('delete','🗑️')} **— (Delete)** your channel",
         ]
 
         embed = discord.Embed(
@@ -231,6 +318,8 @@ class JoinToCreate(commands.Cog):
             color=0xFFD700
         )
         return embed
+
+    # ── Commands ──────────────────────────────────────────────────────────────
 
     @commands.command(name='j2csetup')
     @commands.has_permissions(administrator=True)
@@ -274,7 +363,9 @@ class JoinToCreate(commands.Cog):
         }
         await self.save_guild_setup(ctx.guild.id, self.setup_data[ctx.guild.id])
 
-        await ctx.send(f"⚙️ J2C system setup complete! Join {join_channel.mention} to create a private VC.")
+        await ctx.send(
+            f"⚙️ J2C system setup complete! Join {join_channel.mention} to create a private VC."
+        )
 
     @commands.command(name='j2creset')
     @commands.has_permissions(administrator=True)
@@ -288,15 +379,17 @@ class JoinToCreate(commands.Cog):
             for channel in category.channels:
                 try:
                     await channel.delete(reason="J2C System Reset")
-                except:
+                except Exception:
                     continue
             try:
                 await category.delete(reason="J2C System Reset")
-            except:
+            except Exception:
                 pass
 
-        vc_ids = [vc_id for vc_id, data in self.private_channels.items()
-                  if data.get("guild_id") == ctx.guild.id]
+        vc_ids = [
+            vc_id for vc_id, data in self.private_channels.items()
+            if data.get("guild_id") == ctx.guild.id
+        ]
         for vc_id in vc_ids:
             del self.private_channels[vc_id]
 
@@ -305,6 +398,8 @@ class JoinToCreate(commands.Cog):
 
         await ctx.send("J2C system has been completely reset in this server!")
 
+    # ── Voice events ──────────────────────────────────────────────────────────
+
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if member.guild.id not in self.setup_data:
@@ -312,6 +407,7 @@ class JoinToCreate(commands.Cog):
 
         guild_data = self.setup_data[member.guild.id]
 
+        # Member joins the trigger VC → create a private VC
         if after.channel and after.channel.id == guild_data["join_channel_id"]:
             category = discord.utils.get(member.guild.categories, name=self.category_name)
             if not category:
@@ -323,7 +419,6 @@ class JoinToCreate(commands.Cog):
                 reason="Private VC Creation",
                 user_limit=2
             )
-
             await member.move_to(vc)
 
             self.private_channels[vc.id] = {
@@ -338,27 +433,30 @@ class JoinToCreate(commands.Cog):
             }
             await self.save_private_channel(vc.id, member.guild.id, self.private_channels[vc.id])
 
-            embed = self.create_vc_control_embed(vc, member)
-            view = ControlPanelView(self)
             try:
+                embed = await self.create_vc_control_embed(vc, member)
+                view = ControlPanelView(self)
                 ctrl_msg = await vc.send(embed=embed, view=view)
                 self.private_channels[vc.id]["ctrl_msg_id"] = ctrl_msg.id
                 await self.save_private_channel(vc.id, member.guild.id, self.private_channels[vc.id])
-            except Exception as e:
-                print(f"Could not send J2C control panel to VC: {e}")
+            except Exception as err:
+                print(f"Could not send J2C control panel to VC: {err}")
 
             await self.update_info_panel(member.guild)
 
+        # Member leaves a private VC
         if before.channel and before.channel.id in self.private_channels:
-            if (before.channel.id in self.blocked_users and
-                    member.id in self.blocked_users[before.channel.id]):
+            if (
+                before.channel.id in self.blocked_users
+                and member.id in self.blocked_users[before.channel.id]
+            ):
                 await member.move_to(None)
                 return
 
             if len(before.channel.members) == 0:
                 try:
                     await before.channel.delete()
-                except:
+                except Exception:
                     pass
 
                 if before.channel.id in self.private_channels:
@@ -368,7 +466,7 @@ class JoinToCreate(commands.Cog):
                 await self.update_info_panel(member.guild)
 
     async def update_info_panel(self, guild: discord.Guild):
-        """Update the static interface embed (e.g. after guild branding changes)."""
+        """Refresh the static interface embed (e.g. after branding changes)."""
         if guild.id not in self.setup_data:
             return
         guild_data = self.setup_data[guild.id]
@@ -386,6 +484,7 @@ class JoinToCreate(commands.Cog):
             pass
 
     async def update_vc_panel(self, vc: discord.VoiceChannel, guild: discord.Guild):
+        """Refresh the control panel inside the private VC."""
         vc_data = self.private_channels.get(vc.id)
         if not vc_data:
             return
@@ -397,17 +496,27 @@ class JoinToCreate(commands.Cog):
             return
         try:
             msg = await vc.fetch_message(ctrl_msg_id)
-            embed = self.create_vc_control_embed(vc, owner)
+            embed = await self.create_vc_control_embed(vc, owner)
             view = ControlPanelView(self)
             await msg.edit(embed=embed, view=view)
-        except:
+        except Exception:
             pass
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# CONTROL PANEL VIEW
+# ═════════════════════════════════════════════════════════════════════════════
 
 class ControlPanelView(ui.View):
     def __init__(self, cog):
         super().__init__(timeout=None)
         self.cog = cog
+        # Apply custom emojis to all buttons at runtime
+        for child in self.children:
+            cid = getattr(child, "custom_id", None)
+            if cid and cid in _CTRL_EMOJI:
+                key, fallback = _CTRL_EMOJI[cid]
+                child.emoji = _make_emoji(key, fallback)
 
     async def get_owned_vc(self, interaction: discord.Interaction) -> Optional[discord.VoiceChannel]:
         for vc_id, data in self.cog.private_channels.items():
@@ -437,8 +546,7 @@ class ControlPanelView(ui.View):
         self.cog.private_channels[vc.id]["is_locked"] = is_locked
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
         await interaction.response.send_message(
-            f"VC is now {'🔒 locked' if is_locked else '🔓 unlocked'}!",
-            ephemeral=True
+            f"VC is now {'🔒 locked' if is_locked else '🔓 unlocked'}!", ephemeral=True
         )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
@@ -452,8 +560,7 @@ class ControlPanelView(ui.View):
         self.cog.private_channels[vc.id]["has_waiting_room"] = has_waiting
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
         await interaction.response.send_message(
-            f"Waiting room {'enabled' if has_waiting else 'disabled'} for your VC!",
-            ephemeral=True
+            f"Waiting room {'enabled' if has_waiting else 'disabled'} for your VC!", ephemeral=True
         )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
@@ -469,17 +576,17 @@ class ControlPanelView(ui.View):
         if has_thread:
             try:
                 thread = await interaction.channel.create_thread(
-                    name=f"{vc.name} Discussion",
-                    auto_archive_duration=60
+                    name=f"{vc.name} Discussion", auto_archive_duration=60
                 )
                 await interaction.response.send_message(
-                    f"Created thread: {thread.mention}",
-                    ephemeral=True
+                    f"Created thread: {thread.mention}", ephemeral=True
                 )
-            except:
+            except Exception:
                 await interaction.response.send_message("Thread feature enabled!", ephemeral=True)
         else:
-            await interaction.response.send_message("Thread feature disabled for your VC", ephemeral=True)
+            await interaction.response.send_message(
+                "Thread feature disabled for your VC", ephemeral=True
+            )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
     @ui.button(label="UNTRUST", style=discord.ButtonStyle.secondary, row=1, custom_id="j2c:untrust", emoji="❌")
@@ -488,10 +595,11 @@ class ControlPanelView(ui.View):
         if not vc:
             await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
             return
-        options = []
-        for member in vc.members:
-            if member.id != interaction.user.id:
-                options.append(SelectOption(label=member.name, value=str(member.id)))
+        options = [
+            SelectOption(label=member.name, value=str(member.id))
+            for member in vc.members
+            if member.id != interaction.user.id
+        ]
         if not options:
             await interaction.response.send_message("No trusted users to remove!", ephemeral=True)
             return
@@ -509,7 +617,7 @@ class ControlPanelView(ui.View):
             if member:
                 try:
                     await vc.set_permissions(member, overwrite=None)
-                except:
+                except Exception:
                     pass
         await interaction.response.send_message("Selected members untrusted!", ephemeral=True)
 
@@ -519,12 +627,11 @@ class ControlPanelView(ui.View):
         if not vc:
             await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
             return
-        options = []
-        for member in interaction.guild.members:
-            if (member not in vc.members and
-                    not member.bot and
-                    member != interaction.user):
-                options.append(SelectOption(label=member.name, value=str(member.id)))
+        options = [
+            SelectOption(label=member.name, value=str(member.id))
+            for member in interaction.guild.members
+            if member not in vc.members and not member.bot and member != interaction.user
+        ]
         if not options:
             await interaction.response.send_message("No members available to invite!", ephemeral=True)
             return
@@ -541,8 +648,10 @@ class ControlPanelView(ui.View):
             member = interaction.guild.get_member(int(user_id))
             if member:
                 try:
-                    await member.send(f"You've been invited to join {vc.mention} by {interaction.user.mention}!")
-                except:
+                    await member.send(
+                        f"You've been invited to join {vc.mention} by {interaction.user.mention}!"
+                    )
+                except Exception:
                     pass
         await interaction.response.send_message("Invites sent!", ephemeral=True)
 
@@ -552,10 +661,11 @@ class ControlPanelView(ui.View):
         if not vc:
             await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
             return
-        options = []
-        for member in vc.members:
-            if member.id != interaction.user.id:
-                options.append(SelectOption(label=member.name, value=str(member.id)))
+        options = [
+            SelectOption(label=member.name, value=str(member.id))
+            for member in vc.members
+            if member.id != interaction.user.id
+        ]
         if not options:
             await interaction.response.send_message("No users to kick in your VC!", ephemeral=True)
             return
@@ -573,7 +683,7 @@ class ControlPanelView(ui.View):
             if member and member in vc.members:
                 try:
                     await member.move_to(None)
-                except:
+                except Exception:
                     pass
         await interaction.response.send_message("Selected members kicked!", ephemeral=True)
 
@@ -585,12 +695,12 @@ class ControlPanelView(ui.View):
             return
         regions = [
             SelectOption(label="Automatic", value="auto"),
-            SelectOption(label="US West", value="us-west"),
-            SelectOption(label="US East", value="us-east"),
-            SelectOption(label="Europe", value="europe"),
+            SelectOption(label="US West",   value="us-west"),
+            SelectOption(label="US East",   value="us-east"),
+            SelectOption(label="Europe",    value="europe"),
             SelectOption(label="Singapore", value="singapore"),
-            SelectOption(label="Japan", value="japan"),
-            SelectOption(label="Brazil", value="brazil"),
+            SelectOption(label="Japan",     value="japan"),
+            SelectOption(label="Brazil",    value="brazil"),
             SelectOption(label="Australia", value="australia")
         ]
         dropdown = RegionSelectDropdown(regions, vc)
@@ -612,6 +722,9 @@ class ControlPanelView(ui.View):
             member = interaction.guild.get_member(user_id)
             if member:
                 options.append(SelectOption(label=member.name, value=str(user_id)))
+        if not options:
+            await interaction.response.send_message("No blocked users found in server!", ephemeral=True)
+            return
         dropdown = UserSelectDropdown(options, "Select users to unblock", self.unblock_selected)
         view = ui.View()
         view.add_item(dropdown)
@@ -639,12 +752,10 @@ class ControlPanelView(ui.View):
         if not available_vcs:
             await interaction.response.send_message("No VCs available to claim!", ephemeral=True)
             return
-        options = []
-        for vc, data in available_vcs:
-            options.append(SelectOption(
-                label=f"{vc.name}",
-                value=str(vc.id)
-            ))
+        options = [
+            SelectOption(label=vc.name, value=str(vc.id))
+            for vc, data in available_vcs
+        ]
         dropdown = VCSelectDropdown(options, "Select VC to claim", self.claim_selected)
         view = ui.View()
         view.add_item(dropdown)
@@ -658,10 +769,7 @@ class ControlPanelView(ui.View):
             return
         self.cog.private_channels[vc.id]["owner"] = interaction.user.id
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
-        await interaction.response.send_message(
-            f"You've claimed {vc.mention}!",
-            ephemeral=True
-        )
+        await interaction.response.send_message(f"You've claimed {vc.mention}!", ephemeral=True)
         await self.cog.update_vc_panel(vc, interaction.guild)
 
     @ui.button(label="TRANSFER", style=discord.ButtonStyle.secondary, row=2, custom_id="j2c:transfer", emoji="🔄")
@@ -670,12 +778,13 @@ class ControlPanelView(ui.View):
         if not vc:
             await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
             return
-        options = []
-        for member in vc.members:
-            if member.id != interaction.user.id:
-                options.append(SelectOption(label=member.name, value=str(member.id)))
+        options = [
+            SelectOption(label=member.name, value=str(member.id))
+            for member in vc.members
+            if member.id != interaction.user.id
+        ]
         if not options:
-            await interaction.response.send_message("No users to transfer to in your VC!", ephemeral=True)
+            await interaction.response.send_message("No users to transfer to!", ephemeral=True)
             return
         dropdown = UserSelectDropdown(options, "Select new owner", self.transfer_selected)
         view = ui.View()
@@ -694,8 +803,7 @@ class ControlPanelView(ui.View):
         self.cog.private_channels[vc.id]["owner"] = new_owner_id
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
         await interaction.response.send_message(
-            f"Transferred ownership of {vc.mention} to {new_owner.mention}!",
-            ephemeral=True
+            f"Transferred ownership of {vc.mention} to {new_owner.mention}!", ephemeral=True
         )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
@@ -708,7 +816,7 @@ class ControlPanelView(ui.View):
         for member in vc.members:
             try:
                 await member.move_to(None)
-            except:
+            except Exception:
                 pass
         await vc.delete()
         if vc.id in self.cog.private_channels:
@@ -731,12 +839,11 @@ class ControlPanelView(ui.View):
         if not vc:
             await interaction.response.send_message("You don't own any private VC!", ephemeral=True)
             return
-        options = []
-        for member in interaction.guild.members:
-            if (member not in vc.members and
-                    not member.bot and
-                    member != interaction.user):
-                options.append(SelectOption(label=member.name, value=str(member.id)))
+        options = [
+            SelectOption(label=member.name, value=str(member.id))
+            for member in interaction.guild.members
+            if member not in vc.members and not member.bot and member != interaction.user
+        ]
         if not options:
             await interaction.response.send_message("No members available to block!", ephemeral=True)
             return
@@ -751,13 +858,24 @@ class ControlPanelView(ui.View):
             return
         for user_id in selected:
             await self.cog.block_user(vc.id, int(user_id))
-        await interaction.response.send_message("Selected members blocked from joining!", ephemeral=True)
+        await interaction.response.send_message(
+            "Selected members blocked from joining!", ephemeral=True
+        )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# SELECT / MODAL HELPERS
+# ═════════════════════════════════════════════════════════════════════════════
+
 class UserSelectDropdown(ui.Select):
     def __init__(self, options: List[SelectOption], placeholder: str, callback):
-        super().__init__(placeholder=placeholder, options=options, min_values=1, max_values=len(options))
+        super().__init__(
+            placeholder=placeholder,
+            options=options[:25],  # Discord limit
+            min_values=1,
+            max_values=min(len(options), 25)
+        )
         self.callback_func = callback
 
     async def callback(self, interaction: discord.Interaction):
@@ -773,9 +891,9 @@ class RegionSelectDropdown(ui.Select):
         region = self.values[0]
         try:
             await self.vc.edit(rtc_region=region if region != "auto" else None)
-            await interaction.response.send_message(f"Region set to {self.values[0]}!", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"Failed to set region: {e}", ephemeral=True)
+            await interaction.response.send_message(f"Region set to **{self.values[0]}**!", ephemeral=True)
+        except Exception as err:
+            await interaction.response.send_message(f"Failed to set region: {err}", ephemeral=True)
 
 
 class VCSelectDropdown(ui.Select):
@@ -808,16 +926,16 @@ class SetLimitModal(ui.Modal, title="Set VC User Limit"):
             cog = interaction.client.get_cog("JoinToCreate")
             if cog and self.vc.id in cog.private_channels:
                 cog.private_channels[self.vc.id]["limit"] = limit
-                await cog.save_private_channel(self.vc.id, interaction.guild.id, cog.private_channels[self.vc.id])
+                await cog.save_private_channel(
+                    self.vc.id, interaction.guild.id, cog.private_channels[self.vc.id]
+                )
                 await cog.update_vc_panel(self.vc, interaction.guild)
             await interaction.response.send_message(
-                f"User limit set to {limit if limit != 0 else 'no limit'}!",
-                ephemeral=True
+                f"User limit set to **{limit if limit != 0 else 'no limit'}**!", ephemeral=True
             )
-        except:
+        except Exception:
             await interaction.response.send_message(
-                "Invalid limit! Please enter a number between 0 and 99.",
-                ephemeral=True
+                "Invalid limit! Please enter a number between 0 and 99.", ephemeral=True
             )
 
 
@@ -840,14 +958,12 @@ class RenameVCModal(ui.Modal, title="Rename Your VC"):
             new_name = self.new_name.value.strip()
             await self.vc.edit(name=new_name)
             await interaction.response.send_message(
-                f"✏️ Channel renamed to **{new_name}**!",
-                ephemeral=True
+                f"✏️ Channel renamed to **{new_name}**!", ephemeral=True
             )
             await self.cog.update_vc_panel(self.vc, interaction.guild)
-        except Exception as e:
+        except Exception as err:
             await interaction.response.send_message(
-                f"Failed to rename channel: {e}",
-                ephemeral=True
+                f"Failed to rename channel: {err}", ephemeral=True
             )
 
 
