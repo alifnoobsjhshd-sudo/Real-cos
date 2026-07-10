@@ -2,7 +2,7 @@
 Centralized emoji configuration for Zyrox X.
 
 Priority order:
-  1. Emojis uploaded via /upload emojis (stored in data/emoji_store.json)
+  1. Emojis uploaded via /upload emojis (stored in db/emoji_store.db)
   2. Fallback hardcoded IDs (original server's emojis — work if bot is still there)
 
 After running /upload emojis in your server, all messages will automatically
@@ -10,13 +10,10 @@ use the newly uploaded emojis.
 """
 
 from __future__ import annotations
-import json
 import os
+import sqlite3
 
-_STORE_PATH = "data/emoji_store.json"
-
-# Pre-read env var once at import time so it's available in _load_store()
-_ENV_STORE_JSON: str = os.getenv("EMOJI_STORE_JSON", "")
+_DB_STORE_PATH = "db/emoji_store.db"
 
 _FALLBACK: dict[str, str] = {
     # ── Core status ────────────────────────────────────────────────────────────
@@ -184,29 +181,18 @@ _FALLBACK: dict[str, str] = {
 }
 
 def _load_store() -> dict:
-    # Priority 1: EMOJI_STORE_JSON environment variable (survives Render redeploys)
-    if _ENV_STORE_JSON:
-        try:
-            data = json.loads(_ENV_STORE_JSON)
-            if isinstance(data, dict):
-                # Also write to file so runtime code keeps working
-                try:
-                    os.makedirs(os.path.dirname(_STORE_PATH), exist_ok=True)
-                    with open(_STORE_PATH, "w") as f:
-                        json.dump(data, f, indent=2, ensure_ascii=False)
-                except Exception:
-                    pass
-                return data
-        except Exception:
-            pass
-    # Priority 2: runtime JSON file (written by /upload emojis)
+    """Read all uploaded emoji entries from the SQLite DB (synchronous)."""
     try:
-        if os.path.exists(_STORE_PATH):
-            with open(_STORE_PATH, "r") as f:
-                return json.load(f)
+        if not os.path.exists(_DB_STORE_PATH):
+            return {}
+        conn = sqlite3.connect(_DB_STORE_PATH)
+        try:
+            cur = conn.execute("SELECT name, emoji_str FROM emoji_store")
+            return {row[0]: row[1] for row in cur.fetchall()}
+        finally:
+            conn.close()
     except Exception:
-        pass
-    return {}
+        return {}
 
 _store: dict[str, str] = _load_store()
 
@@ -216,7 +202,7 @@ def reload_store() -> None:
     _store = _load_store()
 
 def get_store() -> dict:
-    """Return a snapshot of the current in-memory emoji store (env-var + file merged)."""
+    """Return a snapshot of the current in-memory emoji store."""
     return dict(_store)
 
 def e(name: str) -> str:

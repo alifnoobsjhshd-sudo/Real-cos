@@ -565,6 +565,18 @@ async def _ac_user_playlists(interaction: discord.Interaction, current: str):
     ][:25]
 
 
+async def _ac_all_playlists(interaction: discord.Interaction, current: str):
+    """Autocomplete for /playlist list search — shows all playlists matching the typed text."""
+    rows = await _db.get_all_playlists(current if current else None)
+    return [
+        app_commands.Choice(
+            name=f"{r['name']}  ({r['song_count']} songs)",
+            value=r["name"]
+        )
+        for r in rows
+    ][:25]
+
+
 async def _ac_songs_in_playlist(interaction: discord.Interaction, current: str):
     try:
         pl_name = getattr(interaction.namespace, "playlist", None)
@@ -622,6 +634,7 @@ class PlaylistCog(Cog):
 
     @playlist_group.command(name="list", description="Browse all playlists (searchable by name).")
     @app_commands.describe(search="Filter playlists by name (optional)")
+    @app_commands.autocomplete(search=_ac_all_playlists)
     async def cmd_playlist_list(
         self, interaction: discord.Interaction, search: str = None
     ):

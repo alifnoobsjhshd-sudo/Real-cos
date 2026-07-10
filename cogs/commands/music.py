@@ -173,7 +173,7 @@ class MusicControlView(View):
         super().__init__(timeout=None)
         self.player = player
         self.ctx = ctx
-        # Assign custom emojis to each button (order matches decorator definition order)
+        # Assign custom emojis AND labels to each button (order = decorator definition order)
         _emoji_map = [
             _pe("zautoplay"),         # 0  autoplay
             _pe("zback"),             # 1  previous track
@@ -186,9 +186,22 @@ class MusicControlView(View):
             _pe("forward"),           # 8  forward 10 s
             _pe("zplay"),             # 9  replay
         ]
+        _label_map = [
+            "Autoplay",  # 0
+            "Previous",  # 1
+            "Pause",     # 2
+            "Skip",      # 3
+            "Loop",      # 4
+            "Shuffle",   # 5
+            "Rewind",    # 6
+            "Stop",      # 7
+            "Forward",   # 8
+            "Replay",    # 9
+        ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
-        for btn, emoji in zip(buttons, _emoji_map):
+        for btn, emoji, label in zip(buttons, _emoji_map, _label_map):
             btn.emoji = emoji
+            btn.label = label
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not self.ctx.voice_client or not self.player.playing:
@@ -236,12 +249,14 @@ class MusicControlView(View):
             await self.player.pause(False)
             await self.player.channel.edit(status=f"🎵 Playing: {self.player.current.title}")
             button.emoji = _pe("zpause")
+            button.label = "Pause"
             await interaction.response.edit_message(view=self)
 
         elif self.player.playing:
             await self.player.pause(True)
             await self.player.channel.edit(status=f"⏸️ Paused: {self.player.current.title}")
             button.emoji = _pe("zplay")
+            button.label = "Play"
             await interaction.response.edit_message(view=self)
 
 
@@ -382,54 +397,38 @@ class Music(commands.Cog):
 
 
     async def display_player_embed(self, player, track, ctx, autoplay=False):
+        sec      = track.length // 1000
+        duration = f"0{sec // 60}:{sec % 60:02d}" if sec < 600 else f"{sec // 60}:{sec % 60:02d}"
+        _src     = track.source if track.source else ""
+
+        color = (
+            0x1DB954 if "spotify"    in _src else
+            0x00E6A7 if "jiosaavn"   in _src else
+            0xFF0000 if "youtube"    in _src else
+            0xFF5500
+        )
+
+        embed = discord.Embed(title=f"**{track.title}**", color=color)
+        embed.add_field(name="Author",   value=f"`{track.author}`")
+        embed.add_field(name="Duration", value=f"`{duration}`")
+
+        # Source link — emoji placed BEFORE the hyperlink so it renders as a real emoji
+        if "spotify"     in _src: _src_txt = f"{_e('zplay') or '▶'}  [Listen on Spotify]({track.uri})"
+        elif "jiosaavn"  in _src: _src_txt = f"{_e('jiosaavn') or '🎵'} [Listen on JioSaavn]({track.uri})"
+        elif "soundcloud" in _src: _src_txt = f"{_e('SoundCloud') or '☁'} [Listen on SoundCloud]({track.uri})"
+        else:                     _src_txt = f"{_e('YouTube') or '▶'} [Listen on YouTube]({track.uri})"
+        embed.add_field(name="Source", value=_src_txt)
+
+        # Thumbnail = song artwork (replaces the old composite banner image)
         if track.artwork:
-            template_path = 'data/pictures/player.png'
-            font_path = 'utils/arial.ttf'
-            font = ImageFont.truetype(font_path, 40) 
+            embed.set_thumbnail(url=track.artwork)
 
-            base_img = Image.open(template_path).convert("RGBA")
+        embed.set_footer(
+            text="Requested by " + (ctx.author.display_name if not autoplay else f"{ctx.author.display_name} (Autoplay Mode)"),
+            icon_url=ctx.author.display_avatar.url if ctx.author.avatar else ctx.author.default_avatar.url,
+        )
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(track.artwork) as resp:
-                    if resp.status == 200:
-                        track_img_data = io.BytesIO(await resp.read())
-                        track_img = Image.open(track_img_data).convert("RGBA")
-                        track_img = ImageOps.fit(track_img, (220, 220), centering=(0.5, 0.5))
-
-                        mask = Image.new('L', (220, 220), 0)
-                        draw = ImageDraw.Draw(mask)
-                        draw.ellipse((0, 0, 220, 220), fill=255)
-                        track_img.putalpha(mask)
-                        base_img.paste(track_img, (15, 125 - 85), track_img) 
-
-            draw = ImageDraw.Draw(base_img)
-            draw.text((240, 50), track.title, font=font, fill="white")
-
-            image_bytes = io.BytesIO()
-            base_img.save(image_bytes, format="PNG")
-            image_bytes.seek(0)
-
-            file = discord.File(image_bytes, filename="player.png")
-            sec = track.length // 1000
-            duration= f"0{sec // 60}:{sec % 60}" if sec < 600 else f"{sec // 60}:{sec % 60}"
-            embed = discord.Embed(title=f"**{track.title}**",
-            color=0x1DB954 if "spotify" in track.source else 0x00E6A7 if "jiosaavn" in track.source else 0xFF0000 if "youtube" in track.source else 0xFF5500
-            )
-            #embed.set_author(name="Now Playing", icon_url="https://cdn.discordapp.com/emojis/1275556609958875218.gif")
-            embed.add_field(name="Author", value=f"`{track.author}`")
-            embed.add_field(name="Duration", value=f"`{duration}`")
-            _src = track.source if track.source else ""
-            if "spotify"    in _src: _src_txt = f"[{_e('zplay') or '▶'}  Listen on Spotify]({track.uri})"
-            elif "jiosaavn" in _src: _src_txt = f"[{_e('jiosaavn') or '🎵'} Listen on JioSaavn]({track.uri})"
-            elif "soundcloud" in _src: _src_txt = f"[{_e('SoundCloud') or '☁'} Listen on SoundCloud]({track.uri})"
-            else:                    _src_txt = f"[{_e('YouTube') or '▶'} Listen on YouTube]({track.uri})"
-            embed.add_field(name="Source", value=_src_txt)
-            embed.set_image(url="attachment://player.png")
-            embed.set_footer(text="Requested by " + (ctx.author.display_name if not autoplay else f"{ctx.author.display_name} (Autoplay Mode)"), icon_url=ctx.author.display_avatar.url if ctx.author.avatar else ctx.author.default_avatar.url)
-
-            await ctx.send(embed=embed, file=file, view=MusicControlView(player, ctx))
-        else:
-            await ctx.send(embed=discord.Embed(description="Track has no artwork."), ephemeral=True)
+        await ctx.send(embed=embed, view=MusicControlView(player, ctx))
 
 
     async def on_track_end(self, payload: wavelink.TrackEndEventPayload):

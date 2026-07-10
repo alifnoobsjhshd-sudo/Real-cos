@@ -15,14 +15,15 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 from discord.ext import commands
-import json
 import os
 import asyncio
+import sqlite3
+import aiosqlite
 
 from utils.emojis import BRANCHES, reload_store, get_store
 
-EMOJI_DIR   = "assets/emojis"
-STORE_PATH  = "data/emoji_store.json"
+EMOJI_DIR    = "assets/emojis"
+DB_STORE_PATH = "db/emoji_store.db"
 
 BRANCH_DESCRIPTIONS = {
     "core":     "Status, navigation & action emojis (45 emojis)",
@@ -186,7 +187,7 @@ class EmojiUpload(commands.Cog):
                 else:
                     failed.append(name)
 
-        _save_uploaded(uploaded)
+        await _save_uploaded(uploaded)
 
         new_count      = len([n for n in uploaded if n not in existing])
         replaced_count = len([n for n in uploaded if n in existing])
@@ -379,7 +380,7 @@ class EmojiUpload(commands.Cog):
 
     @app_commands.command(
         name="emoji_export",
-        description="Export the current emoji store as JSON for the EMOJI_STORE_JSON env var.",
+        description="Show how many emoji IDs are stored in the database.",
     )
     @app_commands.default_permissions(administrator=True)
     async def emoji_export(self, interaction: discord.Interaction):
@@ -389,27 +390,20 @@ class EmojiUpload(commands.Cog):
                 embed=discord.Embed(
                     title="⚠️ No Emojis Stored",
                     description=(
-                        "No emoji data found. Run `/upload emojis branch:<name>` first.\n\n"
-                        "After uploading all branches, run `/emoji_export` again to get the JSON."
+                        "No emoji data found in the database.\n"
+                        "Run `/upload emojis branch:<name>` first."
                     ),
                     color=ACCENT,
                 ),
                 ephemeral=True,
             )
 
-        store_json = json.dumps(store, ensure_ascii=False)
-
-        # Also save to the project root so the user can download it from Replit
-        export_path = "emoji_store.json"
-        with open(export_path, "w", encoding="utf-8") as f:
-            f.write(store_json)
-
         embed = discord.Embed(
-            title="📦 Emoji Store Export",
+            title="📦 Emoji Store Status",
             description=(
-                "**The JSON has been saved to `emoji_store.json` in the project root.**\n\n"
-                "Download it from the Replit file tree, copy the full contents, and set it as the "
-                "`EMOJI_STORE_JSON` environment variable on Render. This keeps emojis across redeploys."
+                "Emoji IDs are saved in `db/emoji_store.db` and persist automatically on Render "
+                "via the bot's persistent disk (the `db/` folder is covered by `DATA_DIR` migration).\n\n"
+                "No manual export or environment variable is needed."
             ),
             color=GREEN,
         )
@@ -418,20 +412,8 @@ class EmojiUpload(commands.Cog):
             value=f"`{len(store)}` emoji IDs configured",
             inline=True,
         )
-        embed.add_field(
-            name="📁 File saved",
-            value=f"`{export_path}`",
-            inline=True,
-        )
         embed.set_footer(text="Zyrox X • Emoji Persistence")
-
-        # Send JSON as a text file attachment too so it's easy to grab
-        json_bytes = store_json.encode("utf-8")
-        file = discord.File(
-            fp=__import__("io").BytesIO(json_bytes),
-            filename="emoji_store.json",
-        )
-        await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ── /emoji_status ─────────────────────────────────────────────────────────
 
@@ -510,22 +492,15 @@ class _ConfirmView(discord.ui.View):
 
     # ── Prefix alternatives for slash commands ─────────────────────────────────
 
-    @commands.command(name="emoji_export", help="Export the emoji store JSON so you can set EMOJI_STORE_JSON on Render.")
+    @commands.command(name="emoji_export", help="Show how many emoji IDs are stored in the database.")
     @commands.has_permissions(administrator=True)
     async def cmd_emoji_export(self, ctx: commands.Context):
         store = get_store()
         if not store:
             return await ctx.reply("❌ No emojis stored yet. Run `/upload` first.", mention_author=False)
-        store_json = json.dumps(store, ensure_ascii=False)
-        export_path = "emoji_store.json"
-        with open(export_path, "w", encoding="utf-8") as f:
-            f.write(store_json)
-        import io as _io
-        file = discord.File(fp=_io.BytesIO(store_json.encode()), filename="emoji_store.json")
         await ctx.reply(
-            f"✅ Exported **{len(store)}** emoji IDs to `{export_path}`.\n"
-            f"Copy the JSON and set it as `EMOJI_STORE_JSON` on Render to persist emojis across redeploys.",
-            file=file, mention_author=False,
+            f"✅ **{len(store)}** emoji IDs stored in `db/emoji_store.db` — persisted automatically on Render via the `db/` persistent disk.",
+            mention_author=False,
         )
 
     @commands.command(name="emoji_status", help="Check which emoji branches have been uploaded to this server.")
@@ -579,7 +554,7 @@ class _ConfirmView(discord.ui.View):
             merged = {}
             for d in uploaded:
                 merged.update(d)
-            _save_uploaded(merged)
+            await _save_uploaded(merged)
         result = f"✅ Uploaded {len(uploaded)} emojis from `{branch}`."
         if failed:
             result += f"\n❌ Failed: {len(failed)} ({', '.join(failed[:5])}{'…' if len(failed) > 5 else ''})"
@@ -590,21 +565,36 @@ class _ConfirmView(discord.ui.View):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _load_store() -> dict:
+    """Synchronous read for status commands."""
     try:
-        if os.path.exists(STORE_PATH):
-            with open(STORE_PATH, "r") as f:
-                return json.load(f)
+        if not os.path.exists(DB_STORE_PATH):
+            return {}
+        conn = sqlite3.connect(DB_STORE_PATH)
+        try:
+            cur = conn.execute("SELECT name, emoji_str FROM emoji_store")
+            return {row[0]: row[1] for row in cur.fetchall()}
+        finally:
+            conn.close()
     except Exception:
-        pass
-    return {}
+        return {}
 
 
-def _save_uploaded(new_emojis: dict[str, str]) -> None:
-    os.makedirs(os.path.dirname(STORE_PATH), exist_ok=True)
-    store = _load_store()
-    store.update(new_emojis)
-    with open(STORE_PATH, "w") as f:
-        json.dump(store, f, indent=2, ensure_ascii=False)
+async def _save_uploaded(new_emojis: dict[str, str]) -> None:
+    """Persist uploaded emoji IDs to the SQLite DB and hot-reload the in-memory store."""
+    os.makedirs(os.path.dirname(DB_STORE_PATH), exist_ok=True)
+    async with aiosqlite.connect(DB_STORE_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS emoji_store (
+                name      TEXT PRIMARY KEY,
+                emoji_str TEXT NOT NULL
+            )
+        """)
+        for name, emoji_str in new_emojis.items():
+            await db.execute(
+                "INSERT OR REPLACE INTO emoji_store (name, emoji_str) VALUES (?, ?)",
+                (name, emoji_str)
+            )
+        await db.commit()
     reload_store()
 
 async def setup(bot: commands.Bot):
