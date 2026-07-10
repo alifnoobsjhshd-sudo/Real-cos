@@ -365,10 +365,19 @@ class View(discord.ui.View):
     # ── Index helpers ──────────────────────────────────────────────────────────
 
     def find_index_from_select(self, value):
+        """Map a dropdown label back to its embed page index.
+
+        Must mirror the cog iteration order in gen_embeds() exactly:
+        - Skip Roleplay cogs
+        - Skip merged cogs (PlaylistCog etc.) — they have no standalone page
+        """
         i = 0
         used_labels: set[str] = set()
         for cog in self.get_cogs():
             if cog.__class__.__name__ == "Roleplay":
+                continue
+            # Skip cogs that are merged into another page (no standalone dropdown entry)
+            if cog.__class__.__name__ in self._MERGE_INTO:
                 continue
             if "help_custom" in dir(cog):
                 _, label, _ = cog.help_custom()
@@ -388,8 +397,12 @@ class View(discord.ui.View):
 
     # ── Command-runner helpers ─────────────────────────────────────────────────
 
-    def _collect_page_commands(self, cog) -> list:
-        """Return (raw_name, display_label, description, is_slash) for commands on a cog page."""
+    # Cogs whose commands are merged into another page (kept in sync with gen_embeds logic)
+    _MERGE_INTO: dict[str, str] = {"PlaylistCog": "Music"}
+
+    def _collect_page_commands(self, cog, extra_cogs: list = None) -> list:
+        """Return (raw_name, display_label, description, is_slash) for commands on a cog page.
+        Pass extra_cogs to also include commands from cogs merged into this page."""
         entries: list = []
         seen: set[str] = set()
 
@@ -399,36 +412,56 @@ class View(discord.ui.View):
                 return (cmd_obj.short_doc or cmd_obj.help or "")[:80]
             return ""
 
-        for command in cog.get_commands():
-            docstring = command.help or ""
-            cmd_patterns = re.findall(r'`([^`]+)`', docstring)
-            for pattern in cmd_patterns:
-                stripped = pattern.strip()
-                if not stripped:
-                    continue
-                is_slash = stripped.startswith("/")
-                clean = re.sub(r'\s*[@#<>\[\]]\S*', '', stripped.lstrip("/").lstrip(">")).strip()
-                if not clean or clean in seen:
-                    continue
-                if not is_slash and _is_bare_group_pattern(clean, self.ctx.bot):
-                    continue
-                seen.add(clean)
-                display = f"{'/' if is_slash else '>'}{clean}"
-                desc = _lookup_desc(clean.split()[0]) if not is_slash else ""
-                entries.append((clean, display, desc, is_slash))
+        def _process_cog(c):
+            for command in c.get_commands():
+                docstring = command.help or ""
+                cmd_patterns = re.findall(r'`([^`]+)`', docstring)
+                for pattern in cmd_patterns:
+                    stripped = pattern.strip()
+                    if not stripped:
+                        continue
+                    is_slash = stripped.startswith("/")
+                    clean = re.sub(r'\s*[@#<>\[\]]\S*', '', stripped.lstrip("/").lstrip(">")).strip()
+                    if not clean or clean in seen:
+                        continue
+                    if not is_slash and _is_bare_group_pattern(clean, self.ctx.bot):
+                        continue
+                    seen.add(clean)
+                    display = f"{'/' if is_slash else '>'}{clean}"
+                    desc = _lookup_desc(clean.split()[0]) if not is_slash else ""
+                    entries.append((clean, display, desc, is_slash))
 
-        for slash_cmd in getattr(cog, "__cog_app_commands__", []):
-            name = slash_cmd.name
-            if name in seen:
-                continue
-            seen.add(name)
-            desc = (slash_cmd.description or "")[:80]
-            entries.append((name, f"/{name}", desc, True))
+            for slash_item in getattr(c, "__cog_app_commands__", []):
+                sub_cmds = getattr(slash_item, "commands", None)
+                if sub_cmds:
+                    # It's a group — expand sub-commands
+                    for sub in sub_cmds:
+                        full_name = f"{slash_item.name} {sub.name}"
+                        if full_name in seen:
+                            continue
+                        seen.add(full_name)
+                        desc = (sub.description or "")[:80]
+                        entries.append((full_name, f"/{full_name}", desc, True))
+                else:
+                    name = slash_item.name
+                    if name in seen:
+                        continue
+                    seen.add(name)
+                    desc = (slash_item.description or "")[:80]
+                    entries.append((name, f"/{name}", desc, True))
+
+        _process_cog(cog)
+        for extra in (extra_cogs or []):
+            _process_cog(extra)
 
         return entries
 
     def _refresh_cmd_runner(self, page_index: int):
-        """Remove old command runner and attach a fresh one for page_index."""
+        """Remove old command runner and attach a fresh one for page_index.
+
+        Uses the same filtered/merged cog list as gen_embeds() so page indices
+        stay perfectly in sync after PlaylistCog is merged into the Music page.
+        """
         if self._cmd_runner is not None:
             try:
                 self.remove_item(self._cmd_runner)
@@ -439,13 +472,27 @@ class View(discord.ui.View):
             if page_index == 0:
                 self._page_commands[0] = []
             else:
-                help_cogs = [
+                all_help_cogs = [
                     c for c in self.get_cogs()
                     if c.__class__.__name__ != "Roleplay" and "help_custom" in dir(c)
                 ]
+                # Mirror gen_embeds: skip merged cogs from the standalone list
+                help_cogs = [
+                    c for c in all_help_cogs
+                    if c.__class__.__name__ not in self._MERGE_INTO
+                ]
+                # Build a lookup of merged cog objects keyed by target class name
+                merged_by_target: dict[str, list] = {}
+                for c in all_help_cogs:
+                    target = self._MERGE_INTO.get(c.__class__.__name__)
+                    if target:
+                        merged_by_target.setdefault(target, []).append(c)
+
                 idx = page_index - 1
                 if 0 <= idx < len(help_cogs):
-                    self._page_commands[page_index] = self._collect_page_commands(help_cogs[idx])
+                    target_cog = help_cogs[idx]
+                    extra = merged_by_target.get(target_cog.__class__.__name__, [])
+                    self._page_commands[page_index] = self._collect_page_commands(target_cog, extra)
                 else:
                     self._page_commands[page_index] = []
 
@@ -474,7 +521,20 @@ class View(discord.ui.View):
             if c.__class__.__name__ != "Roleplay" and "help_custom" in dir(c)
         ]
 
+        # ── Identify cogs that should be merged into another cog's page ───────
+        # PlaylistCog is merged into Music; it gets no standalone dropdown entry.
+        _cogs_to_merge: dict[str, object] = {}   # class_name → cog object
+        _merge_target: dict[str, str] = {}        # class_name → target class_name
         for cog in help_cogs:
+            if cog.__class__.__name__ == "PlaylistCog":
+                _cogs_to_merge["PlaylistCog"] = cog
+                _merge_target["PlaylistCog"]  = "Music"
+
+        for cog in help_cogs:
+            # Skip cogs that are merged into another page
+            if cog.__class__.__name__ in _cogs_to_merge:
+                continue
+
             emoji_str, label, description = cog.help_custom()
             emoji_str = emoji_str.strip()  # remove accidental trailing spaces
             original_label = label
@@ -514,13 +574,48 @@ class View(discord.ui.View):
                     else:
                         self._append_cmd_lines(part, emoji_display, cmd_lines)
 
-            # Slash commands directly on the zyrox cog
+            # Slash commands directly on this cog
             for slash_cmd in getattr(cog, "__cog_app_commands__", []):
                 desc = (slash_cmd.description or "No description")[:80]
                 n = sum(1 for l in cmd_lines if not l.startswith("\n"))
                 cmd_lines.append(
                     f"`{n + 1}.` {emoji_display} `/` `{slash_cmd.name}` — {desc}"
                 )
+
+            # ── Merge-in any cogs that target this cog ─────────────────────────
+            for merge_cls, target_cls in _merge_target.items():
+                if target_cls != cog.__class__.__name__:
+                    continue
+                merged_cog = _cogs_to_merge[merge_cls]
+                m_emoji, m_label, _ = merged_cog.help_custom()
+                cmd_lines.append(f"\n**» {m_label}**")
+
+                # Prefix/hybrid commands from the merged cog (rare but possible)
+                for command in merged_cog.get_commands():
+                    docstring = command.help or ""
+                    parts = re.split(r'(__\*\*.+?\*\*__)', docstring)
+                    for part in parts:
+                        if re.match(r'__\*\*.+?\*\*__', part):
+                            sec_title = re.sub(r'__\*\*(.+?)\*\*__', r'\1', part).strip()
+                            cmd_lines.append(f"\n**» {sec_title}**")
+                        else:
+                            self._append_cmd_lines(part, emoji_display, cmd_lines)
+
+                # Slash commands / groups from the merged cog
+                for slash_item in getattr(merged_cog, "__cog_app_commands__", []):
+                    # If it's a Group (has sub-commands), expand them
+                    sub_cmds = getattr(slash_item, "commands", None)
+                    if sub_cmds:
+                        for sub in sub_cmds:
+                            desc = (sub.description or "No description")[:80]
+                            cmd_lines.append(
+                                f"`0.` {emoji_display} `/` `{slash_item.name} {sub.name}` — {desc}"
+                            )
+                    else:
+                        desc = (slash_item.description or "No description")[:80]
+                        cmd_lines.append(
+                            f"`0.` {emoji_display} `/` `{slash_item.name}` — {desc}"
+                        )
 
             # Re-number all lines properly
             numbered = self._renumber_lines(cmd_lines)
@@ -631,6 +726,8 @@ class View(discord.ui.View):
             await interaction.response.edit_message(embed=embed, view=self)
 
     async def set_page(self, page: int, interaction: discord.Interaction):
+        # Guard against out-of-bounds indices (e.g. from stale dropdown values)
+        page = max(0, min(page, len(self.embeds) - 1))
         self.index = page
         self.current_page = page
         # Refresh command runner whenever we switch pages (ui=2 only)

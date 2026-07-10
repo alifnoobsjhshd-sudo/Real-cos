@@ -168,35 +168,67 @@ class SearchResultView(View):
 
 
 
+class VolumeModal(discord.ui.Modal, title="Set Volume"):
+    volume_input = discord.ui.TextInput(
+        label="Volume (1–150)",
+        placeholder="Enter a number between 1 and 150",
+        min_length=1,
+        max_length=3,
+        required=True,
+    )
+
+    def __init__(self, player):
+        super().__init__()
+        self.player = player
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            level = int(self.volume_input.value)
+        except ValueError:
+            return await interaction.response.send_message("Please enter a valid number.", ephemeral=True)
+        if not 1 <= level <= 150:
+            return await interaction.response.send_message("Volume must be between 1 and 150.", ephemeral=True)
+        await self.player.set_volume(level)
+        await interaction.response.send_message(
+            f"🔊 Volume set to **{level}%** by {interaction.user.display_name}.", ephemeral=True
+        )
+
+
 class MusicControlView(View):
     def __init__(self, player, ctx):
         super().__init__(timeout=None)
         self.player = player
         self.ctx = ctx
-        # Assign custom emojis AND labels to each button (order = decorator definition order)
+        # Assign custom emojis AND labels — order must match decorator definition order below:
+        # Row 0: rewind, pause, forward
+        # Row 1: previous, stop, skip
+        # Row 2: autoplay, shuffle, loop
+        # Row 3: replay, volume
         _emoji_map = [
-            _pe("zautoplay"),         # 0  autoplay
-            _pe("zback"),             # 1  previous track
-            _pe("zpause"),            # 2  pause / play toggle
-            _pe("skip"),              # 3  skip
-            _pe("zloop"),             # 4  loop
-            _pe("shuffle"),           # 5  shuffle
-            _pe("rewind1"),           # 6  rewind 10 s
-            _pe("musicstop_icons"),   # 7  stop
-            _pe("forward"),           # 8  forward 10 s
-            _pe("zplay"),             # 9  replay
+            _pe("rewind1"),                           # 0  rewind
+            _pe("zpause"),                            # 1  pause / play toggle
+            _pe("forward"),                           # 2  forward
+            _pe("zback"),                             # 3  previous track
+            _pe("musicstop_icons"),                   # 4  stop
+            _pe("skip"),                              # 5  skip
+            _pe("zautoplay"),                         # 6  autoplay
+            _pe("shuffle"),                           # 7  shuffle
+            _pe("zloop"),                             # 8  loop
+            _pe("zplay"),                             # 9  replay
+            discord.PartialEmoji.from_str("🔊"),      # 10 volume
         ]
         _label_map = [
-            "Autoplay",  # 0
-            "Previous",  # 1
-            "Pause",     # 2
-            "Skip",      # 3
-            "Loop",      # 4
-            "Shuffle",   # 5
-            "Rewind",    # 6
-            "Stop",      # 7
-            "Forward",   # 8
+            "Rewind",    # 0
+            "Pause",     # 1
+            "Forward",   # 2
+            "Previous",  # 3
+            "Stop",      # 4
+            "Skip",      # 5
+            "Autoplay",  # 6
+            "Shuffle",   # 7
+            "Loop",      # 8
             "Replay",    # 9
+            "Volume",    # 10
         ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
         for btn, emoji, label in zip(buttons, _emoji_map, _label_map):
@@ -215,35 +247,18 @@ class MusicControlView(View):
         )
         return False
 
-    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary)
-    async def autoplay_button(self, interaction: discord.Interaction, button: Button):
-        self.player.autoplay = (
-            wavelink.AutoPlayMode.enabled if self.player.autoplay != wavelink.AutoPlayMode.enabled else wavelink.AutoPlayMode.disabled
-        )
-        await interaction.response.send_message(f"Autoplay {'enabled' if self.player.autoplay == wavelink.AutoPlayMode.enabled else 'disabled'} by **{interaction.user.display_name}**.")
+    # ── Row 0: Rewind | Pause | Forward ──────────────────────────────────────
 
-
-    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary)
-    async def previous_button(self, interaction: discord.Interaction, button: Button):
-        guild_id = interaction.guild.id
-
-        if guild_id in track_histories and len(track_histories[guild_id]) > 1:
-            track_histories[guild_id].pop()
-            previous_track = track_histories[guild_id][-1] 
-
-            player = self.player 
-            vc = self.ctx.voice_client
-
-            if player.playing:
-                await player.stop()
-
-            await vc.queue.put_wait(previous_track)
-
-            await interaction.response.send_message(f"Playing previous track: `{previous_track.title}`.")
+    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary, row=0)
+    async def rewind_button(self, interaction: discord.Interaction, button: Button):
+        if self.player.playing:
+            new_position = max(self.player.position - 10000, 0)
+            await self.player.seek(new_position)
+            await interaction.response.send_message("Rewound 10 seconds.", ephemeral=True)
         else:
-            await interaction.response.send_message("No previous track available.", ephemeral=True)
+            await interaction.response.send_message("No track is currently playing.", ephemeral=True)
 
-    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.success)
+    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.success, row=0)
     async def pause_button(self, interaction: discord.Interaction, button: Button):
         if self.player.paused:
             await self.player.pause(False)
@@ -251,7 +266,6 @@ class MusicControlView(View):
             button.emoji = _pe("zpause")
             button.label = "Pause"
             await interaction.response.edit_message(view=self)
-
         elif self.player.playing:
             await self.player.pause(True)
             await self.player.channel.edit(status=f"⏸️ Paused: {self.player.current.title}")
@@ -259,58 +273,7 @@ class MusicControlView(View):
             button.label = "Play"
             await interaction.response.edit_message(view=self)
 
-
-    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary)
-    async def skip_button(self, interaction: discord.Interaction, button: Button):
-        if self.player.autoplay == wavelink.AutoPlayMode.enabled:
-            await self.player.stop()
-            return await interaction.response.send_message(f"Skipped song by **{interaction.user.display_name}**.")
-            #await self.player.play(await self.player.queue.get_next_track())
-
-        if self.player and self.player.playing and not self.player.queue.is_empty:
-            await self.player.stop()
-            await interaction.response.send_message(f"Skipped song by **{interaction.user.display_name}**.")
-        else:
-            await interaction.response.send_message("No song in queue to skip.", ephemeral=True)
-
-
-    @discord.ui.button(emoji="⏳", style=discord.ButtonStyle.secondary)
-    async def loop_button(self, interaction: discord.Interaction, button: Button):
-        self.player.queue.mode = wavelink.QueueMode.loop if self.player.queue.mode != wavelink.QueueMode.loop else wavelink.QueueMode.normal
-        await interaction.response.send_message(f"Loop {'enabled' if self.player.queue.mode == wavelink.QueueMode.loop else 'disabled'} by **{interaction.user.display_name}**.")
-
-
-    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary)
-    async def shuffle_button(self, interaction: discord.Interaction, button: Button):
-        if self.player.queue:
-            random.shuffle(self.player.queue)
-            await interaction.response.send_message(f"Queue shuffled by **{interaction.user.display_name}**.")
-        else:
-            await interaction.response.send_message("Queue is empty.", ephemeral=True)
-
-
-    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary)
-    async def rewind_button(self, interaction: discord.Interaction, button: Button):
-        if self.player.playing:
-            new_position = max(self.player.position - 10000, 0)
-            await self.player.seek(new_position)
-            await interaction.response.send_message("Rewinded 10 seconds.", ephemeral=True)
-        else:
-            await interaction.response.send_message("No track is currently playing.", ephemeral=True)
-
-    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.secondary)
-    async def stop_button(self, interaction: discord.Interaction, button: Button):
-        if self.player:
-            voice_channel = self.player.channel
-            if voice_channel:
-                await voice_channel.edit(status=None)
-
-            await self.player.disconnect()
-            await interaction.response.send_message(f"Stopped and disconnected by **{interaction.user.display_name}**.")
-        else:
-            await interaction.response.send_message("Not connected.", ephemeral=True)
-
-    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.secondary, row=0)
     async def forward_button(self, interaction: discord.Interaction, button: Button):
         if self.player.playing:
             new_position = min(self.player.position + 10000, self.player.current.length)
@@ -319,13 +282,102 @@ class MusicControlView(View):
         else:
             await interaction.response.send_message("No track is currently playing.", ephemeral=True)
 
-    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary)
+    # ── Row 1: Previous | Stop | Skip ────────────────────────────────────────
+
+    @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary, row=1)
+    async def previous_button(self, interaction: discord.Interaction, button: Button):
+        guild_id = interaction.guild.id
+
+        if guild_id in track_histories and len(track_histories[guild_id]) > 1:
+            # Remove the current track from history to get to the one before it
+            track_histories[guild_id].pop()
+            previous_track = track_histories[guild_id][-1]
+
+            player = self.player
+            vc = self.ctx.voice_client
+
+            # Insert the previous track at the front of the queue so it plays next
+            _current_queue = list(vc.queue)
+            vc.queue.clear()
+            await vc.queue.put_wait(previous_track)
+            for _t in _current_queue:
+                await vc.queue.put_wait(_t)
+
+            # Stopping the current track triggers on_track_end → picks from queue
+            if player.playing:
+                await player.stop()
+
+            await interaction.response.send_message(
+                f"⏮ Playing previous track: **{previous_track.title}**"
+            )
+        else:
+            await interaction.response.send_message("No previous track available.", ephemeral=True)
+
+    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.danger, row=1)
+    async def stop_button(self, interaction: discord.Interaction, button: Button):
+        if self.player:
+            voice_channel = self.player.channel
+            if voice_channel:
+                await voice_channel.edit(status=None)
+            await self.player.disconnect()
+            await interaction.response.send_message(f"Stopped and disconnected by **{interaction.user.display_name}**.")
+        else:
+            await interaction.response.send_message("Not connected.", ephemeral=True)
+
+    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary, row=1)
+    async def skip_button(self, interaction: discord.Interaction, button: Button):
+        if self.player.autoplay == wavelink.AutoPlayMode.enabled:
+            await self.player.stop()
+            return await interaction.response.send_message(f"Skipped song by **{interaction.user.display_name}**.")
+
+        if self.player and self.player.playing and not self.player.queue.is_empty:
+            await self.player.stop()
+            await interaction.response.send_message(f"Skipped song by **{interaction.user.display_name}**.")
+        else:
+            await interaction.response.send_message("No song in queue to skip.", ephemeral=True)
+
+    # ── Row 2: Autoplay | Shuffle | Loop ─────────────────────────────────────
+
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=2)
+    async def autoplay_button(self, interaction: discord.Interaction, button: Button):
+        self.player.autoplay = (
+            wavelink.AutoPlayMode.enabled if self.player.autoplay != wavelink.AutoPlayMode.enabled else wavelink.AutoPlayMode.disabled
+        )
+        await interaction.response.send_message(
+            f"Autoplay {'enabled' if self.player.autoplay == wavelink.AutoPlayMode.enabled else 'disabled'} by **{interaction.user.display_name}**."
+        )
+
+    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=2)
+    async def shuffle_button(self, interaction: discord.Interaction, button: Button):
+        if self.player.queue:
+            random.shuffle(self.player.queue)
+            await interaction.response.send_message(f"Queue shuffled by **{interaction.user.display_name}**.")
+        else:
+            await interaction.response.send_message("Queue is empty.", ephemeral=True)
+
+    @discord.ui.button(emoji="⏳", style=discord.ButtonStyle.secondary, row=2)
+    async def loop_button(self, interaction: discord.Interaction, button: Button):
+        self.player.queue.mode = (
+            wavelink.QueueMode.loop if self.player.queue.mode != wavelink.QueueMode.loop
+            else wavelink.QueueMode.normal
+        )
+        await interaction.response.send_message(
+            f"Loop {'enabled' if self.player.queue.mode == wavelink.QueueMode.loop else 'disabled'} by **{interaction.user.display_name}**."
+        )
+
+    # ── Row 3: Replay | Volume ────────────────────────────────────────────────
+
+    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=3)
     async def replay_button(self, interaction: discord.Interaction, button: Button):
         if self.player.playing:
             await self.player.seek(0)
             await interaction.response.send_message("Replaying the current track.", ephemeral=True)
         else:
             await interaction.response.send_message("No track is currently playing.", ephemeral=True)
+
+    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=3)
+    async def volume_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(VolumeModal(self.player))
 
 
 
