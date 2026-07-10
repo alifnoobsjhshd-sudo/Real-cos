@@ -508,7 +508,7 @@ class Moderation(commands.Cog):
 
 
 
-  @commands.hybrid_command(
+  @commands.command(
         name="prefix",
         aliases=["setprefix", "prefixset"],
         help="Shows the bot prefix (locked to >)"

@@ -759,7 +759,7 @@ class Badges(commands.Cog):
             image_binary.seek(0)
             return discord.File(fp=image_binary, filename='profile.png')
 
-    @commands.hybrid_command(name='profile', aliases=['pr', 'badges'])
+    @commands.command(name='profile', aliases=['pr', 'badges'])
     @commands.cooldown(1, 8, commands.BucketType.user)
     async def profile(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author

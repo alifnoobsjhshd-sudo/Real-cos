@@ -737,15 +737,16 @@ class Voice(commands.Cog):
         embed2.set_thumbnail(url="https://cdn.discordapp.com/emojis/1279464563150032991.png")
         return await ctx.reply(embed=embed2)
 
-    # ── /join-vc and /leave-vc slash commands ──────────────────────────────────
+    # ── join-vc and leave-vc prefix commands ──────────────────────────────────
 
-    @app_commands.command(name="join-vc", description="Make the bot join a voice channel and stay.")
-    @app_commands.describe(channel="The voice channel for the bot to join")
-    @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.guild_only()
-    async def join_vc(self, interaction: discord.Interaction, channel: discord.VoiceChannel):
-        """Bot joins the specified voice channel and stays until /leave-vc."""
-        voice_client = interaction.guild.voice_client
+    @commands.command(name="join-vc", aliases=["joinvc"], help="Make the bot join a voice channel and stay.")
+    @blacklist_check()
+    @ignore_check()
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def join_vc(self, ctx: commands.Context, channel: discord.VoiceChannel):
+        """Bot joins the specified voice channel and stays until leave-vc."""
+        voice_client = ctx.guild.voice_client
 
         try:
             if voice_client and voice_client.is_connected():
@@ -755,18 +756,18 @@ class Voice(commands.Cog):
                         description=f"I'm already in {channel.mention}.",
                         color=self.color
                     )
-                    return await interaction.response.send_message(embed=embed, ephemeral=True)
+                    return await ctx.reply(embed=embed, mention_author=False)
                 await voice_client.move_to(channel)
             else:
                 await channel.connect(self_deaf=True)
 
             embed = discord.Embed(
                 title="✅ Joined Voice Channel",
-                description=f"Successfully joined {channel.mention}.\nUse `/leave-vc` to disconnect.",
+                description=f"Successfully joined {channel.mention}.\nUse `>leave-vc` to disconnect.",
                 color=0x00AA00
             )
-            embed.set_footer(text=f"Requested by: {interaction.user}")
-            await interaction.response.send_message(embed=embed)
+            embed.set_footer(text=f"Requested by: {ctx.author}")
+            await ctx.reply(embed=embed, mention_author=False)
 
         except discord.Forbidden:
             embed = discord.Embed(
@@ -774,26 +775,23 @@ class Voice(commands.Cog):
                 description=f"I don't have permission to join {channel.mention}.",
                 color=self.color
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await ctx.reply(embed=embed, mention_author=False)
         except Exception as e:
             embed = discord.Embed(
                 title="❌ Error",
                 description=f"Could not join {channel.mention}: {e}",
                 color=self.color
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await ctx.reply(embed=embed, mention_author=False)
 
-    @join_vc.error
-    async def join_vc_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ You need **Administrator** permission to use this.", ephemeral=True)
-
-    @app_commands.command(name="leave-vc", description="Make the bot leave the current voice channel.")
-    @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.guild_only()
-    async def leave_vc(self, interaction: discord.Interaction):
+    @commands.command(name="leave-vc", aliases=["leavevc"], help="Make the bot leave the current voice channel.")
+    @blacklist_check()
+    @ignore_check()
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def leave_vc(self, ctx: commands.Context):
         """Disconnect the bot from whichever voice channel it's currently in."""
-        voice_client = interaction.guild.voice_client
+        voice_client = ctx.guild.voice_client
 
         if not voice_client or not voice_client.is_connected():
             embed = discord.Embed(
@@ -801,7 +799,7 @@ class Voice(commands.Cog):
                 description="I'm not connected to any voice channel right now.",
                 color=self.color
             )
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
+            return await ctx.reply(embed=embed, mention_author=False)
 
         channel_mention = voice_client.channel.mention
         await voice_client.disconnect()
@@ -811,10 +809,5 @@ class Voice(commands.Cog):
             description=f"Disconnected from {channel_mention}.",
             color=0x00AA00
         )
-        embed.set_footer(text=f"Requested by: {interaction.user}")
-        await interaction.response.send_message(embed=embed)
-
-    @leave_vc.error
-    async def leave_vc_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("❌ You need **Administrator** permission to use this.", ephemeral=True)
+        embed.set_footer(text=f"Requested by: {ctx.author}")
+        await ctx.reply(embed=embed, mention_author=False)

@@ -131,9 +131,10 @@ class Customrole(commands.Cog):
             await db.commit()
 
     
-    @commands.hybrid_group(name="setup",
+    @commands.group(name="setup",
                            description="Setups custom roles for the server.",
-                           help="Setups custom roles for the server.")
+                           help="Setups custom roles for the server.",
+                           invoke_without_command=True)
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -583,7 +584,7 @@ class Customrole(commands.Cog):
 
     
 
-    @commands.hybrid_command(name="staff",
+    @commands.command(name="staff",
          description="Gives the staff role to the user.",
          aliases=['official'],
          help="Gives the staff role to the user.")
@@ -594,7 +595,7 @@ class Customrole(commands.Cog):
     async def _staff(self, context: Context, member: discord.Member) -> None:
         await self.handle_role_command(context, member, 'staff')
 
-    @commands.hybrid_command(name="girl",
+    @commands.command(name="girl",
          description="Gives the girl role to the user.",
          aliases=['qt'],
          help="Gives the girl role to the user.")
@@ -605,7 +606,7 @@ class Customrole(commands.Cog):
     async def _girl(self, context: Context, member: discord.Member) -> None:
         await self.handle_role_command(context, member, 'girl')
 
-    @commands.hybrid_command(name="vip",
+    @commands.command(name="vip",
          description="Gives the VIP role to the user.",
          help="Gives the VIP role to the user.")
     @blacklist_check()
@@ -615,7 +616,7 @@ class Customrole(commands.Cog):
     async def _vip(self, context: Context, member: discord.Member) -> None:
         await self.handle_role_command(context, member, 'vip')
 
-    @commands.hybrid_command(name="guest",
+    @commands.command(name="guest",
          description="Gives the guest role to the user.",
          help="Gives the guest role to the user.")
     @blacklist_check()
@@ -625,7 +626,7 @@ class Customrole(commands.Cog):
     async def _guest(self, context: Context, member: discord.Member) -> None:
         await self.handle_role_command(context, member, 'guest')
 
-    @commands.hybrid_command(name="friend",
+    @commands.command(name="friend",
          description="Gives the friend role to the user.",
          aliases=['frnd'],
          help="Gives the friend role to the user.")

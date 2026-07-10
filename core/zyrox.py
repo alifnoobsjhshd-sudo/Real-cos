@@ -36,15 +36,12 @@ class zyrox(commands.AutoShardedBot):
                          allowed_mentions=discord.AllowedMentions(
                              everyone=False, replied_user=False, roles=False),
                          sync_commands_debug=True,
-                         sync_commands=False,
+                         sync_commands=True,
                          shard_count=1)
         self.status_index = 0
         self.status_list = []
         # When True the rotating status task will not override the custom activity
         self.use_custom_activity = False
-        self._slash_synced = False
-        self._pending_guild_syncs = []
-        self._guild_sync_retry_running = False
 
     # Default bot customization (used to seed fresh installs; admins can still
     # override any of these later via /global_customization, and their choice
@@ -106,61 +103,6 @@ class zyrox(commands.AutoShardedBot):
                 await interaction.response.send_message(message, ephemeral=True)
         except discord.HTTPException:
             pass
-
-    async def _sync_guild_tree(self, guild_id):
-        self.tree.copy_global_to(guild=discord.Object(id=guild_id))
-        await self.tree.sync(guild=discord.Object(id=guild_id))
-
-    def _start_guild_sync_retry(self):
-        if not self._guild_sync_retry_running:
-            self._guild_sync_retry_running = True
-            asyncio.create_task(self._retry_guild_syncs())
-
-    async def _retry_guild_syncs(self):
-        while self._pending_guild_syncs:
-            await asyncio.sleep(60)
-            still_failed = []
-            for guild_id in list(self._pending_guild_syncs):
-                try:
-                    await self._sync_guild_tree(guild_id)
-                    print(Fore.GREEN + Style.BRIGHT + f"Retried slash sync for guild {guild_id}: success")
-                except Exception as e:
-                    still_failed.append(guild_id)
-                    print(f"{Fore.YELLOW}{Style.BRIGHT}Retry failed for guild {guild_id}: {e}")
-            self._pending_guild_syncs = still_failed
-        self._guild_sync_retry_running = False
-        if not self._pending_guild_syncs:
-            self._slash_synced = True
-            print(Fore.GREEN + Style.BRIGHT + "All guild slash command syncs completed.")
-
-    async def on_ready(self):
-        if self._slash_synced and not self._pending_guild_syncs:
-            return
-        synced = 0
-        for guild in self.guilds:
-            try:
-                await self._sync_guild_tree(guild.id)
-                synced += 1
-            except Exception as e:
-                if guild.id not in self._pending_guild_syncs:
-                    self._pending_guild_syncs.append(guild.id)
-                print(f"{Fore.RED}{Style.BRIGHT}Failed to sync slash commands to guild {guild.id}: {e}")
-        if self._pending_guild_syncs:
-            print(f"{Fore.YELLOW}{Style.BRIGHT}Will retry slash sync for guilds: {self._pending_guild_syncs}")
-            self._start_guild_sync_retry()
-        else:
-            self._slash_synced = True
-            print(Fore.GREEN + Style.BRIGHT + f"Synced slash commands to {synced}/{len(self.guilds)} guild(s).")
-
-    async def on_guild_join(self, guild):
-        try:
-            await self._sync_guild_tree(guild.id)
-            print(Fore.GREEN + Style.BRIGHT + f"Synced slash commands to new guild: {guild.name} ({guild.id})")
-        except Exception as e:
-            if guild.id not in self._pending_guild_syncs:
-                self._pending_guild_syncs.append(guild.id)
-            print(f"{Fore.RED}{Style.BRIGHT}Failed to sync slash commands to new guild {guild.id}: {e}")
-            self._start_guild_sync_retry()
 
     async def load_extensions(self):
         for extension in extensions:
