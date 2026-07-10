@@ -75,6 +75,7 @@ from .commands.emergency import Emergency
 from .commands.map import Map
 from .commands.botcustomization import BotCustomization
 from .commands.emoji_upload import EmojiUpload
+from .commands.playlist import PlaylistCog
 #from .commands.imagine import AiStuffCog
 #____________ Events _____________
 
@@ -123,6 +124,7 @@ from .zyrox.mc import _mc
 from .zyrox.joindm import _joindm
 from .zyrox.birth import _birth
 from .zyrox.botcustomization import _botcustomization
+from .zyrox.playlist import _playlist
 
 #########ANTINUKE#########
 
@@ -260,6 +262,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(Map(bot))
   await bot.add_cog(BotCustomization(bot))
   await bot.add_cog(EmojiUpload(bot))
+  await bot.add_cog(PlaylistCog(bot))
   #await bot.add_cog(AiStuffCog(bot))
 
   await bot.add_cog(_antinuke(bot))
@@ -292,6 +295,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(_joindm(bot))
   await bot.add_cog(_birth(bot))
   await bot.add_cog(_botcustomization(bot))
+  await bot.add_cog(_playlist(bot))
 
 
   

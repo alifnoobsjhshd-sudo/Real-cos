@@ -14,7 +14,23 @@ import aiohttp
 from typing import cast
 import asyncio
 from utils.Tools import *
+from utils.emojis import e as _e
 track_histories = {}
+
+# ── Emoji helper: parse a custom-emoji string → PartialEmoji, with fallback ──
+def _pe(name: str, fallback: str = "") -> discord.PartialEmoji:
+    s = _e(name)
+    try:
+        if s:
+            return discord.PartialEmoji.from_str(s)
+    except Exception:
+        pass
+    if fallback:
+        try:
+            return discord.PartialEmoji.from_str(fallback)
+        except Exception:
+            pass
+    return discord.PartialEmoji.from_str("❓")
 import base64
 import asyncio
 import re
@@ -79,13 +95,13 @@ class PlatformSelectView(View):
         self.query = query
 
         platforms = [
-            ("YouTube", "ytsearch", discord.ButtonStyle.red),
-            ("JioSaavn", "jssearch", discord.ButtonStyle.green),
-            ("SoundCloud", "scsearch", discord.ButtonStyle.grey),
+            ("YouTube",   "ytsearch", discord.ButtonStyle.red,   _pe("YouTube")),
+            ("JioSaavn",  "jssearch", discord.ButtonStyle.green,  _pe("jiosaavn")),
+            ("SoundCloud","scsearch", discord.ButtonStyle.grey,   _pe("SoundCloud")),
         ]
 
-        for name, source, style in platforms:
-            button = Button(label=name, style=style)
+        for name, source, style, emoji in platforms:
+            button = Button(label=name, style=style, emoji=emoji)
             button.callback = self.create_callback(source)
             self.add_item(button)
 
@@ -157,6 +173,22 @@ class MusicControlView(View):
         super().__init__(timeout=None)
         self.player = player
         self.ctx = ctx
+        # Assign custom emojis to each button (order matches decorator definition order)
+        _emoji_map = [
+            _pe("zautoplay"),         # 0  autoplay
+            _pe("zback"),             # 1  previous track
+            _pe("zpause"),            # 2  pause / play toggle
+            _pe("skip"),              # 3  skip
+            _pe("zloop"),             # 4  loop
+            _pe("shuffle"),           # 5  shuffle
+            _pe("rewind1"),           # 6  rewind 10 s
+            _pe("musicstop_icons"),   # 7  stop
+            _pe("forward"),           # 8  forward 10 s
+            _pe("zplay"),             # 9  replay
+        ]
+        buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
+        for btn, emoji in zip(buttons, _emoji_map):
+            btn.emoji = emoji
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not self.ctx.voice_client or not self.player.playing:
@@ -198,19 +230,18 @@ class MusicControlView(View):
         else:
             await interaction.response.send_message("No previous track available.", ephemeral=True)
 
-    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.success)
+    @discord.ui.button(emoji="⏸️", style=discord.ButtonStyle.success)
     async def pause_button(self, interaction: discord.Interaction, button: Button):
         if self.player.paused:
             await self.player.pause(False)
-
-            await self.player.channel.edit(status=f"⏸️ Playing: {self.player.current.title}")
-            button.emoji = "⏹️" 
+            await self.player.channel.edit(status=f"🎵 Playing: {self.player.current.title}")
+            button.emoji = _pe("zpause")
             await interaction.response.edit_message(view=self)
 
         elif self.player.playing:
             await self.player.pause(True)
-            await self.player.channel.edit(status=f"⏸️  Paused: {self.player.current.title}")
-            button.emoji = "▶️"
+            await self.player.channel.edit(status=f"⏸️ Paused: {self.player.current.title}")
+            button.emoji = _pe("zplay")
             await interaction.response.edit_message(view=self)
 
 
@@ -310,6 +341,9 @@ class Music(commands.Cog):
                 break
 
         if player and player.playing and len(player.channel.members) == 1:
+            # Rule: if loop is active, never auto-disconnect (only /stop disconnects)
+            if player.queue.mode in (wavelink.QueueMode.loop, wavelink.QueueMode.loop_all):
+                return
             await self.inactivity_timer(guild)
 
     async def inactivity_timer(self, guild):
@@ -384,7 +418,12 @@ class Music(commands.Cog):
             #embed.set_author(name="Now Playing", icon_url="https://cdn.discordapp.com/emojis/1275556609958875218.gif")
             embed.add_field(name="Author", value=f"`{track.author}`")
             embed.add_field(name="Duration", value=f"`{duration}`")
-            embed.add_field(name="Source", value=f"[▶️  Listen on Spotify]({track.uri})" if "spotify" in track.source else f"[🎶 Listen on JioSaavn]({track.uri})" if "jiosaavn" in track.source else f"[☁️ Listen on SoundCloud]({track.uri})" if "soundcloud" in track.source else f"[▶️ Listen on YouTube]({track.uri})")
+            _src = track.source if track.source else ""
+            if "spotify"    in _src: _src_txt = f"[{_e('zplay') or '▶'}  Listen on Spotify]({track.uri})"
+            elif "jiosaavn" in _src: _src_txt = f"[{_e('jiosaavn') or '🎵'} Listen on JioSaavn]({track.uri})"
+            elif "soundcloud" in _src: _src_txt = f"[{_e('SoundCloud') or '☁'} Listen on SoundCloud]({track.uri})"
+            else:                    _src_txt = f"[{_e('YouTube') or '▶'} Listen on YouTube]({track.uri})"
+            embed.add_field(name="Source", value=_src_txt)
             embed.set_image(url="attachment://player.png")
             embed.set_footer(text="Requested by " + (ctx.author.display_name if not autoplay else f"{ctx.author.display_name} (Autoplay Mode)"), icon_url=ctx.author.display_avatar.url if ctx.author.avatar else ctx.author.default_avatar.url)
 
