@@ -315,10 +315,22 @@ async def _queue_playlist_and_play(
         vc.queue.mode = wavelink.QueueMode.loop_all
 
     try:
-        await loading.edit(embed=discord.Embed(
-            description=f"{_e('ztick') or '✅'} Queued **{queued}** song(s). Now playing!",
-            color=0xFF0000
-        ))
+        if first_track:
+            np_embed = discord.Embed(
+                title="Now Playing",
+                description=f"**{first_track.title}**",
+                color=0xFF0000
+            )
+            np_embed.add_field(name="Author",       value=f"`{first_track.author}`", inline=True)
+            np_embed.add_field(name="Songs Queued", value=f"`{queued}`",             inline=True)
+            if first_track.artwork:
+                np_embed.set_thumbnail(url=first_track.artwork)
+            await loading.edit(embed=np_embed)
+        else:
+            await loading.edit(embed=discord.Embed(
+                description=f"{_e('zcross') or '❌'} Could not load any songs.",
+                color=0xFF0000
+            ))
     except Exception:
         pass
 
@@ -374,9 +386,9 @@ class PlaylistDetailView(discord.ui.View):
         ]
 
         sel = discord.ui.Select(
-            placeholder=f"{_e('zplay') or '▶'} Play from song # …",
+            placeholder="Play from song # …",
             options=options,
-            row=2
+            row=3
         )
         sel.callback = self._on_song_jump
         self.add_item(sel)
@@ -418,8 +430,62 @@ class PlaylistDetailView(discord.ui.View):
 
         await interaction.response.edit_message(view=self)
 
+    # ── Music control buttons (row 1) ─────────────────────────────────────────
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_vc_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            await vc.seek(0)
+            await interaction.response.send_message("↩️ Restarted current track.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+    @discord.ui.button(label="Rewind", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_rewind(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            await vc.seek(max(vc.position - 10000, 0))
+            await interaction.response.send_message("⏪ Rewound 10 seconds.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+    @discord.ui.button(label="Skip", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_skip(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            await vc.stop()
+            await interaction.response.send_message("⏭ Skipped.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+    @discord.ui.button(label="Forward", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_forward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            await vc.seek(min(vc.position + 10000, vc.current.length))
+            await interaction.response.send_message("⏩ Forwarded 10 seconds.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+
+    @discord.ui.button(label="Stop", style=discord.ButtonStyle.danger, row=1)
+    async def btn_stop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player):
+            if vc.channel:
+                try:
+                    await vc.channel.edit(status=None)
+                except Exception:
+                    pass
+            await vc.disconnect()
+            await interaction.response.send_message("⏹ Stopped and disconnected.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Not connected.", ephemeral=True)
+
+    # ── Page navigation (row 2) ───────────────────────────────────────────────
+
     @discord.ui.button(label="⏮ Prev", style=discord.ButtonStyle.secondary,
-                       row=1, custom_id="pdv_prev", disabled=True)
+                       row=2, custom_id="pdv_prev", disabled=True)
     async def btn_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.page > 0:
             self.page -= 1
@@ -430,7 +496,7 @@ class PlaylistDetailView(discord.ui.View):
             await interaction.response.defer()
 
     @discord.ui.button(label="Next ⏭", style=discord.ButtonStyle.secondary,
-                       row=1, custom_id="pdv_next")
+                       row=2, custom_id="pdv_next")
     async def btn_next(self, interaction: discord.Interaction, button: discord.ui.Button):
         total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
         if self.page < total_pages - 1:
@@ -478,7 +544,7 @@ class PlaylistBrowserView(discord.ui.View):
             for pl in page_pls
         ]
         sel = discord.ui.Select(
-            placeholder=f"{_e('zmusic') or '🎵'} Select a playlist to view…",
+            placeholder="Select a playlist to view…",
             options=options,
             row=0
         )

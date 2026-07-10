@@ -185,7 +185,7 @@ class NoPrefix(commands.Cog):
                                     f"**< User**: [{user}](https://discord.com/users/{user.id})\n"
                                     f"**<User Mention**: {user.mention}\n"
                                     f"** ID**: {user.id}\n\n"
-                                    f"** Removed By**: **Zyrox X**\n"
+                                    f"** Removed By**: **Bot**\n"
                                 ),
                                 color=0xFF0000
                             )
@@ -208,16 +208,10 @@ class NoPrefix(commands.Cog):
                             color=0xFF0000
                         )
                         embed.set_author(name="No Prefix Expired", icon_url=user.avatar.url if user.avatar else user.default_avatar.url)
-                        
-                        embed.set_footer(text="Zyrox X  - No Prefix, Join support to regain access.")
-                        support = Button(label='Support',
-                    style=discord.ButtonStyle.link,
-                    url=f'https://discord.gg/codexdev')
-                        view = View()
-                        view.add_item(support)
+                        embed.set_footer(text="No Prefix — Expired.")
 
                         try:
-                            await user.send(f"{user.mention}", embed=embed, view=view)
+                            await user.send(f"{user.mention}", embed=embed)
                         except discord.Forbidden:
                             pass
                         except discord.HTTPException:
@@ -305,7 +299,7 @@ class NoPrefix(commands.Cog):
                                     f"**User**: [{user}](https://discord.com/users/{user.id})\n"
                                     f"**User Mention**: {user.mention}\n"
                                     f"** ID**: {user.id}\n\n"
-                                    f"** Removed By**: **Zyrox X**\n"
+                                    f"** Removed By**: **Bot**\n"
                                 ),
             color=0xFF0000
         )
@@ -321,7 +315,7 @@ class NoPrefix(commands.Cog):
                                     f"**User**: [{user}](https://discord.com/users/{user.id})\n"
                                     f"**User Mention**: {user.mention}\n"
                                     f"** ID**: {user.id}\n\n"
-                                    f"**Removed By**: **Zyrox X**\n"
+                                    f"**Removed By**: **Bot**\n"
                                 ),
                 color=0xFF0000
             )

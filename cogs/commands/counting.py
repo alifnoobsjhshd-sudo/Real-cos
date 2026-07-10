@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import os
 import asyncio
+from utils.branding import DEFAULT_BRANDING
 
 CROSS   = "❌"
 TICK    = "✅"
@@ -42,7 +43,7 @@ class Counting(commands.Cog):
         )
         embed.add_field(name="Current Status", value=f"{CROSS} Disabled", inline=False)
         embed.add_field(name="How to Enable", value="Use `counting enable` to enable counting.", inline=False)
-        embed.set_footer(text="Powered By Zyrox X Development™")
+        embed.set_footer(text=f"Powered By {DEFAULT_BRANDING} Development™")
         await ctx.send(embed=embed)
 
     async def send_help_embed(self, ctx):
@@ -56,7 +57,7 @@ class Counting(commands.Cog):
         embed.add_field(name="counting config reset/continue", value="Set reset mode on mistake", inline=False)
         embed.add_field(name="counting reset", value="Reset counting back to 0", inline=False)
         embed.add_field(name="counting stats", value="View current counting stats", inline=False)
-        embed.set_footer(text="Powered By Zyrox X Development™")
+        embed.set_footer(text=f"Powered By {DEFAULT_BRANDING} Development™")
         await ctx.send(embed=embed)
 
     @commands.group(name="counting", invoke_without_command=True)
@@ -141,7 +142,7 @@ class Counting(commands.Cog):
         embed.add_field(name="Current Count", value=str(data["count"]), inline=False)
         embed.add_field(name="Channel", value=channel.mention if channel else "Not Set", inline=False)
         embed.add_field(name="Reset on Mistake", value=str(data["reset_on_fail"]), inline=False)
-        embed.set_footer(text="Powered By Zyrox X Development™")
+        embed.set_footer(text=f"Powered By {DEFAULT_BRANDING} Development™")
         await ctx.send(embed=embed)
 
     @commands.Cog.listener()

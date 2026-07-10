@@ -5,6 +5,7 @@ import asyncio
 import logging
 from discord.ext import commands
 from core import zyrox, Cog
+from utils.branding import DEFAULT_BRANDING
 
 DATABASE_PATH = 'db/autorole.db'
 logger = logging.getLogger(__name__)
@@ -51,11 +52,11 @@ class Autorole2(Cog):
                             retry_after = float(retry_after)
                             print(f"(Autorole) Rate limit encountered. Retrying after {retry_after} seconds.")
                             await asyncio.sleep(retry_after)
-                            await member.add_roles(role, reason="Zyrox X  Autoroles")
+                            await member.add_roles(role, reason=f"{DEFAULT_BRANDING} Autoroles")
                 except discord.errors.RateLimited as e:
                     print(f"Rate limit encountered: {e}. Retrying in {e.retry_after} seconds.")
                     await asyncio.sleep(e.retry_after)
-                    await member.add_roles(role, reason="Zyrox X  Autoroles")
+                    await member.add_roles(role, reason=f"{DEFAULT_BRANDING} Autoroles")
                 except Exception as e:
                     logger.error(f"Unexpected error in Autorole: {e}")
 

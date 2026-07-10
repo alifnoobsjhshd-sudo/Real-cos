@@ -5,6 +5,7 @@ from discord.ext.commands import Context
 import aiosqlite
 import asyncio
 from utils.Tools import *
+from utils.branding import DEFAULT_BRANDING
 from typing import List, Tuple
 
 DATABASE_PATH = 'db/customrole.db'
@@ -33,7 +34,7 @@ class Customrole(commands.Cog):
     async def add_role(self, *, role_id: int, member: discord.Member):
         if member.guild.me.guild_permissions.manage_roles:
             role = discord.Object(id=role_id)
-            await member.add_roles(role, reason="Zyrox Customrole | Role Added")
+            await member.add_roles(role, reason=f"{DEFAULT_BRANDING} Customrole | Role Added")
         else:
             raise discord.Forbidden("Bot does not have permission to manage roles.")
 
@@ -42,7 +43,7 @@ class Customrole(commands.Cog):
     async def remove_role(self, *, role_id: int, member: discord.Member):
         if member.guild.me.guild_permissions.manage_roles:
             role = discord.Object(id=role_id)
-            await member.remove_roles(role, reason="Zyrox Customrole | Role Removed")
+            await member.remove_roles(role, reason=f"{DEFAULT_BRANDING} Customrole | Role Removed")
         else:
             raise discord.Forbidden("Bot does not have permission to manage roles.")
             
@@ -51,12 +52,12 @@ class Customrole(commands.Cog):
     async def add_role2(self, *, role: int, member: discord.Member):
         if member.guild.me.guild_permissions.manage_roles:
             role = discord.Object(id=int(role))
-            await member.add_roles(role, reason="Zyrox Customrole | Role Added ")
+            await member.add_roles(role, reason=f"{DEFAULT_BRANDING} Customrole | Role Added")
 
     async def remove_role2(self, *, role: int, member: discord.Member):
         if member.guild.me.guild_permissions.manage_roles:
             role = discord.Object(id=int(role))
-            await member.remove_roles(role, reason="Zyrox Customrole| Role Removed")
+            await member.remove_roles(role, reason=f"{DEFAULT_BRANDING} Customrole | Role Removed")
 
     
 

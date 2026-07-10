@@ -264,7 +264,7 @@ class General(commands.Cog):
     else:
       await ctx.send(user.mention + "'s token: " + "".join(token))
 
-  @commands.command(name="users", help="checks total users of Zyrox X.")
+  @commands.command(name="users", help="checks total users of this bot.")
   @blacklist_check()
   @ignore_check()
   @commands.cooldown(1, 3, commands.BucketType.user)
@@ -273,7 +273,7 @@ class General(commands.Cog):
                 if g.member_count != None)
     guilds = len(self.bot.guilds)
     embed = discord.Embed(
-      title=f"**Zyrox X Users**",
+      title=f"**{self.bot.user.name} Users**",
       description=f"❯ Total of __**{users}**__ Users in **{guilds}** Guilds",
       color=self.color)
     await ctx.send(embed=embed)
@@ -425,21 +425,18 @@ class General(commands.Cog):
   @commands.cooldown(1, 3, commands.BucketType.user)
   async def invite(self, ctx: commands.Context):
       embed = discord.Embed(
-          title="🔗 Zyrox X Integration Hub!",
-          description="```Empower your server with blazing-fast features and 24/7 support!```",
+          title=f"🔗 {self.bot.user.name} — Invite",
+          description="```Empower your server with blazing-fast features!```",
           color=0xFF0000
       )
       embed.set_thumbnail(url=self.bot.user.display_avatar.url)
       embed.add_field(
-          name="🔗 Quick Actions",
-          value=(
-              ">>> **[Invite Zyrox](https://discord.com/oauth2/authorize?client_id=1396114795102470196&permissions=8&integration_type=0&scope=bot+applications.commands)**\n"
-              "**[Support Server](https://discord.gg/codexdev)**"
-          ),
+          name="🔗 Invite",
+          value=f">>> **[Invite {self.bot.user.name}](https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&integration_type=0&scope=bot+applications.commands)**",
           inline=False
       )
       embed.set_footer(
-          text=f"Powerd By Zyrox Development",
+          text=f"{self.bot.user.name}",
           icon_url=self.bot.user.display_avatar.url
       )
       await ctx.send(embed=embed)

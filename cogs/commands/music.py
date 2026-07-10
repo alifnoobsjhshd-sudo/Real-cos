@@ -449,18 +449,9 @@ class Music(commands.Cog):
 
             else:
                 await player.disconnect()
-                ended = discord.Embed(description="All tracks have been played, leaving the voice channel." , color=0xFF0000)
+                ended = discord.Embed(description="All tracks have been played, leaving the voice channel.", color=0xFF0000)
                 ended.set_author(name="Queue Ended", icon_url=self.client.user.display_avatar.url)
-                support = Button(label='Support',
-                             style=discord.ButtonStyle.link,
-                    url=f'https://discord.gg/codexdev')
-                vote = Button(label='Vote',
-                             style=discord.ButtonStyle.link,
-                    url=f'https://top.gg/bot//vote')
-                view = View()
-                view.add_item(support)
-                view.add_item(vote)
-                await player.ctx.send(embed=ended, view=view)
+                await player.ctx.send(embed=ended)
         else:
             next_track = await player.queue.get_wait()
             await player.play(next_track)

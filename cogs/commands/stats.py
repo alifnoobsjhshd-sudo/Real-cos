@@ -9,6 +9,7 @@ from discord import Embed
 from discord.ext import commands
 from discord.ui import View, Select
 from utils.Tools import *
+from utils.branding import DEFAULT_BRANDING
 import wavelink
 
 # Dynamically analyze codebase
@@ -40,7 +41,7 @@ class StatsDropdown(Select):
             discord.SelectOption(label="Code Info", emoji="🔍", description="Stats of bot's source files."),
         ]
 
-        super().__init__(placeholder="Zyrox Statistics.", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Bot Statistics.", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user != self.ctx.author:
@@ -91,7 +92,7 @@ class Stats(commands.Cog):
     @commands.cooldown(1, 7, commands.BucketType.user)
     async def stats(self, ctx):
         
-        loading_embed = discord.Embed(title="", description="⏳ **Generating Zyrox Statistics...**", color=0x00000)
+        loading_embed = discord.Embed(title="", description="⏳ **Generating Statistics...**", color=0x00000)
         loading_msg = await ctx.reply(embed=loading_embed)
         # Uptime & formatting
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.start_time))))
@@ -104,7 +105,7 @@ class Stats(commands.Cog):
         ram_usage = psutil.virtual_memory().percent
         
         
-        quick_embed = Embed(title="Zyrox Stats Panel", color=0xFF0000)
+        quick_embed = Embed(title="Stats Panel", color=0xFF0000)
         quick_embed.add_field(name="⚡ Quick Overview", value=f"**Servers : {len(self.bot.guilds)}\nUsers : {total_users}\nUptime : {uptime}**")
         quick_embed.set_thumbnail(url=ctx.me.display_avatar.url)
         quick_embed.set_footer(text="Use dropdown menu to view detailed stats.")
@@ -115,7 +116,7 @@ class Stats(commands.Cog):
                                value=f"** Cpu Usage : {cpu_usage}%\n Ram Usage : {ram_usage}%**", inline=False)
         system_embed.add_field(name="Software", value=f"** Python :  {sys.version_info.major}.{sys.version_info.minor}\n D.py : {discord.__version__}**")
         system_embed.set_thumbnail(url=ctx.me.display_avatar.url)
-        system_embed.set_footer(text="Devloped By Zyrox Development™", icon_url="https://cdn.discordapp.com/avatars/1396114795102470196/198b9bc616ec574f6fd2f7121a1d3abc.png?size=1024")
+        system_embed.set_footer(text=f"Developed By {DEFAULT_BRANDING}", icon_url=ctx.me.display_avatar.url)
 
         # General Embed
         general_embed = Embed(title="General Stats", description=f"**Uptime**: `{uptime}`", color=0xFF0000)
@@ -127,14 +128,14 @@ class Stats(commands.Cog):
         general_embed.add_field(name="Commands Stats", value=f"** Total CMDS : {all_cmds}\n Slash CMDS : {slash_cmds}**")
       #  general_embed.add_field(name="Latency", value=f"```[ Bot ]: {round(sh.latency * 800)}ms\n[ Database ]: 0.5ms```")
         general_embed.set_thumbnail(url=ctx.me.display_avatar.url)
-        general_embed.set_footer(text="Devloped By Zyrox Development™", icon_url="https://cdn.discordapp.com/avatars/1396114795102470196/198b9bc616ec574f6fd2f7121a1d3abc.png?size=1024")
+        general_embed.set_footer(text=f"Developed By {DEFAULT_BRANDING}", icon_url=ctx.me.display_avatar.url)
 
         # Team Embed
         team_embed = Embed(title="Team Stats",
                            description="`There is only one person Who Made Me, Thanks To Him ❤️.`", color=0xFF0000)
         team_embed.add_field(name="Main Owner",
                              value="**[01]. [. Evil ! Rexy .](https://discord.com/users/870179991462236170)**", inline=False)
-        team_embed.set_footer(text="Developed By Zyrox Development™", icon_url="https://cdn.discordapp.com/avatars/1396114795102470196/198b9bc616ec574f6fd2f7121a1d3abc.png?size=1024")
+        team_embed.set_footer(text=f"Developed By {DEFAULT_BRANDING}", icon_url=ctx.me.display_avatar.url)
         team_embed.set_thumbnail(url=ctx.me.display_avatar.url)
 
         # Code Analysis Embed
@@ -144,7 +145,7 @@ class Stats(commands.Cog):
         code_embed.add_field(name="Codebase Overview",
                              value=f"""**\n Files : {files}\n Lines : {lines}\n Words : {words}**""",
                              inline=False)
-        code_embed.set_footer(text="Developed By Zyrox Development™", icon_url="https://cdn.discordapp.com/avatars/1396114795102470196/198b9bc616ec574f6fd2f7121a1d3abc.png?size=1024")
+        code_embed.set_footer(text=f"Developed By {DEFAULT_BRANDING}", icon_url=ctx.me.display_avatar.url)
         code_embed.set_thumbnail(url=ctx.me.display_avatar.url)
 
         embeds = {

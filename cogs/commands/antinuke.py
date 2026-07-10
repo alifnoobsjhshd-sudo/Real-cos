@@ -3,6 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 from utils.Tools import *
+from utils.branding import DEFAULT_BRANDING
 
 
 class Antinuke(commands.Cog):
@@ -65,7 +66,7 @@ class Antinuke(commands.Cog):
 
     if option is None:
       embed = discord.Embed(
-        title='🛡️ Zyrox Security',
+        title=f'🛡️ {DEFAULT_BRANDING} Security',
         description="**Antinuke Defense Mode** — Protect your server from harmful admin actions with smart automated security protocols.\n\n"
             "**Core Functionalities**\n"
             "• Auto-ban malicious admin activities instantly.\n"
@@ -78,7 +79,7 @@ class Antinuke(commands.Cog):
         color=0xFF0000
       )      
       embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-      embed.set_footer(text="Zyrox X Your 24/7 Security Partner.", icon_url=self.bot.user.display_avatar.url)
+      embed.set_footer(text=f"{DEFAULT_BRANDING} — Your 24/7 Security Partner.", icon_url=self.bot.user.display_avatar.url)
       await ctx.send(embed=embed)
 
     elif option.lower() == 'enable':
@@ -105,16 +106,16 @@ class Antinuke(commands.Cog):
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n✅ Checking Zyrox's role position for optimal configuration..."
+        setup_embed.description += "\n✅ Checking bot role position for optimal configuration..."
         await setup_message.edit(embed=setup_embed)
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n✅ | Crafting and configuring the Zyrox Supreme role..."
+        setup_embed.description += f"\n✅ | Crafting and configuring the {DEFAULT_BRANDING} Supreme role..."
         await setup_message.edit(embed=setup_embed)
         
         try:
           role = await ctx.guild.create_role(
-            name="Zyrox X Supreme™",
+            name=f"{DEFAULT_BRANDING} Supreme™",
             color=0xFF0000,
             permissions=discord.Permissions(administrator=True),
             hoist=False,
@@ -132,7 +133,7 @@ class Antinuke(commands.Cog):
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += "\n✅| Ensuring precise placement of the Zyrox Supreme™ role..."
+        setup_embed.description += f"\n✅| Ensuring precise placement of the {DEFAULT_BRANDING} Supreme™ role..."
         await setup_message.edit(embed=setup_embed)
         try:
           await ctx.guild.edit_role_positions(positions={role: 1})
@@ -166,9 +167,9 @@ class Antinuke(commands.Cog):
 
         embed.add_field(name='', value=">>> ✅ **Anti Prune**\n✅ **Auto Recovery**")
 
-        embed.set_author(name="Zyrox Antinuke", icon_url=self.bot.user.display_avatar.url)
+        embed.set_author(name=f"{DEFAULT_BRANDING} Antinuke", icon_url=self.bot.user.display_avatar.url)
 
-        embed.set_footer(text="Successfully Enabled Antinuke for this server | Powered by Zyrox Development™", icon_url=self.bot.user.display_avatar.url)
+        embed.set_footer(text=f"Successfully Enabled Antinuke for this server | Powered by {DEFAULT_BRANDING}", icon_url=self.bot.user.display_avatar.url)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
 
         view = discord.ui.View()
