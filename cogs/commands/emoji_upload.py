@@ -187,6 +187,10 @@ class EmojiUpload(commands.Cog):
                 else:
                     failed.append(name)
 
+        # INSERT OR REPLACE handles updating IDs for re-uploaded emojis atomically.
+        # We do NOT delete the full branch list first — a partial failure (rate
+        # limit, permission error, missing file) would otherwise wipe valid DB
+        # entries for names that were not re-uploaded in this run.
         await _save_uploaded(uploaded)
 
         new_count      = len([n for n in uploaded if n not in existing])
@@ -546,7 +550,9 @@ class _ConfirmView(discord.ui.View):
                 with open(path, "rb") as f:
                     data = f.read()
                 em = await ctx.guild.create_custom_emoji(name=name, image=data, reason=f"Emoji upload: {branch}")
-                uploaded.append({name: str(em.id)})
+                # Store the full emoji string ("<:name:id>") — not just the bare ID —
+                # so the bot can use it directly in messages.
+                uploaded.append({name: f"<:{em.name}:{em.id}>"})
                 await asyncio.sleep(0.5)
             except Exception:
                 failed.append(name)
@@ -554,6 +560,10 @@ class _ConfirmView(discord.ui.View):
             merged = {}
             for d in uploaded:
                 merged.update(d)
+            # Do NOT pass branch_names here: this prefix command only uploads
+            # emojis that are missing from the server, so we must not delete
+            # existing DB entries for the full branch (that would wipe IDs for
+            # emojis that are already on the server but were skipped this run).
             await _save_uploaded(merged)
         result = f"✅ Uploaded {len(uploaded)} emojis from `{branch}`."
         if failed:
@@ -579,8 +589,17 @@ def _load_store() -> dict:
         return {}
 
 
-async def _save_uploaded(new_emojis: dict[str, str]) -> None:
-    """Persist uploaded emoji IDs to the SQLite DB and hot-reload the in-memory store."""
+async def _save_uploaded(
+    new_emojis: dict[str, str],
+    branch_names: list[str] | None = None,
+) -> None:
+    """
+    Persist uploaded emoji IDs to the SQLite DB and hot-reload the in-memory store.
+
+    If *branch_names* is given (the full list of emoji names in the branch),
+    all entries for those names are deleted first so stale IDs never linger
+    after a re-upload replaces old emojis with fresh ones.
+    """
     os.makedirs(os.path.dirname(DB_STORE_PATH), exist_ok=True)
     async with aiosqlite.connect(DB_STORE_PATH) as db:
         await db.execute("""
@@ -589,10 +608,18 @@ async def _save_uploaded(new_emojis: dict[str, str]) -> None:
                 emoji_str TEXT NOT NULL
             )
         """)
+        # Remove stale entries for the whole branch so old IDs never survive
+        if branch_names:
+            placeholders = ",".join("?" * len(branch_names))
+            await db.execute(
+                f"DELETE FROM emoji_store WHERE name IN ({placeholders})",
+                branch_names,
+            )
+        # Insert / replace only the successfully uploaded emojis
         for name, emoji_str in new_emojis.items():
             await db.execute(
                 "INSERT OR REPLACE INTO emoji_store (name, emoji_str) VALUES (?, ?)",
-                (name, emoji_str)
+                (name, emoji_str),
             )
         await db.commit()
     reload_store()

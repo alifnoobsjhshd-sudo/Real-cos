@@ -384,7 +384,15 @@ class MusicControlView(View):
 class Music(commands.Cog):
     def __init__(self, client: zyrox):
         self.client = client
-        self.client.loop.create_task(self.connect_nodes())
+        # Wrap initial connect in a silent helper so a startup failure is only
+        # logged, not an unhandled task exception. connect_nodes() itself now
+        # re-raises so the reconnect loop can detect genuine failures.
+        async def _initial_connect():
+            try:
+                await self.connect_nodes()
+            except Exception:
+                pass
+        self.client.loop.create_task(_initial_connect())
         self.client.loop.create_task(self.monitor_inactivity())
         
         self.inactivity_timeout = 120 
@@ -433,6 +441,12 @@ class Music(commands.Cog):
                     pass
 
     async def connect_nodes(self) -> None:
+        """
+        Connect to the configured Lavalink node.
+        Raises on failure so callers (e.g. the reconnect loop) can detect
+        genuine connection errors. The startup wrapper catches and silences
+        the initial attempt.
+        """
         lavalink_uri = os.getenv("LAVALINK_URI", "https://lava-v4.ajieblogs.eu.org")
         lavalink_pass = os.getenv("LAVALINK_PASSWORD", "https://dsc.gg/ajidevserver")
         if lavalink_uri and not lavalink_uri.startswith(("http://", "https://", "ws://", "wss://")):
@@ -440,10 +454,23 @@ class Music(commands.Cog):
             scheme = "http://" if ":" in lavalink_uri else "https://"
             lavalink_uri = f"{scheme}{lavalink_uri}"
         nodes = [wavelink.Node(uri=lavalink_uri, password=lavalink_pass)]
-        try:
-            await wavelink.Pool.connect(nodes=nodes, client=self.client, cache_capacity=None)
-        except Exception as e:
-            print(f"[Music] Lavalink connection failed: {e}. Music commands will be unavailable.")
+        # Let the exception propagate — callers decide how to handle it.
+        await wavelink.Pool.connect(nodes=nodes, client=self.client, cache_capacity=None)
+        print(f"[Music] Connected to Lavalink node: {lavalink_uri}")
+
+    @commands.Cog.listener()
+    async def on_wavelink_node_disconnected(self, payload) -> None:
+        """Reconnect to Lavalink automatically when the node drops."""
+        print(f"[Music] Lavalink node disconnected — will retry in 15 s …")
+        for attempt in range(1, 6):
+            await asyncio.sleep(15)
+            try:
+                await self.connect_nodes()
+                print(f"[Music] Lavalink reconnected on attempt {attempt}.")
+                return
+            except Exception as e:
+                print(f"[Music] Reconnect attempt {attempt} failed: {e}")
+        print("[Music] Could not reconnect to Lavalink after 5 attempts.")
 
 
 
@@ -488,61 +515,88 @@ class Music(commands.Cog):
         if not player.queue:
             if player.queue.mode == wavelink.QueueMode.loop:
                 await player.play(payload.track)
-                #await self.display_player_embed(player, payload.track, player.ctx)
             elif player.autoplay == wavelink.AutoPlayMode.enabled:
-
                 await asyncio.sleep(5)
-
                 if player.current:
-                    await self.display_player_embed(player, player.current, player.ctx, autoplay=True)
+                    try:
+                        await self.display_player_embed(player, player.current, player.ctx, autoplay=True)
+                    except Exception:
+                        pass
                 else:
-                    player.ctx.send("No suitable track found for autoplay.")
-
-
+                    try:
+                        await player.ctx.send("No suitable track found for autoplay.")
+                    except Exception:
+                        pass
             else:
-                await player.disconnect()
+                try:
+                    await player.disconnect()
+                except Exception:
+                    pass
                 ended = discord.Embed(description="All tracks have been played, leaving the voice channel.", color=0xFF0000)
                 ended.set_author(name="Queue Ended", icon_url=self.client.user.display_avatar.url)
-                await player.ctx.send(embed=ended)
+                try:
+                    await player.ctx.send(embed=ended)
+                except Exception:
+                    pass
         else:
             next_track = await player.queue.get_wait()
             await player.play(next_track)
-            await self.display_player_embed(player, next_track, player.ctx)
+            # Wrap in try/except — ctx may be a lightweight proxy (e.g. from playlist.py)
+            # that doesn't have every method a real Context has; playback must not stop.
+            try:
+                await self.display_player_embed(player, next_track, player.ctx)
+            except Exception:
+                pass
 
 
 
     async def play_source(self, ctx, query):
         if not ctx.author.voice:
-            await ctx.send(embed=discord.Embed(description="⚠️ you need to be in a voice channel to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in a voice channel to use this command.", color=0xFF0000))
             return
 
-        vc = ctx.voice_client or await ctx.author.voice.channel.connect(cls=wavelink.Player)
+        # Guard: make sure at least one Lavalink node is available
+        try:
+            nodes = wavelink.Pool.nodes
+            if not nodes:
+                raise RuntimeError("no nodes")
+        except Exception:
+            await ctx.send(embed=discord.Embed(
+                description="⚠️ Music is currently unavailable — Lavalink node not connected. Please try again in a moment.",
+                color=0xFF0000,
+            ))
+            return
+
+        try:
+            vc = ctx.voice_client or await ctx.author.voice.channel.connect(cls=wavelink.Player)
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(description=f"⚠️ Could not join your voice channel: {e}", color=0xFF0000))
+            return
+
         vc.ctx = ctx
-        
-        
+
         if vc.playing:
             if ctx.voice_client and ctx.voice_client.channel != ctx.author.voice.channel:
                 await ctx.send(embed=discord.Embed(description=f"You must be connected to {ctx.voice_client.channel.mention} to play.", color=0xFF0000))
                 return
         vc.autoplay = wavelink.AutoPlayMode.disabled
 
-        """if re.match(SPOTIFY_TRACK_REGEX, query):
-            await self.handle_spotify_link(ctx, vc, query, "track")
-        elif re.match(SPOTIFY_PLAYLIST_REGEX, query):
-            await self.handle_spotify_link(ctx, vc, query, "playlist")
-        elif re.match(SPOTIFY_ALBUM_REGEX, query):
-            await self.handle_spotify_link(ctx, vc, query, "album")
-        
-            return"""
-            
-        tracks = await wavelink.Playable.search(query)
+        try:
+            tracks = await wavelink.Playable.search(query)
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(
+                description=f"⚠️ Search failed: `{e}`\nThe music node may be temporarily unavailable.",
+                color=0xFF0000,
+            ))
+            return
+
         if not tracks:
-            await ctx.send(embed=discord.Embed(description="No results found.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description="No results found for that query.", color=0xFF0000))
             return
 
         if isinstance(tracks, wavelink.Playlist):
             await vc.queue.put_wait(tracks.tracks)
-            await ctx.send(embed=discord.Embed(description=f"➕ Added playlist [{tracks.name}](https://discord.gg/codexdev) with **{len(tracks.tracks)} songs** to the queue.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"➕ Added playlist **{tracks.name}** with **{len(tracks.tracks)} songs** to the queue.", color=0xFF0000))
             if not vc.playing:
                 track = await vc.queue.get_wait()
                 await vc.play(track)
@@ -550,12 +604,11 @@ class Music(commands.Cog):
         else:
             track = tracks[0]
             await vc.queue.put_wait(track)
-            await ctx.send(embed=discord.Embed(description=f"➕   Added [{track.title}](https://discord.gg/codexdev) to the queue.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"➕ Added **{track.title}** to the queue.", color=0xFF0000))
             if not vc.playing:
                 await vc.play(await vc.queue.get_wait())
                 await self.display_player_embed(vc, track, ctx)
             self.client.loop.create_task(self.check_inactivity(ctx.guild.id))
-           # await interaction.response.defer()
 
 
     

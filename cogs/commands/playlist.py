@@ -280,11 +280,28 @@ async def _queue_playlist_and_play(
 
     vc.autoplay = wavelink.AutoPlayMode.disabled
 
-    # Provide a fake ctx so display_player_embed (in music cog) can use it
+    # Provide a fake ctx so display_player_embed (in music cog) can use it.
+    # Must expose .send() and .reply() so the music cog's embed helper works
+    # without crashing when a playlist triggers track-end transitions.
+    _channel = interaction.channel
+    _user    = interaction.user
+
     class _FakeCtx:
-        author       = interaction.user
-        channel      = interaction.channel
+        author       = _user
+        channel      = _channel
         voice_client = vc
+
+        async def send(self, *args, **kwargs):
+            try:
+                return await _channel.send(*args, **kwargs)
+            except Exception:
+                pass
+
+        async def reply(self, *args, **kwargs):
+            # No original message to reply to — fall back to a plain send
+            kwargs.pop("mention_author", None)
+            return await self.send(*args, **kwargs)
+
     vc.ctx = _FakeCtx()
 
     loading = await interaction.followup.send(
