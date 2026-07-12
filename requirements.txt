@@ -55,3 +55,4 @@ PyYAML
 requests
 tasksio
 wavelink>=2.0.0
+asyncpg

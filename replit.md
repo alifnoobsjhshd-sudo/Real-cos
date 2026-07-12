@@ -82,6 +82,33 @@ After `>j2csetup` the bot creates:
 - `/join-vc <channel>` — bot joins the selected VC and stays (admin only)
 - `/leave-vc` — bot disconnects from the current VC (admin only)
 
+## Music / Lavalink configuration
+
+The music cog can connect to **one or more Lavalink nodes** for automatic failover.
+
+### Single node (legacy)
+
+```
+LAVALINK_URI=https://your-lavalink.example.com
+LAVALINK_PASSWORD=your-password
+```
+
+### Multiple nodes (recommended for uptime)
+
+```
+LAVALINK_URIS=https://your-node.com|https://fallback-node.com|http://node3:2333
+LAVALINK_PASSWORDS=pass1|pass2|pass3
+```
+
+- Separate entries with `|`.
+- If the password list is shorter than the URI list, the last password is repeated.
+- A bare host with a port (e.g., `lavalink:2333`) is treated as `http://`; a bare host without a port is treated as `https://`.
+- wavelink will use the next available node automatically if one drops.
+
+### Free tier / Render note
+
+Hosting your own Lavalink server on Render's free tier (512 MB RAM) is possible only for very light usage (1–2 concurrent streams). For a reliable bot, run Lavalink on a VPS with at least 1 GB RAM, or combine your own node with a public fallback using the multi-node format above.
+
 ## User preferences
 
 - Keep the existing project structure and stack.

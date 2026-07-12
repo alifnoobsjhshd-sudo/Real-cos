@@ -440,28 +440,80 @@ class Music(commands.Cog):
                 except:
                     pass
 
+    def _build_lavalink_nodes(self) -> list[wavelink.Node]:
+        """
+        Build a list of wavelink Nodes from environment variables.
+
+        Supports two configuration styles:
+
+        * Single node (legacy):
+            LAVALINK_URI=https://lavalink.example.com
+            LAVALINK_PASSWORD=some-password
+
+        * Multiple nodes (fallback / redundancy):
+            LAVALINK_URIS=https://node1.com|https://node2.com|http://node3:2333
+            LAVALINK_PASSWORDS=pass1|pass2|pass3
+
+        If the passwords list is shorter than the URI list, the last password
+        is repeated for the remaining nodes. URIs are normalized to a scheme.
+        """
+        default_uri = "https://lava-v4.ajieblogs.eu.org"
+        default_password = "https://dsc.gg/ajidevserver"
+
+        multi_uris = os.getenv("LAVALINK_URIS", "")
+        multi_passwords = os.getenv("LAVALINK_PASSWORDS", "")
+
+        if multi_uris.strip():
+            uris = [u.strip() for u in multi_uris.split("|") if u.strip()]
+            passwords = [p.strip() for p in multi_passwords.split("|") if p.strip()] if multi_passwords.strip() else []
+        else:
+            uris = [os.getenv("LAVALINK_URI", default_uri).strip()]
+            passwords = [os.getenv("LAVALINK_PASSWORD", default_password).strip()]
+
+        if not uris:
+            uris = [default_uri]
+        if not passwords:
+            passwords = [default_password]
+
+        # Normalize URIs: Lavalink needs a scheme. A bare host with a port is
+        # treated as HTTP; a bare host without a port is treated as HTTPS.
+        normalized_uris = []
+        for uri in uris:
+            if uri and not uri.startswith(("http://", "https://", "ws://", "wss://")):
+                scheme = "http://" if ":" in uri else "https://"
+                uri = f"{scheme}{uri}"
+            normalized_uris.append(uri)
+
+        nodes = []
+        for i, uri in enumerate(normalized_uris):
+            password = passwords[i] if i < len(passwords) else passwords[-1]
+            nodes.append(wavelink.Node(uri=uri, password=password))
+        return nodes
+
     async def connect_nodes(self) -> None:
         """
-        Connect to the configured Lavalink node.
+        Connect to the configured Lavalink node(s).
         Raises on failure so callers (e.g. the reconnect loop) can detect
         genuine connection errors. The startup wrapper catches and silences
         the initial attempt.
+
+        When multiple nodes are configured, wavelink.Pool will use them for
+        failover automatically — if one node drops, the next available node
+        takes over for new searches/playback.
         """
-        lavalink_uri = os.getenv("LAVALINK_URI", "https://lava-v4.ajieblogs.eu.org")
-        lavalink_pass = os.getenv("LAVALINK_PASSWORD", "https://dsc.gg/ajidevserver")
-        if lavalink_uri and not lavalink_uri.startswith(("http://", "https://", "ws://", "wss://")):
-            # Public nodes are usually HTTPS; self-hosted with a port is usually plain HTTP.
-            scheme = "http://" if ":" in lavalink_uri else "https://"
-            lavalink_uri = f"{scheme}{lavalink_uri}"
-        nodes = [wavelink.Node(uri=lavalink_uri, password=lavalink_pass)]
+        nodes = self._build_lavalink_nodes()
         # Let the exception propagate — callers decide how to handle it.
         await wavelink.Pool.connect(nodes=nodes, client=self.client, cache_capacity=None)
-        print(f"[Music] Connected to Lavalink node: {lavalink_uri}")
+        print(f"[Music] Connected to {len(nodes)} Lavalink node(s): {', '.join(n.uri for n in nodes)}")
 
     @commands.Cog.listener()
     async def on_wavelink_node_disconnected(self, payload) -> None:
-        """Reconnect to Lavalink automatically when the node drops."""
-        print(f"[Music] Lavalink node disconnected — will retry in 15 s …")
+        """Reconnect to Lavalink automatically when a node drops."""
+        # If other nodes are still in the pool, playback can continue while we
+        # try to restore the one that dropped. With a single node, this is
+        # the only path back to working music.
+        remaining = len(wavelink.Pool.nodes) if wavelink.Pool.nodes else 0
+        print(f"[Music] Lavalink node disconnected — {remaining} node(s) still in pool. Retrying in 15 s …")
         for attempt in range(1, 6):
             await asyncio.sleep(15)
             try:
