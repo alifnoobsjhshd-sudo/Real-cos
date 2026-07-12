@@ -83,8 +83,21 @@ In Render → your Lavalink service → **Environment**, add:
 ### Getting a free Spotify credential (takes 2 minutes)
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-2. **Create app** → any name → Redirect URI: `http://localhost`
-3. Copy **Client ID** and **Client Secret** → paste into Render env vars above.
+   and **Log in** with your Spotify account (free account is fine).
+2. Click **Create app**.
+   - **App name:** anything, e.g. `CodeX Music`
+   - **App description:** anything, e.g. `Lavalink music source`
+   - **Redirect URI:** `http://localhost`  (it doesn't need to be real; LavaSrc only needs the app to exist)
+   - Check the box agreeing to the terms.
+3. Click **Save**.
+4. You are now on the app's overview page. Click **Settings** (top-right of the app page).
+5. Under **Basic Information** you will see:
+   - **Client ID** — a long string like `1a2b3c4d5e6f7g8h9i0j`
+   - **Client Secret** — click **View client secret** to reveal it
+6. Copy both values and paste them into your Render Lavalink service environment variables:
+   - `SPOTIFY_CLIENT_ID`
+   - `SPOTIFY_CLIENT_SECRET`
+7. Redeploy the Lavalink service. After it restarts, Spotify links will resolve.
 
 ---
 
