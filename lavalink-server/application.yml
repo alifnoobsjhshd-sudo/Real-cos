@@ -35,15 +35,16 @@ lavalink:
       channelMix: true
       lowPass: true
 
-    # Buffer sizes — balanced for low-memory VPS
+    # Buffer sizes — tuned for 512 MB / 300 MB heap free-tier instances.
+    # Lower frameBufferDurationMs reduces memory used for queued audio frames.
     bufferDurationMs: 400
-    frameBufferDurationMs: 5000
-    opusEncodingQuality: 10          # 0–10; 10 = best Opus quality
-    resamplingQuality: LOW           # LOW uses less CPU on small instances
+    frameBufferDurationMs: 2000
+    opusEncodingQuality: 5           # 0–10; 5 = good quality, lower memory/CPU
+    resamplingQuality: LOW            # LOW uses less CPU on small instances
     trackStuckThresholdMs: 10000
     useSeekGhosting: true
-    youtubePlaylistLoadLimit: 6      # Pages of search results to load
-    playerUpdateInterval: 5          # Send player updates every N seconds
+    youtubePlaylistLoadLimit: 3       # Fewer pages = less memory and faster load
+    playerUpdateInterval: 5           # Send player updates every N seconds
     youtubeSearchEnabled: true
     soundcloudSearchEnabled: true
     gc-warnings: true

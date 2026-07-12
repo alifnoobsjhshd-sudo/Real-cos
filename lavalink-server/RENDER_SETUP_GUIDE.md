@@ -38,21 +38,31 @@ Create a new GitHub repo, copy just the `lavalink-server/` folder contents
 
 ---
 
-## Step 2 — Create a new Web Service on Render
+## Step 2 — Choose your Render plan
 
-1. Go to [render.com/dashboard](https://render.com) → **New → Web Service**
-2. Connect your GitHub account and select the repo.
-3. Fill in the settings:
+### Free tier (tight, but possible)
 
-| Setting | Value |
+The Dockerfile and `application.yml` are already tuned for Render's free tier:
+
+- **Heap:** 300 MB (`JAVA_OPTS` in Dockerfile)
+- **Audio quality:** lowered to `opusEncodingQuality: 5`
+- **Frame buffer:** 2 seconds instead of 5 seconds
+- **Playlist page load:** 3 pages instead of 6
+
+Choose this if you have no money to spend. It will work for **1–2 concurrent streams**, light usage, and short playlists.
+
+| Setting | Free tier value |
 |---|---|
-| **Name** | `lavalink` (or anything you like) |
-| **Root Directory** | `lavalink-server` (Option A) / leave blank (Option B) |
+| **Name** | `lavalink` |
+| **Root Directory** | `lavalink-server` |
 | **Runtime** | `Docker` |
-| **Instance Type** | **Starter ($7/month — 1 GB RAM)** — the free tier (512 MB) is too tight for Java + audio buffering |
+| **Instance Type** | **Free (512 MB RAM)** |
 
-> **Free tier note:** If you *must* use the free tier, set `JAVA_OPTS=-Xms32M -Xmx300M`
-> in the env vars below. Expect occasional OOM crashes under load.
+> ⚠️ **Important free-tier limitation:** Render free web services **spin down after 15 minutes of inactivity**. Lavalink keeps a WebSocket connection open to your bot, so when the server sleeps, the connection drops and any currently playing music stops. The bot will reconnect when someone runs `/play`, but you cannot have 24/7 background music on the free tier. This is a Render platform limit, not a Lavalink bug.
+
+### Paid Starter (recommended for reliability)
+
+If you later have $7/month, switch to **Starter (1 GB RAM)**. The default Dockerfile already works fine there — just leave `JAVA_OPTS` as-is.
 
 4. Click **Advanced** → make sure **Auto-Deploy** is on so every push updates automatically.
 
@@ -65,7 +75,7 @@ In Render → your Lavalink service → **Environment**, add:
 | Key | Value | Required? |
 |---|---|---|
 | `LAVALINK_PASSWORD` | A strong password you choose (e.g. `Zyrox#Lava2026!`) | ✅ Yes |
-| `JAVA_OPTS` | `-Xms64M -Xmx512M -XX:+UseG1GC` | Optional (default already set in Dockerfile) |
+| `JAVA_OPTS` | `-Xms64M -Xmx512M -XX:+UseG1GC` | Optional (free-tier defaults already set in Dockerfile) |
 | `SPOTIFY_CLIENT_ID` | From [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) | For Spotify support |
 | `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard | For Spotify support |
 | `DEEZER_MASTER_KEY` | Deezer master decrypt key | For full Deezer audio (optional) |
@@ -154,9 +164,48 @@ with a new Lavalink version, update `ARG LAVALINK_VERSION` in `Dockerfile`.
 ### YouTube gives 429 Too Many Requests
 Public Lavalink nodes rotate IPs to avoid this. On a single IP it can happen
 under heavy load. Options:
-- Reduce `youtubePlaylistLoadLimit` in `application.yml` (currently 6).
+- Reduce `youtubePlaylistLoadLimit` in `application.yml` (currently 3 for free tier).
 - Add YouTube account credentials to `youtubeConfig` in `application.yml`.
 - Use SoundCloud or Spotify as the primary source instead.
+
+### Free tier — music stops after 15 minutes of no commands
+This is the **Render free-tier spin-down**. The server sleeps when no WebSocket
+traffic happens. It will reconnect on the next `/play`. For 24/7 music you need a
+paid plan or a different free host that does not sleep. See the alternatives below.
+
+---
+
+## Free alternatives to Render (if the spin-down is a problem)
+
+If you need music that stays on without waking up, Render free is the wrong
+choice because of the 15-minute sleep rule. These are genuinely free options
+with more RAM or no sleep:
+
+| Host | Free tier | Notes |
+|---|---|---|
+| **Oracle Cloud Free Tier** | 2x AMD VM, 1 GB RAM each | Best free option. Create an Ubuntu instance, install Java 17, upload `application.yml` + `Lavalink.jar`, and run it. |
+| **Google Cloud Free Tier** | 1x `e2-micro` (1 GB RAM) | Always-free VM in US regions. Same setup: install Java, run the jar. |
+| **AWS Free Tier** | 1x `t2.micro` (1 GB RAM) for 12 months | Good for one year. |
+| **Fly.io** | 256 MB RAM, no sleep | Tight but possible; use the same Dockerfile in this folder. |
+| **Old laptop / PC** | Whatever RAM you have | Run Ubuntu or Debian, install Java 17, and forward port 2333 from your router. Completely free. |
+
+For any of these, use the same `application.yml` and the same `Lavalink.jar` the
+Dockerfile downloads. The only difference is you run it directly instead of inside Docker.
+
+### Quick direct-run command (Ubuntu/Debian)
+
+```bash
+sudo apt update && sudo apt install -y openjdk-17-jre wget
+mkdir -p ~/lavalink && cd ~/lavalink
+wget https://github.com/lavalink-devs/Lavalink/releases/download/4.0.8/Lavalink.jar
+mkdir -p plugins
+wget -O plugins/lavasrc-plugin.jar https://github.com/topi314/LavaSrc/releases/download/4.3.0/lavasrc-plugin-4.3.0.jar
+# Copy application.yml from this repo into ~/lavalink/
+export LAVALINK_PASSWORD="your-password"
+export SPOTIFY_CLIENT_ID="your-id"
+export SPOTIFY_CLIENT_SECRET="your-secret"
+java -Xms32M -Xmx300M -jar Lavalink.jar
+```
 
 ---
 

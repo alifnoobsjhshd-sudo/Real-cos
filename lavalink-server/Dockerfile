@@ -22,8 +22,8 @@ COPY application.yml application.yml
 EXPOSE 2333
 
 # ── JVM memory tuning — override via JAVA_OPTS env var on Render ──────────────
-# Default: 512 MB heap — works on the $7/month Render Starter instance (1 GB RAM).
-# If you use the free tier (512 MB total), drop this to -Xmx300M.
-ENV JAVA_OPTS="-Xms64M -Xmx512M -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:MaxGCPauseMillis=50"
+# Default: 300 MB heap — tuned for Render's free tier (512 MB total RAM).
+# If you move to a 1 GB+ instance, set JAVA_OPTS=-Xms64M -Xmx512M ... in Render.
+ENV JAVA_OPTS="-Xms32M -Xmx300M -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar Lavalink.jar"]
