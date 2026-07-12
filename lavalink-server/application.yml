@@ -1,0 +1,133 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+  http2:
+    enabled: false
+
+lavalink:
+  plugins:
+    # LavaSrc — adds Spotify, Apple Music, Deezer, Yandex Music sources
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.3.0"
+      repository: "https://maven.topi.wtf/releases"
+
+  pluginsDir: "./plugins"
+
+  server:
+    password: ${LAVALINK_PASSWORD:youshallnotpass}   # Override via Render env var
+    sources:
+      youtube: true
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+
+    filters:
+      volume: true
+      equalizer: true
+      karaoke: true
+      timescale: true
+      tremolo: true
+      vibrato: true
+      distortion: true
+      rotation: true
+      channelMix: true
+      lowPass: true
+
+    # Buffer sizes — balanced for low-memory VPS
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10          # 0–10; 10 = best Opus quality
+    resamplingQuality: LOW           # LOW uses less CPU on small instances
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    youtubePlaylistLoadLimit: 6      # Pages of search results to load
+    playerUpdateInterval: 5          # Send player updates every N seconds
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+    gc-warnings: true
+
+    ratelimit:
+      ipBlocks: []                   # Add your IP blocks here if needed
+      excludedIps: []
+      strategy: "RotateOnBan"
+      searchTriggersFail: true
+      retryLimit: -1
+
+    # YouTube rotation — helps avoid 429s on shared/public IPs
+    youtubeConfig:
+      email: ""                      # Optional: YT account email for higher limits
+      password: ""                   # Optional: YT account password
+
+    httpConfig:
+      proxyHost: ""
+      proxyPort: 0
+      proxyUser: ""
+      proxyPassword: ""
+
+plugins:
+  lavasrc:
+    providers:
+      # Try Spotify first, fall through to YouTube/SoundCloud if needed
+      - "dzisrc:%ISRC%"              # Deezer by ISRC
+      - "scsearch:%QUERY%"           # SoundCloud
+      - "ytsearch:%QUERY%"           # YouTube
+      - "ytmsearch:%QUERY%"          # YouTube Music
+
+    sources:
+      spotify: true
+      applemusic: false              # Set to true if you add Apple credentials
+      deezer: true
+      yandexmusic: false
+      flowerytts: false
+      youtube: true
+
+    spotify:
+      clientId: ${SPOTIFY_CLIENT_ID:}
+      clientSecret: ${SPOTIFY_CLIENT_SECRET:}
+      # Country code — affects what tracks Spotify resolves
+      countryCode: "US"
+      # How to play a Spotify track (ISRC = best quality match)
+      playback: "LOCAL"
+      spDc: ""                       # Optional: Spotify cookie for higher limits
+
+    deezer:
+      masterDecryptionKey: ${DEEZER_MASTER_KEY:}   # Optional: needed for Deezer audio
+
+    applemusic:
+      countryCode: "US"
+      mediaAPIToken: ""              # Required if applemusic: true above
+
+    yandexmusic:
+      accessToken: ""                # Required if yandexmusic: true above
+
+    flowerytts:
+      voice: "Emma"
+      translate: false
+      silence: 0
+      speed: 1.0
+      audioFormat: "mp3"
+
+metrics:
+  prometheus:
+    enabled: false
+    endpoint: /metrics
+
+sentry:
+  dsn: ""
+  environment: ""
+
+logging:
+  file:
+    path: ./logs/lavalink.log
+  level:
+    root: INFO
+    lavalink: INFO
+  request:
+    enabled: true
+    includeClientInfo: true
+    includeHeaders: false
+    includeQueryString: true
+    includePayload: false
+    maxPayloadLength: 10000
