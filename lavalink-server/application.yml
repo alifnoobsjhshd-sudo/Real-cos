@@ -79,7 +79,7 @@ plugins:
     sources:
       spotify: true
       applemusic: false              # Set to true if you add Apple credentials
-      deezer: true
+      deezer: false                 # Set to true only if you have a Deezer master key
       yandexmusic: false
       flowerytts: false
       youtube: true

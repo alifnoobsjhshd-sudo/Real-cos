@@ -18,7 +18,7 @@ After deploying it you will point your bot at it using the `LAVALINK_URIS` and
 - ✅ SoundCloud
 - ✅ Bandcamp, Twitch, Vimeo
 - ✅ Spotify (via LavaSrc — needs a free Spotify app credential)
-- ✅ Deezer (via LavaSrc — works without a key for metadata; needs a key for audio)
+- ⚠️ Deezer (disabled by default — needs a master key; enable in `application.yml` only if you have one)
 
 ---
 
@@ -78,7 +78,7 @@ In Render → your Lavalink service → **Environment**, add:
 | `JAVA_OPTS` | `-Xms64M -Xmx512M -XX:+UseG1GC` | Optional (free-tier defaults already set in Dockerfile) |
 | `SPOTIFY_CLIENT_ID` | From [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) | For Spotify support |
 | `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard | For Spotify support |
-| `DEEZER_MASTER_KEY` | Deezer master decrypt key | For full Deezer audio (optional) |
+| `DEEZER_MASTER_KEY` | Deezer master decrypt key | Only if you enable `deezer: true` in `application.yml` |
 
 ### Getting a free Spotify credential (takes 2 minutes)
 
