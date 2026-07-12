@@ -6,7 +6,11 @@ server:
 
 lavalink:
   plugins:
-    # LavaSrc — adds Spotify, Apple Music, Deezer, Yandex Music sources
+    # youtube-source: REQUIRED by LavaSrc 4.x — replaces the built-in YouTube source.
+    # Must be listed BEFORE lavasrc.
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+      repository: "https://maven.lavalink.dev/releases"
+    # LavaSrc — adds Spotify, Apple Music, Yandex Music source support
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.3.0"
       repository: "https://maven.topi.wtf/releases"
 
@@ -14,8 +18,9 @@ lavalink:
 
   server:
     password: ${LAVALINK_PASSWORD:youshallnotpass}   # Override via Render env var
+
     sources:
-      youtube: true
+      youtube: false      # MUST stay false — youtube-source plugin handles YouTube
       bandcamp: true
       soundcloud: true
       twitch: true
@@ -35,31 +40,16 @@ lavalink:
       channelMix: true
       lowPass: true
 
-    # Buffer sizes — tuned for 512 MB / 300 MB heap free-tier instances.
-    # Lower frameBufferDurationMs reduces memory used for queued audio frames.
+    # Buffer sizes — tuned for free-tier (512 MB RAM / 300 MB heap).
     bufferDurationMs: 400
     frameBufferDurationMs: 2000
-    opusEncodingQuality: 5           # 0–10; 5 = good quality, lower memory/CPU
-    resamplingQuality: LOW            # LOW uses less CPU on small instances
+    opusEncodingQuality: 5       # 0–10; 5 = good quality, lower CPU than 10
+    resamplingQuality: LOW        # Less CPU on small instances
     trackStuckThresholdMs: 10000
     useSeekGhosting: true
-    youtubePlaylistLoadLimit: 3       # Fewer pages = less memory and faster load
-    playerUpdateInterval: 5           # Send player updates every N seconds
-    youtubeSearchEnabled: true
+    playerUpdateInterval: 5
     soundcloudSearchEnabled: true
     gc-warnings: true
-
-    ratelimit:
-      ipBlocks: []                   # Add your IP blocks here if needed
-      excludedIps: []
-      strategy: "RotateOnBan"
-      searchTriggersFail: true
-      retryLimit: -1
-
-    # YouTube rotation — helps avoid 429s on shared/public IPs
-    youtubeConfig:
-      email: ""                      # Optional: YT account email for higher limits
-      password: ""                   # Optional: YT account password
 
     httpConfig:
       proxyHost: ""
@@ -68,40 +58,56 @@ lavalink:
       proxyPassword: ""
 
 plugins:
+  # ── youtube-source plugin config ─────────────────────────────────────────────
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    # Clients to try in order. MUSIC = YouTube Music (highest quality).
+    # ANDROID_TESTSUITE is a reliable fallback that avoids most 429s.
+    clients:
+      - MUSIC
+      - ANDROID_TESTSUITE
+      - WEB
+      - TVHTML5EMBEDDED
+    # Optional: add a YouTube account to avoid rate limits on busy servers
+    oauth:
+      enabled: false              # Set to true and add token below if you get 429s
+
+  # ── LavaSrc plugin config ─────────────────────────────────────────────────────
   lavasrc:
     providers:
-      # Try Spotify first, fall through to YouTube/SoundCloud if needed
-      - "dzisrc:%ISRC%"              # Deezer by ISRC
-      - "scsearch:%QUERY%"           # SoundCloud
-      - "ytsearch:%QUERY%"           # YouTube
-      - "ytmsearch:%QUERY%"          # YouTube Music
+      # Resolution order: Spotify ISRC → SoundCloud → YouTube → YouTube Music
+      - "spsearch:%ISRC%"          # Spotify by ISRC (best quality match)
+      - "scsearch:%QUERY%"         # SoundCloud
+      - "ytsearch:%QUERY%"         # YouTube
+      - "ytmsearch:%QUERY%"        # YouTube Music
 
     sources:
       spotify: true
-      applemusic: false              # Set to true if you add Apple credentials
-      deezer: false                 # Set to true only if you have a Deezer master key
+      applemusic: false            # Set true only if you add Apple credentials below
+      deezer: false                # Set true only if you have a Deezer master key
       yandexmusic: false
       flowerytts: false
-      youtube: true
+      youtube: true                # Uses the youtube-source plugin above
 
     spotify:
       clientId: ${SPOTIFY_CLIENT_ID:}
       clientSecret: ${SPOTIFY_CLIENT_SECRET:}
-      # Country code — affects what tracks Spotify resolves
       countryCode: "US"
-      # How to play a Spotify track (ISRC = best quality match)
       playback: "LOCAL"
-      spDc: ""                       # Optional: Spotify cookie for higher limits
+      spDc: ""                     # Optional Spotify cookie for higher rate limits
 
     deezer:
-      masterDecryptionKey: ${DEEZER_MASTER_KEY:}   # Optional: needed for Deezer audio
+      masterDecryptionKey: ${DEEZER_MASTER_KEY:}
 
     applemusic:
       countryCode: "US"
-      mediaAPIToken: ""              # Required if applemusic: true above
+      mediaAPIToken: ""
 
     yandexmusic:
-      accessToken: ""                # Required if yandexmusic: true above
+      accessToken: ""
 
     flowerytts:
       voice: "Emma"
