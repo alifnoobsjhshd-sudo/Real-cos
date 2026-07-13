@@ -8,7 +8,7 @@ lavalink:
   plugins:
     # youtube-source: REQUIRED by LavaSrc 4.x — replaces the built-in YouTube source.
     # Must be listed BEFORE lavasrc.
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.1"
       repository: "https://maven.lavalink.dev/releases"
     # LavaSrc — adds Spotify, Apple Music, Yandex Music source support
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.3.0"
@@ -64,13 +64,15 @@ plugins:
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
-    # Clients to try in order. MUSIC = YouTube Music (highest quality).
-    # ANDROID_TESTSUITE is a reliable fallback that avoids most 429s.
+    # Client priority order — WEB and WEB_REMIX are intentionally excluded because
+    # they require parsing YouTube's obfuscated player JS (player_embed.vflset),
+    # which breaks whenever YouTube rotates their script hash.
+    # TVHTML5EMBEDDED and ANDROID_TESTSUITE bypass that parsing step entirely.
     clients:
-      - MUSIC
-      - ANDROID_TESTSUITE
-      - WEB
-      - TVHTML5EMBEDDED
+      - TVHTML5EMBEDDED        # TV embedded — most stable, no JS parsing needed
+      - ANDROID_TESTSUITE      # Android test client — reliable fallback
+      - IOS                    # iOS client — additional fallback
+      - MUSIC                  # YouTube Music — for ytmsearch queries
     # Optional: add a YouTube account to avoid rate limits on busy servers
     oauth:
       enabled: false              # Set to true and add token below if you get 429s

@@ -467,8 +467,20 @@ class Music(commands.Cog):
             uris = [u.strip() for u in multi_uris.split("|") if u.strip()]
             passwords = [p.strip() for p in multi_passwords.split("|") if p.strip()] if multi_passwords.strip() else []
         else:
-            uris = [os.getenv("LAVALINK_URI", default_uri).strip()]
-            passwords = [os.getenv("LAVALINK_PASSWORD", default_password).strip()]
+            # Support both LAVALINK_URI (original) and LAVALLINK_URL (Replit secret name)
+            # so either naming convention works without changing Render env vars.
+            single_uri = (
+                os.getenv("LAVALINK_URI") or
+                os.getenv("LAVALLINK_URL") or
+                default_uri
+            ).strip()
+            single_password = (
+                os.getenv("LAVALINK_PASSWORD") or
+                os.getenv("LAVALLINK_PASSWORD") or
+                default_password
+            ).strip()
+            uris = [single_uri]
+            passwords = [single_password]
 
         if not uris:
             uris = [default_uri]
@@ -573,14 +585,55 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
-        """Report track load/play errors to the text channel so the user knows what went wrong."""
+        """
+        When YouTube fails (player-script errors, 429s, geo-blocks), automatically
+        retry the same track on SoundCloud before giving up.
+        """
         player = payload.player
-        print(f"[Music] Track exception: {payload.exception}")
+        exc    = payload.exception
+        print(f"[Music] Track exception on '{payload.track.title}': {exc}")
         ctx = getattr(player, "ctx", None)
+
+        # Detect YouTube-side failures by the error message content
+        yt_fail_keywords = (
+            "IllegalStateException", "player_embed", "player.js",
+            "action functions", "Something broke",
+        )
+        exc_str = str(exc)
+        is_yt_failure = any(kw in exc_str for kw in yt_fail_keywords)
+
+        if is_yt_failure:
+            # Auto-retry on SoundCloud so the user doesn't have to do anything
+            title = payload.track.title
+            try:
+                sc_tracks = await wavelink.Playable.search(f"scsearch:{title}")
+                if sc_tracks:
+                    retry_track = sc_tracks[0]
+                    await player.queue.put_wait(retry_track)
+                    if not player.playing:
+                        nxt = await player.queue.get_wait()
+                        await player.play(nxt)
+                        await self.display_player_embed(player, nxt, ctx)
+                    if ctx:
+                        await ctx.send(embed=discord.Embed(
+                            description=(
+                                f"⚠️ YouTube blocked **{title}**.\n"
+                                f"🔁 Auto-retrying on **SoundCloud**: `{retry_track.title}`"
+                            ),
+                            color=0xFFA500,
+                        ))
+                    return
+            except Exception as sc_err:
+                print(f"[Music] SoundCloud fallback also failed: {sc_err}")
+
+        # No fallback available — report the error
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
-                    description=f"⚠️ Could not play **{payload.track.title}**: `{payload.exception}`\nTry a different source (e.g. SoundCloud instead of YouTube).",
+                    description=(
+                        f"⚠️ Could not play **{payload.track.title}**.\n"
+                        f"Try searching with `sc:` prefix for SoundCloud, e.g. `>play sc:{payload.track.title}`"
+                    ),
                     color=0xFF0000,
                 ))
             except Exception:

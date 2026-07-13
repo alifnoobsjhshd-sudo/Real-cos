@@ -3,7 +3,10 @@ FROM eclipse-temurin:17-jre-alpine
 # ── Versions ──────────────────────────────────────────────────────────────────
 ARG LAVALINK_VERSION=4.0.8
 ARG LAVASRC_VERSION=4.3.0
-ARG YTSOURCE_VERSION=1.8.3
+# 1.11.1 drops the WEB player-script parser that was breaking on YouTube's
+# rotating player_embed.vflset hash — always keep this updated when YouTube
+# rotates again and you see "Must find action functions from script" errors.
+ARG YTSOURCE_VERSION=1.11.1
 
 WORKDIR /lavalink
 
