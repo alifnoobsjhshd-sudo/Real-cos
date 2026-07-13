@@ -562,9 +562,52 @@ class Music(commands.Cog):
         await ctx.send(embed=embed, view=MusicControlView(player, ctx))
 
 
-    async def on_track_end(self, payload: wavelink.TrackEndEventPayload):
+    @commands.Cog.listener()
+    async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
+        """Confirm track started on the Lavalink side (useful for debugging)."""
         player = payload.player
-        if not player.queue:
+        print(f"[Music] Track started: {payload.track.title}")
+        # Ensure volume is audible — Lavalink defaults to 100 but be explicit
+        if player.volume != 100:
+            await player.set_volume(100)
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
+        """Report track load/play errors to the text channel so the user knows what went wrong."""
+        player = payload.player
+        print(f"[Music] Track exception: {payload.exception}")
+        ctx = getattr(player, "ctx", None)
+        if ctx:
+            try:
+                await ctx.send(embed=discord.Embed(
+                    description=f"⚠️ Could not play **{payload.track.title}**: `{payload.exception}`\nTry a different source (e.g. SoundCloud instead of YouTube).",
+                    color=0xFF0000,
+                ))
+            except Exception:
+                pass
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_stuck(self, payload: wavelink.TrackStuckEventPayload) -> None:
+        """Handle a stuck track by skipping it."""
+        player = payload.player
+        print(f"[Music] Track stuck: {payload.track.title}")
+        ctx = getattr(player, "ctx", None)
+        if ctx:
+            try:
+                await ctx.send(embed=discord.Embed(
+                    description=f"⚠️ Track **{payload.track.title}** got stuck and was skipped.",
+                    color=0xFF0000,
+                ))
+            except Exception:
+                pass
+        if not player.queue.is_empty:
+            next_track = await player.queue.get_wait()
+            await player.play(next_track)
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
+        player = payload.player
+        if player.queue.is_empty:
             if player.queue.mode == wavelink.QueueMode.loop:
                 await player.play(payload.track)
             elif player.autoplay == wavelink.AutoPlayMode.enabled:
@@ -626,6 +669,11 @@ class Music(commands.Cog):
             return
 
         vc.ctx = ctx
+
+        # Guarantee the player is audible — Lavalink defaults to 100 but some
+        # nodes or reconnect paths can reset it. Set explicitly on every play.
+        if vc.volume != 100:
+            await vc.set_volume(100)
 
         if vc.playing:
             if ctx.voice_client and ctx.voice_client.channel != ctx.author.voice.channel:

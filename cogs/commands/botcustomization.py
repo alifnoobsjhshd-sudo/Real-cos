@@ -9,8 +9,9 @@ from utils.branding import (
     get_branding, set_branding, reset_branding,
     get_global_branding, set_global_branding,
     get_guild_profile, set_guild_profile,
+    get_fun_prefix, set_fun_prefix,
     parse_color, color_to_hex,
-    DEFAULT_BRANDING, DEFAULT_COLOR,
+    DEFAULT_BRANDING, DEFAULT_COLOR, DEFAULT_FUN_PREFIX,
 )
 from utils.Tools import ignore_check, blacklist_check
 
@@ -108,6 +109,33 @@ class EmbedThumbnailModal(discord.ui.Modal, title="Change Embed Thumbnail"):
         await interaction.response.edit_message(embed=embed, view=self.appearance_view)
 
 
+class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
+    prefix_input = discord.ui.TextInput(
+        label="Fun Prefix (e.g. sun, fun, anime)",
+        placeholder="sun",
+        max_length=16,
+        min_length=1,
+        required=True,
+    )
+
+    def __init__(self, guild_id: int, appearance_view):
+        super().__init__()
+        self.guild_id = guild_id
+        self.appearance_view = appearance_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        value = self.prefix_input.value.strip().lower()
+        await set_fun_prefix(self.guild_id, value)
+        self.appearance_view.fun_prefix = value
+        embed = self.appearance_view.build_embed()
+        await interaction.response.edit_message(embed=embed, view=self.appearance_view)
+        await interaction.followup.send(
+            f"✅ Fun prefix set to **`{value}`** for this server.\n"
+            f"Users can now type `{value} hug @user` to use fun commands.",
+            ephemeral=True,
+        )
+
+
 class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
     url_input = discord.ui.TextInput(
         label="Image URL (leave blank to remove)",
@@ -134,7 +162,7 @@ class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
 # ─────────────────────────────────────────────
 
 class AppearanceView(discord.ui.View):
-    def __init__(self, invoker: discord.Member, guild_id: int, branding: dict, main_view):
+    def __init__(self, invoker: discord.Member, guild_id: int, branding: dict, main_view, fun_prefix: str = DEFAULT_FUN_PREFIX):
         super().__init__(timeout=180)
         self.invoker       = invoker
         self.guild_id      = guild_id
@@ -143,6 +171,7 @@ class AppearanceView(discord.ui.View):
         self.embed_color    = branding["embed_color"]
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner   = branding["embed_banner"]
+        self.fun_prefix     = fun_prefix
 
     def build_embed(self) -> discord.Embed:
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
@@ -155,6 +184,7 @@ class AppearanceView(discord.ui.View):
                 f"➡️ **Embed Color:** `{color_to_hex(self.embed_color)}`\n"
                 f"➡️ **Embed Thumbnail:** {thumb_display}\n"
                 f"➡️ **Embed Banner:** {banner_display}\n"
+                f"➡️ **Fun Prefix:** `{self.fun_prefix}` — users type `{self.fun_prefix} hug @user`\n"
             ),
             color=self.embed_color,
         )
@@ -189,12 +219,16 @@ class AppearanceView(discord.ui.View):
     async def btn_banner(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(EmbedBannerModal(self.guild_id, self))
 
-    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(label="Fun Prefix", emoji="🎮", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_fun_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(FunPrefixModal(self.guild_id, self))
+
+    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = self.main_view.build_embed()
         await interaction.response.edit_message(embed=embed, view=self.main_view)
 
-    @discord.ui.button(label="Reset to Default", emoji="🔄", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label="Reset to Default", emoji="🔄", style=discord.ButtonStyle.secondary, row=2)
     async def btn_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Reset this guild's branding back to the global/default settings."""
         await reset_branding(self.guild_id)
@@ -203,6 +237,7 @@ class AppearanceView(discord.ui.View):
         self.embed_color     = branding["embed_color"]
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner    = branding["embed_banner"]
+        self.fun_prefix      = await get_fun_prefix(self.guild_id)
         embed = self.build_embed()
         await interaction.response.edit_message(embed=embed, view=self)
         await interaction.followup.send(
@@ -250,7 +285,8 @@ class MainCustomizationView(discord.ui.View):
 
     @discord.ui.button(label="Bot Message Appearance", emoji="🔧", style=discord.ButtonStyle.secondary, row=0)
     async def btn_appearance(self, interaction: discord.Interaction, button: discord.ui.Button):
-        view  = AppearanceView(self.invoker, self.guild_id, self.branding, self)
+        fun_prefix = await get_fun_prefix(self.guild_id)
+        view  = AppearanceView(self.invoker, self.guild_id, self.branding, self, fun_prefix=fun_prefix)
         embed = view.build_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
@@ -258,6 +294,32 @@ class MainCustomizationView(discord.ui.View):
 # ─────────────────────────────────────────────
 #  Global customization modals
 # ─────────────────────────────────────────────
+
+class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
+    prefix_input = discord.ui.TextInput(
+        label="Fun Prefix (global default, e.g. sun)",
+        placeholder="sun",
+        max_length=16,
+        min_length=1,
+        required=True,
+    )
+
+    def __init__(self, global_view):
+        super().__init__()
+        self.global_view = global_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        value = self.prefix_input.value.strip().lower()
+        await set_fun_prefix(0, value)  # guild_id=0 = global default
+        self.global_view.fun_prefix = value
+        embed = self.global_view.build_embed()
+        await interaction.response.edit_message(embed=embed, view=self.global_view)
+        await interaction.followup.send(
+            f"✅ Global fun prefix set to **`{value}`**.\n"
+            f"Servers that haven't customized their own prefix will now use `{value} hug @user`.",
+            ephemeral=True,
+        )
+
 
 class GlobalBrandingNameModal(discord.ui.Modal, title="Set Global Branding Name"):
     name_input = discord.ui.TextInput(
@@ -452,7 +514,7 @@ class GlobalActivityModal(discord.ui.Modal, title="Set Bot Activity"):
 # ─────────────────────────────────────────────
 
 class GlobalAppearanceView(discord.ui.View):
-    def __init__(self, invoker: discord.Member, branding: dict, main_view):
+    def __init__(self, invoker: discord.Member, branding: dict, main_view, fun_prefix: str = DEFAULT_FUN_PREFIX):
         super().__init__(timeout=300)
         self.invoker        = invoker
         self.main_view      = main_view
@@ -460,6 +522,7 @@ class GlobalAppearanceView(discord.ui.View):
         self.embed_color    = branding["embed_color"]
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner   = branding["embed_banner"]
+        self.fun_prefix     = fun_prefix
 
     def build_embed(self) -> discord.Embed:
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
@@ -472,6 +535,7 @@ class GlobalAppearanceView(discord.ui.View):
                 f"➡️ **Embed Color:** `{color_to_hex(self.embed_color)}`\n"
                 f"➡️ **Embed Thumbnail:** {thumb_display}\n"
                 f"➡️ **Embed Banner:** {banner_display}\n"
+                f"➡️ **Fun Prefix (global default):** `{self.fun_prefix}`\n"
             ),
             color=self.embed_color,
         )
@@ -506,7 +570,11 @@ class GlobalAppearanceView(discord.ui.View):
     async def btn_banner(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(GlobalBannerModal(self))
 
-    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(label="Fun Prefix", emoji="🎮", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_fun_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(GlobalFunPrefixModal(self))
+
+    @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = self.main_view.build_embed()
         await interaction.response.edit_message(embed=embed, view=self.main_view)
@@ -644,7 +712,9 @@ class GlobalCustomizationDropdown(discord.ui.Select):
             )
             return
         if self.values[0] == "appearance":
-            view  = GlobalAppearanceView(self.invoker, self.branding, self.view)
+            from utils.branding import get_fun_prefix as _gfp
+            fun_prefix = await _gfp(0)  # global prefix (guild_id=0)
+            view  = GlobalAppearanceView(self.invoker, self.branding, self.view, fun_prefix=fun_prefix)
             embed = view.build_embed()
         else:
             view  = GlobalBotProfileView(self.invoker, self.bot, self.view)

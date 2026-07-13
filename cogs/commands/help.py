@@ -141,9 +141,9 @@ class HelpCommand(commands.HelpCommand):
             f" {_e('zunmute')} `»` Voice\n"
             f" {_e('zseed')} `»` Welcomer\n"
             f" {_e('ztada')} `»` Giveaway\n"
-            f" {_e('zticket')} `»` Ticket {_e('New')}\n"
-            f" {_e('zpeople')} `»` Invite Tracker {_e('New')}\n"
-            f" {_e('zwrench')} `»` Bot Customization {_e('New')}\n"
+            f" {_e('zticket')} `»` Ticket\n"
+            f" {_e('zpeople')} `»` Invite Tracker\n"
+            f" {_e('zwrench')} `»` Bot Customization {_e('starr')}\n"
         )
     )
 
@@ -152,16 +152,16 @@ class HelpCommand(commands.HelpCommand):
         value=(
             f">>> \n {_e('zcast')} `»` Advance Logging\n"
             f" {_e('starr')} `»` Vanityroles\n"
-            f" {_e('zcounting')} `»` Counting {_e('New')}\n"
-            f" {_e('zyrox_system')} `»` J2C {_e('New')}\n"
-            f" {_e('boost')} `»` Boost {_e('New')}\n"
-            f" {_e('zlevelup')} `»` Leveling {_e('New')}\n"
-            f" {_e('zpin')} `»` Sticky {_e('New')}\n"
-            f" {_e('zyroxthunder')} `»` Verification {_e('New')}\n"
-            f" {_e('lock')} `»` Encryption {_e('New')}\n"
-            f" {_e('zmc')} `»` Minecraft {_e('New')}\n"
-            f" {_e('zmsg')} `»` Joindm {_e('New')}\n"
-            f" {_e('zcircle')} `»` Birthday {_e('New')}\n"
+            f" {_e('zcounting')} `»` Counting\n"
+            f" {_e('zyrox_system')} `»` J2C\n"
+            f" {_e('boost')} `»` Boost\n"
+            f" {_e('zlevelup')} `»` Leveling\n"
+            f" {_e('zpin')} `»` Sticky\n"
+            f" {_e('zyroxthunder')} `»` Verification\n"
+            f" {_e('lock')} `»` Encryption\n"
+            f" {_e('zmc')} `»` Minecraft\n"
+            f" {_e('zmsg')} `»` Joindm\n"
+            f" {_e('zcircle')} `»` Birthday\n"
             f" {_e('zcircle2')} `»` Customrole\n"
         )
     )
@@ -368,9 +368,9 @@ class Help(Cog, name="help"):
             f" {_e('zunmute')} `»` Voice\n"
             f" {_e('zseed')} `»` Welcomer\n"
             f" {_e('ztada')} `»` Giveaway\n"
-            f" {_e('zticket')} `»` Ticket {_e('New')}\n"
-            f" {_e('zpeople')} `»` Invite Tracker {_e('New')}\n"
-            f" {_e('zwrench')} `»` Bot Customization {_e('New')}\n"
+            f" {_e('zticket')} `»` Ticket\n"
+            f" {_e('zpeople')} `»` Invite Tracker\n"
+            f" {_e('zwrench')} `»` Bot Customization {_e('starr')}\n"
         ),
     )
 
@@ -379,16 +379,16 @@ class Help(Cog, name="help"):
         value=(
             f">>> \n {_e('zcast')} `»` Advance Logging\n"
             f" {_e('starr')} `»` Vanityroles\n"
-            f" {_e('zcounting')} `»` Counting {_e('New')}\n"
-            f" {_e('zyrox_system')} `»` J2C {_e('New')}\n"
-            f" {_e('boost')} `»` Boost {_e('New')}\n"
-            f" {_e('zlevelup')} `»` Leveling {_e('New')}\n"
-            f" {_e('zpin')} `»` Sticky {_e('New')}\n"
-            f" {_e('zyroxthunder')} `»` Verification {_e('New')}\n"
-            f" {_e('lock')} `»` Encryption {_e('New')}\n"
-            f" {_e('zmc')} `»` Minecraft {_e('New')}\n"
-            f" {_e('zmsg')} `»` Joindm {_e('New')}\n"
-            f" {_e('zcircle')} `»` Birthday {_e('New')}\n"
+            f" {_e('zcounting')} `»` Counting\n"
+            f" {_e('zyrox_system')} `»` J2C\n"
+            f" {_e('boost')} `»` Boost\n"
+            f" {_e('zlevelup')} `»` Leveling\n"
+            f" {_e('zpin')} `»` Sticky\n"
+            f" {_e('zyroxthunder')} `»` Verification\n"
+            f" {_e('lock')} `»` Encryption\n"
+            f" {_e('zmc')} `»` Minecraft\n"
+            f" {_e('zmsg')} `»` Joindm\n"
+            f" {_e('zcircle')} `»` Birthday\n"
             f" {_e('zcircle2')} `»` Customrole\n"
         ),
     )

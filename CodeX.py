@@ -372,6 +372,15 @@ async def main():
 
     await asyncio.sleep(5)
     await restore_from_neon()
+    # Re-load the emoji store after DB restoration so the in-memory cache
+    # reflects the freshly restored emoji_store.db, even if emojis.py was
+    # imported earlier in the startup sequence.
+    try:
+        from utils.emojis import reload_store as _reload_emojis
+        _reload_emojis()
+        print("[startup] Emoji store reloaded from restored DB.")
+    except Exception as _e:
+        print(f"[startup] Emoji store reload skipped: {_e}")
     await client.load_extension("jishaku")
 
     # ── Login with rate-limit retry ────────────────────────────────────────────

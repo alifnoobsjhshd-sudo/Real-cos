@@ -4,6 +4,7 @@ import discord
 
 DEFAULT_BRANDING = "Sunlight"
 DEFAULT_COLOR = 0xFFD700
+DEFAULT_FUN_PREFIX = "sun"
 
 # guild_id = 0 is used as the "global default" slot
 
@@ -16,9 +17,15 @@ def _setup_branding_db():
             branding_name TEXT,
             embed_color   INTEGER,
             embed_thumbnail TEXT,
-            embed_banner    TEXT
+            embed_banner    TEXT,
+            fun_prefix  TEXT
         )
     ''')
+    # Add fun_prefix column to existing DBs that were created before this field
+    try:
+        conn.execute("ALTER TABLE guild_branding ADD COLUMN fun_prefix TEXT")
+    except Exception:
+        pass  # Column already exists
     conn.execute('''
         CREATE TABLE IF NOT EXISTS guild_profile (
             guild_id     INTEGER PRIMARY KEY,
@@ -40,6 +47,39 @@ def _setup_branding_db():
 
 
 _setup_branding_db()
+
+
+async def get_fun_prefix(guild_id: int) -> str:
+    """Return the fun prefix for a guild, falling back to global then 'sun'."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        async with db.execute(
+            "SELECT fun_prefix FROM guild_branding WHERE guild_id = ?", (guild_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row and row[0]:
+                return row[0]
+    # Fall back to global
+    async with aiosqlite.connect('db/branding.db') as db:
+        async with db.execute(
+            "SELECT fun_prefix FROM guild_branding WHERE guild_id = 0"
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row and row[0]:
+                return row[0]
+    return DEFAULT_FUN_PREFIX
+
+
+async def set_fun_prefix(guild_id: int, prefix: str):
+    """Persist a fun prefix for a guild (guild_id=0 = global default)."""
+    async with aiosqlite.connect('db/branding.db') as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO guild_branding (guild_id) VALUES (?)", (guild_id,)
+        )
+        await db.execute(
+            "UPDATE guild_branding SET fun_prefix = ? WHERE guild_id = ?",
+            (prefix.strip().lower(), guild_id),
+        )
+        await db.commit()
 
 
 async def get_global_branding() -> dict:

@@ -417,7 +417,10 @@ class Fun(commands.Cog):
                 return
 
             lower = content.strip().lower()
-            if not lower.startswith("sun "):
+            # Read the guild's configured fun prefix (falls back to global then "sun")
+            from utils.branding import get_fun_prefix as _gfp
+            fun_prefix = await _gfp(message.guild.id)
+            if not lower.startswith(fun_prefix + " "):
                 return
 
             parts = lower.split()
