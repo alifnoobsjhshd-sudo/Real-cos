@@ -50,22 +50,26 @@ _setup_branding_db()
 
 
 async def get_fun_prefix(guild_id: int) -> str:
-    """Return the fun prefix for a guild, falling back to global then 'sun'."""
-    async with aiosqlite.connect('db/branding.db') as db:
-        async with db.execute(
-            "SELECT fun_prefix FROM guild_branding WHERE guild_id = ?", (guild_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row and row[0]:
-                return row[0]
-    # Fall back to global
-    async with aiosqlite.connect('db/branding.db') as db:
-        async with db.execute(
-            "SELECT fun_prefix FROM guild_branding WHERE guild_id = 0"
-        ) as cursor:
-            row = await cursor.fetchone()
-            if row and row[0]:
-                return row[0]
+    """Return the fun prefix for a guild, falling back to global then 'sun'.
+    Never raises — always returns a usable string."""
+    try:
+        async with aiosqlite.connect('db/branding.db') as db:
+            async with db.execute(
+                "SELECT fun_prefix FROM guild_branding WHERE guild_id = ?", (guild_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row and row[0]:
+                    return row[0]
+        # Fall back to global
+        async with aiosqlite.connect('db/branding.db') as db:
+            async with db.execute(
+                "SELECT fun_prefix FROM guild_branding WHERE guild_id = 0"
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row and row[0]:
+                    return row[0]
+    except Exception:
+        pass  # DB missing, column not yet migrated, etc. — just use default
     return DEFAULT_FUN_PREFIX
 
 

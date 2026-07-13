@@ -285,7 +285,10 @@ class MainCustomizationView(discord.ui.View):
 
     @discord.ui.button(label="Bot Message Appearance", emoji="🔧", style=discord.ButtonStyle.secondary, row=0)
     async def btn_appearance(self, interaction: discord.Interaction, button: discord.ui.Button):
-        fun_prefix = await get_fun_prefix(self.guild_id)
+        try:
+            fun_prefix = await get_fun_prefix(self.guild_id)
+        except Exception:
+            fun_prefix = DEFAULT_FUN_PREFIX
         view  = AppearanceView(self.invoker, self.guild_id, self.branding, self, fun_prefix=fun_prefix)
         embed = view.build_embed()
         await interaction.response.edit_message(embed=embed, view=view)
@@ -712,8 +715,11 @@ class GlobalCustomizationDropdown(discord.ui.Select):
             )
             return
         if self.values[0] == "appearance":
-            from utils.branding import get_fun_prefix as _gfp
-            fun_prefix = await _gfp(0)  # global prefix (guild_id=0)
+            try:
+                from utils.branding import get_fun_prefix as _gfp
+                fun_prefix = await _gfp(0)  # global prefix (guild_id=0)
+            except Exception:
+                fun_prefix = DEFAULT_FUN_PREFIX
             view  = GlobalAppearanceView(self.invoker, self.branding, self.view, fun_prefix=fun_prefix)
             embed = view.build_embed()
         else:

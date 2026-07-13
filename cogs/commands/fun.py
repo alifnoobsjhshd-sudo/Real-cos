@@ -417,9 +417,13 @@ class Fun(commands.Cog):
                 return
 
             lower = content.strip().lower()
-            # Read the guild's configured fun prefix (falls back to global then "sun")
-            from utils.branding import get_fun_prefix as _gfp
-            fun_prefix = await _gfp(message.guild.id)
+            # Read the guild's configured fun prefix; isolate in its own try so
+            # a DB error never silences the entire on_message handler.
+            try:
+                from utils.branding import get_fun_prefix as _gfp
+                fun_prefix = await _gfp(message.guild.id)
+            except Exception:
+                fun_prefix = "sun"
             if not lower.startswith(fun_prefix + " "):
                 return
 
