@@ -6,21 +6,23 @@ server:
 
 lavalink:
   plugins:
-    # youtube-source: REQUIRED by LavaSrc 4.x — replaces the built-in YouTube source.
-    # Must be listed BEFORE lavasrc.
+    # youtube-source MUST come before lavasrc — LavaSrc 4.x depends on it.
     - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.1"
       repository: "https://maven.lavalink.dev/releases"
-    # LavaSrc — adds Spotify, Apple Music, Yandex Music source support
+    # LavaSrc — Spotify, Apple Music, Yandex Music source support
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.3.0"
       repository: "https://maven.topi.wtf/releases"
 
   pluginsDir: "./plugins"
 
   server:
-    password: ${LAVALINK_PASSWORD:youshallnotpass}   # Override via Render env var
+    # LAVALINK_PASSWORD is normalised in the Dockerfile ENTRYPOINT from both
+    # LAVALINK_PASSWORD (single-L) and LAVALLINK_PASSWORD (double-L, the name
+    # the user set in Render).  Either env var name works.
+    password: ${LAVALINK_PASSWORD:youshallnotpass}
 
     sources:
-      youtube: false      # MUST stay false — youtube-source plugin handles YouTube
+      youtube: false      # MUST stay false — youtube-source plugin owns YouTube
       bandcamp: true
       soundcloud: true
       twitch: true
@@ -40,11 +42,10 @@ lavalink:
       channelMix: true
       lowPass: true
 
-    # Buffer sizes — tuned for free-tier (512 MB RAM / 300 MB heap).
     bufferDurationMs: 400
     frameBufferDurationMs: 2000
-    opusEncodingQuality: 5       # 0–10; 5 = good quality, lower CPU than 10
-    resamplingQuality: LOW        # Less CPU on small instances
+    opusEncodingQuality: 5
+    resamplingQuality: LOW
     trackStuckThresholdMs: 10000
     useSeekGhosting: true
     playerUpdateInterval: 5
@@ -58,48 +59,73 @@ lavalink:
       proxyPassword: ""
 
 plugins:
-  # ── youtube-source plugin config ─────────────────────────────────────────────
+  # ── youtube-source plugin ────────────────────────────────────────────────────
   youtube:
     enabled: true
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
-    # Client priority order — WEB and WEB_REMIX are intentionally excluded because
-    # they require parsing YouTube's obfuscated player JS (player_embed.vflset),
-    # which breaks whenever YouTube rotates their script hash.
-    # TVHTML5EMBEDDED and ANDROID_TESTSUITE bypass that parsing step entirely.
-    clients:
-      - TVHTML5EMBEDDED        # TV embedded — most stable, no JS parsing needed
-      - ANDROID_TESTSUITE      # Android test client — reliable fallback
-      - IOS                    # iOS client — additional fallback
-      - MUSIC                  # YouTube Music — for ytmsearch queries
-    # Optional: add a YouTube account to avoid rate limits on busy servers
-    oauth:
-      enabled: false              # Set to true and add token below if you get 429s
 
-  # ── LavaSrc plugin config ─────────────────────────────────────────────────────
+    # Client order matters — the plugin tries each in turn and uses the first
+    # that succeeds for a given track.
+    #
+    # Removed clients (do NOT re-add):
+    #   WEB / WEB_REMIX — require parsing YouTube's obfuscated player JS
+    #                      (player_embed.vflset). YouTube rotates the script
+    #                      hash frequently → "Must find action functions from
+    #                      script" / IllegalStateException errors.
+    #   ANDROID_TESTSUITE — YouTube blocked this client in 2024-2025.
+    #   IOS               — heavily throttled / geoblocked in 2025.
+    #
+    # Working clients (as of mid-2025):
+    clients:
+      - TVHTML5EMBEDDED    # TV embedded — most stable, no JS parsing, best first
+      - ANDROID_VR         # Android VR — bypasses many rate-limit checks
+      - WEB_EMBEDDED       # Web embedded — stable; no rotating-JS dependency
+      - MUSIC              # YouTube Music client — powers ytmsearch queries
+
+    # ── OAuth (optional but strongly recommended) ────────────────────────────
+    # When a valid refreshToken is provided, the plugin uses an authenticated
+    # session which dramatically reduces 429 rate-limits and unblocks tracks
+    # that return "Video unavailable" for anonymous clients.
+    #
+    # How to obtain a token:
+    #   1. Run the bot locally once with oauth.enabled=true and no refreshToken.
+    #   2. Lavalink will print a URL — open it in a browser and approve access.
+    #   3. Copy the printed refreshToken into the YOUTUBE_REFRESH_TOKEN env var
+    #      on Render (Lavalink service), then redeploy.
+    #
+    # Leave YOUTUBE_REFRESH_TOKEN unset (or empty) to skip OAuth entirely.
+    oauth:
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
+      # skipInitialization: set true to suppress the browser-prompt on first boot
+      # when you have a valid token already.
+      skipInitialization: true
+
+  # ── LavaSrc plugin ──────────────────────────────────────────────────────────
   lavasrc:
     providers:
-      # Resolution order: Spotify ISRC → SoundCloud → YouTube → YouTube Music
-      - "spsearch:%ISRC%"          # Spotify by ISRC (best quality match)
-      - "scsearch:%QUERY%"         # SoundCloud
-      - "ytsearch:%QUERY%"         # YouTube
-      - "ytmsearch:%QUERY%"        # YouTube Music
+      # Resolution order for Spotify/generic queries:
+      - "spsearch:%ISRC%"     # Spotify by ISRC (exact match, best quality)
+      - "scsearch:%QUERY%"    # SoundCloud (reliable fallback)
+      - "ytsearch:%QUERY%"    # YouTube
+      - "ytmsearch:%QUERY%"   # YouTube Music
 
     sources:
       spotify: true
-      applemusic: false            # Set true only if you add Apple credentials below
-      deezer: false                # Set true only if you have a Deezer master key
+      applemusic: false       # Enable + add credentials below if needed
+      deezer: false           # Enable + add masterDecryptionKey if needed
       yandexmusic: false
       flowerytts: false
-      youtube: true                # Uses the youtube-source plugin above
+      youtube: true           # Uses the youtube-source plugin above
 
     spotify:
       clientId: ${SPOTIFY_CLIENT_ID:}
       clientSecret: ${SPOTIFY_CLIENT_SECRET:}
       countryCode: "US"
       playback: "LOCAL"
-      spDc: ""                     # Optional Spotify cookie for higher rate limits
+      spDc: ""
 
     deezer:
       masterDecryptionKey: ${DEEZER_MASTER_KEY:}

@@ -3,14 +3,14 @@ FROM eclipse-temurin:17-jre-alpine
 # ── Versions ──────────────────────────────────────────────────────────────────
 ARG LAVALINK_VERSION=4.0.8
 ARG LAVASRC_VERSION=4.3.0
-# 1.11.1 drops the WEB player-script parser that was breaking on YouTube's
-# rotating player_embed.vflset hash — always keep this updated when YouTube
-# rotates again and you see "Must find action functions from script" errors.
+# youtube-source 1.11.1 drops the WEB player-script parser that broke on
+# YouTube's rotating player_embed.vflset hash ("Must find action functions
+# from script" errors).  Update this when youtube-source publishes a newer fix.
 ARG YTSOURCE_VERSION=1.11.1
 
 WORKDIR /lavalink
 
-# ── Download Lavalink jar ─────────────────────────────────────────────────────
+# ── Download Lavalink jar ──────────────────────────────────────────────────────
 RUN wget -q -O Lavalink.jar \
     "https://github.com/lavalink-devs/Lavalink/releases/download/${LAVALINK_VERSION}/Lavalink.jar"
 
@@ -23,15 +23,27 @@ RUN mkdir -p plugins && \
     wget -q -O plugins/youtube-plugin.jar \
     "https://github.com/lavalink-devs/youtube-source/releases/download/${YTSOURCE_VERSION}/youtube-plugin-${YTSOURCE_VERSION}.jar"
 
-# ── Copy config ───────────────────────────────────────────────────────────────
+# ── Copy config ────────────────────────────────────────────────────────────────
 COPY application.yml application.yml
 
-# ── Port ──────────────────────────────────────────────────────────────────────
+# ── Port ───────────────────────────────────────────────────────────────────────
 EXPOSE 2333
 
-# ── JVM memory tuning — override via JAVA_OPTS env var on Render ──────────────
+# ── JVM memory tuning ─────────────────────────────────────────────────────────
 # Default: 300 MB heap — tuned for Render's free tier (512 MB total RAM).
-# If you move to a 1 GB+ instance, set JAVA_OPTS=-Xms64M -Xmx512M ... in Render.
+# Override via JAVA_OPTS env var on Render for larger instances.
 ENV JAVA_OPTS="-Xms32M -Xmx300M -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar Lavalink.jar"]
+# ── Startup ────────────────────────────────────────────────────────────────────
+# The user may set the password as either:
+#   LAVALINK_PASSWORD  (single-L — standard Lavalink convention)
+#   LAVALLINK_PASSWORD (double-L — the name used in Render / Replit secrets)
+#
+# This ENTRYPOINT normalises both into LAVALINK_PASSWORD before Java starts,
+# so application.yml's ${LAVALINK_PASSWORD:youshallnotpass} always resolves
+# to the real password regardless of which env var name the user chose.
+ENTRYPOINT ["sh", "-c", "\
+  : \"${LAVALINK_PASSWORD:=${LAVALLINK_PASSWORD:-youshallnotpass}}\" && \
+  export LAVALINK_PASSWORD && \
+  exec java $JAVA_OPTS -jar Lavalink.jar \
+"]

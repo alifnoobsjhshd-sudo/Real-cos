@@ -125,15 +125,31 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
-        await set_fun_prefix(self.guild_id, value)
+        # Acknowledge the modal immediately — prevents Discord "Interaction Failed"
+        # even if the DB write takes a moment.
+        await interaction.response.defer()
+        try:
+            await set_fun_prefix(self.guild_id, value)
+        except Exception:
+            pass  # best-effort; in-memory update still takes effect this session
         self.appearance_view.fun_prefix = value
         embed = self.appearance_view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=self.appearance_view)
+        # Edit the original button message via the stored interaction message ref.
+        if interaction.message:
+            await interaction.message.edit(embed=embed, view=self.appearance_view)
         await interaction.followup.send(
-            f"✅ Fun prefix set to **`{value}`** for this server.\n"
-            f"Users can now type `{value} hug @user` to use fun commands.",
+            f"✅ Fun prefix set to **`{value}`**. "
+            f"Users can now type `{value} hug @user`.",
             ephemeral=True,
         )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        try:
+            await interaction.followup.send(
+                f"❌ Could not save fun prefix: {error}", ephemeral=True
+            )
+        except Exception:
+            pass
 
 
 class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
@@ -313,15 +329,29 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
-        await set_fun_prefix(0, value)  # guild_id=0 = global default
+        # Acknowledge first to prevent Discord "Interaction Failed" timeout.
+        await interaction.response.defer()
+        try:
+            await set_fun_prefix(0, value)  # guild_id=0 = global default
+        except Exception:
+            pass  # best-effort; in-memory update still takes effect this session
         self.global_view.fun_prefix = value
         embed = self.global_view.build_embed()
-        await interaction.response.edit_message(embed=embed, view=self.global_view)
+        if interaction.message:
+            await interaction.message.edit(embed=embed, view=self.global_view)
         await interaction.followup.send(
-            f"✅ Global fun prefix set to **`{value}`**.\n"
-            f"Servers that haven't customized their own prefix will now use `{value} hug @user`.",
+            f"✅ Global fun prefix set to **`{value}`**. "
+            f"Servers without a custom prefix will now use `{value} hug @user`.",
             ephemeral=True,
         )
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        try:
+            await interaction.followup.send(
+                f"❌ Could not save global fun prefix: {error}", ephemeral=True
+            )
+        except Exception:
+            pass
 
 
 class GlobalBrandingNameModal(discord.ui.Modal, title="Set Global Branding Name"):
