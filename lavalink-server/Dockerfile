@@ -10,6 +10,13 @@ ARG YTSOURCE_VERSION=1.11.1
 
 WORKDIR /lavalink
 
+# ── System dependencies ────────────────────────────────────────────────────────
+# libgcc is required by Lavalink's native UDP queue library (libudpqueue.so).
+# Without it the JVM throws UnsatisfiedLinkError on Alpine and falls back to a
+# slower Java-based UDP implementation, which hurts audio stability under load.
+# libstdc++ is needed by some native audio codecs.
+RUN apk add --no-cache libgcc libstdc++
+
 # ── Download Lavalink jar ──────────────────────────────────────────────────────
 RUN wget -q -O Lavalink.jar \
     "https://github.com/lavalink-devs/Lavalink/releases/download/${LAVALINK_VERSION}/Lavalink.jar"
