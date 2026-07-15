@@ -125,18 +125,17 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
-        # Acknowledge the modal immediately — prevents Discord "Interaction Failed"
-        # even if the DB write takes a moment.
-        await interaction.response.defer()
         try:
             await set_fun_prefix(self.guild_id, value)
-        except Exception:
-            pass  # best-effort; in-memory update still takes effect this session
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Could not save fun prefix: {e}", ephemeral=True
+            )
+            return
         self.appearance_view.fun_prefix = value
         embed = self.appearance_view.build_embed()
-        # Edit the original button message via the stored interaction message ref.
-        if interaction.message:
-            await interaction.message.edit(embed=embed, view=self.appearance_view)
+        # edit_message() on a modal response updates the parent component message
+        await interaction.response.edit_message(embed=embed, view=self.appearance_view)
         await interaction.followup.send(
             f"✅ Fun prefix set to **`{value}`**. "
             f"Users can now type `{value} hug @user`.",
@@ -145,11 +144,16 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         try:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"❌ Could not save fun prefix: {error}", ephemeral=True
             )
         except Exception:
-            pass
+            try:
+                await interaction.followup.send(
+                    f"❌ Could not save fun prefix: {error}", ephemeral=True
+                )
+            except Exception:
+                pass
 
 
 class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
@@ -329,16 +333,17 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
-        # Acknowledge first to prevent Discord "Interaction Failed" timeout.
-        await interaction.response.defer()
         try:
             await set_fun_prefix(0, value)  # guild_id=0 = global default
-        except Exception:
-            pass  # best-effort; in-memory update still takes effect this session
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Could not save global fun prefix: {e}", ephemeral=True
+            )
+            return
         self.global_view.fun_prefix = value
         embed = self.global_view.build_embed()
-        if interaction.message:
-            await interaction.message.edit(embed=embed, view=self.global_view)
+        # edit_message() on a modal response updates the parent component message
+        await interaction.response.edit_message(embed=embed, view=self.global_view)
         await interaction.followup.send(
             f"✅ Global fun prefix set to **`{value}`**. "
             f"Servers without a custom prefix will now use `{value} hug @user`.",
@@ -347,11 +352,16 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         try:
-            await interaction.followup.send(
+            await interaction.response.send_message(
                 f"❌ Could not save global fun prefix: {error}", ephemeral=True
             )
         except Exception:
-            pass
+            try:
+                await interaction.followup.send(
+                    f"❌ Could not save global fun prefix: {error}", ephemeral=True
+                )
+            except Exception:
+                pass
 
 
 class GlobalBrandingNameModal(discord.ui.Modal, title="Set Global Branding Name"):

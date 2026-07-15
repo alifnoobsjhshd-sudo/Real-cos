@@ -235,6 +235,56 @@ _WAIFUPICS = {
     "yeet":        "throw",     # no yeet on waifu.pics
 }
 
+_OTAKUGIFS = {
+    "bite":        "bite",
+    "boop":        "poke",
+    "bully":       "bully",
+    "cuddle":      "cuddle",
+    "greet":       "wave",
+    "handholding": "handholding",
+    "highfive":    "highfive",
+    "hold":        "hug",
+    "hug":         "hug",
+    "insult":      "bully",
+    "kill":        "shoot",
+    "kiss":        "kiss",
+    "lick":        "lick",
+    "nom":         "nom",
+    "pat":         "pat",
+    "poke":        "poke",
+    "punch":       "punch",
+    "slap":        "slap",
+    "snuggle":     "cuddle",
+    "stare":       "stare",
+    "tickle":      "tickle",
+    "wave":        "wave",
+    "blush":       "blush",
+    "cry":         "cry",
+    "dance":       "dance",
+    "deredere":    "hug",
+    "grin":        "smug",
+    "happy":       "happy",
+    "lewd":        "smug",
+    "pout":        "pout",
+    "scoff":       "smug",
+    "shrug":       "shrug",
+    "sleepy":      "sleep",
+    "smile":       "smile",
+    "smug":        "smug",
+    "teehee":      "laugh",
+    "thinking":    "think",
+    "thonking":    "think",
+    "thumbsup":    "thumbsup",
+    "triggered":   "triggered",
+    "wag":         "wag",
+    "headpat":     "pat",
+    "kick":        "kick",
+    "tackle":      "slap",
+    "bonk":        "bonk",
+    "nuzzle":      "cuddle",
+    "yeet":        "throw",
+}
+
 KEYWORDS = frozenset(PAST_TENSE.keys())
 ALL_TRIGGER_KEYWORDS = KEYWORDS | BLOCKED_KEYWORDS
 
@@ -252,19 +302,22 @@ class Fun(commands.Cog):
     async def _get_gif(self, keyword: str) -> str:
         """Return a GIF URL for the keyword.
 
-        Tries nekos.best first (primary), then waifu.pics (fallback).
-        Returns "" if both fail so the embed still posts without an image.
+        Tries nekos.best first (primary), then waifu.pics, then otakugifs.xyz.
+        Returns "" if all fail so the embed still posts without an image.
+        Uses ssl=False connector to avoid SSL verification issues in hosted envs.
         """
-        async with aiohttp.ClientSession() as session:
+        import ssl as _ssl
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             # ── Primary: nekos.best ───────────────────────────────────────────
             nb_endpoint = _NEKOSBEST.get(keyword, "hug")
             try:
                 async with session.get(
                     f"https://nekos.best/api/v2/{nb_endpoint}",
-                    timeout=aiohttp.ClientTimeout(total=8),
+                    timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
                     if resp.status == 200:
-                        data = await resp.json()
+                        data = await resp.json(content_type=None)
                         results = data.get("results", [])
                         if results:
                             url = results[0].get("url", "")
@@ -279,15 +332,15 @@ class Fun(commands.Cog):
                     "[Fun] nekos.best fetch failed for '%s': %s", keyword, exc
                 )
 
-            # ── Fallback: waifu.pics ──────────────────────────────────────────
+            # ── Fallback 1: waifu.pics ────────────────────────────────────────
             wp_endpoint = _WAIFUPICS.get(keyword, "hug")
             try:
                 async with session.get(
                     f"https://api.waifu.pics/sfw/{wp_endpoint}",
-                    timeout=aiohttp.ClientTimeout(total=8),
+                    timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
                     if resp.status == 200:
-                        data = await resp.json()
+                        data = await resp.json(content_type=None)
                         url = data.get("url", "")
                         if url:
                             return url
@@ -298,6 +351,27 @@ class Fun(commands.Cog):
             except Exception as exc:
                 logger.warning(
                     "[Fun] waifu.pics fetch failed for '%s': %s", keyword, exc
+                )
+
+            # ── Fallback 2: otakugifs.xyz ─────────────────────────────────────
+            og_endpoint = _OTAKUGIFS.get(keyword, "hug")
+            try:
+                async with session.get(
+                    f"https://api.otakugifs.xyz/gif?reaction={og_endpoint}",
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json(content_type=None)
+                        url = data.get("url", "")
+                        if url:
+                            return url
+                    logger.warning(
+                        "[Fun] otakugifs returned %s for '%s' (%s)",
+                        resp.status, keyword, og_endpoint,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "[Fun] otakugifs fetch failed for '%s': %s", keyword, exc
                 )
 
         return ""

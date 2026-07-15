@@ -56,3 +56,4 @@ requests
 tasksio
 wavelink>=2.0.0
 asyncpg
+pillow==11.0.0
