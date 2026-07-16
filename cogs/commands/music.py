@@ -440,6 +440,22 @@ class Music(commands.Cog):
                 except:
                     pass
 
+    # Built-in public fallback nodes — tested live from Replit (July 2026).
+    # Listed best-first: Lavalink v4 nodes before NodeLink nodes.
+    # wavelink uses all connected nodes as a pool and fails over automatically.
+    _BUILTIN_NODES: list[tuple[str, str]] = [
+        # ── Lavalink v4 (fully compatible with wavelink 3.x) ─────────────────
+        ("https://lavalink-v4.triniumhost.com",  "free"),                       # TriniumHost — v4.2.2
+        ("https://lavalink.kennyy.com.br",       "kennyy.com.br"),              # Kennyy — v4.2.2
+        ("https://lava-v4.millohost.my.id",      "https://discord.gg/mjS5J2K3ep"),  # Millohost — v4.2.1
+        # ── NodeLink v3.8 (Lavalink-compatible REST API, non-SSL) ────────────
+        ("http://sg1-nodelink.nyxbot.app:3000",  "nyxbot.app/support"),         # NyxBot SG1
+        ("http://sg2-nodelink.nyxbot.app:3000",  "nyxbot.app/support"),         # NyxBot SG2
+        ("https://nodelink.triniumhost.com",     "free"),                       # TriniumHost NodeLink
+        # ── Legacy / may come back online ────────────────────────────────────
+        ("https://lava-v4.ajieblogs.eu.org",     "https://dsc.gg/ajidevserver"), # AjieDev/Amane
+    ]
+
     def _build_lavalink_nodes(self) -> list[wavelink.Node]:
         """
         Build a list of wavelink Nodes from environment variables.
@@ -461,14 +477,12 @@ class Music(commands.Cog):
                LAVALINK_URI=https://node.com  or  LAVALLINK_URL=...
                LAVALINK_PASSWORD=...          or  LAVALLINK_PASSWORD=...
 
-        4. Built-in public fallback (AjieDev/Amane v4 node — always reachable).
+        4. Built-in pool (_BUILTIN_NODES) — 7 public nodes tested live July 2026,
+           used automatically when no env vars are configured.
 
-        When passwords list is shorter than the URI list, the last supplied
+        When the passwords list is shorter than the URI list, the last supplied
         password is reused for the remaining nodes.
         """
-        default_uri      = "https://lava-v4.ajieblogs.eu.org"
-        default_password = "https://dsc.gg/ajidevserver"
-
         uris:      list[str] = []
         passwords: list[str] = []
 
@@ -498,19 +512,21 @@ class Music(commands.Cog):
             single_uri = (
                 os.getenv("LAVALINK_URI") or
                 os.getenv("LAVALLINK_URL") or
-                default_uri
+                ""
             ).strip()
             single_password = (
                 os.getenv("LAVALINK_PASSWORD") or
                 os.getenv("LAVALLINK_PASSWORD") or
-                default_password
+                ""
             ).strip()
-            uris      = [single_uri]
-            passwords = [single_password]
+            if single_uri:
+                uris      = [single_uri]
+                passwords = [single_password] if single_password else []
 
-        # ── Style 4: built-in fallback ───────────────────────────────────────
+        # ── Style 4: built-in pool ───────────────────────────────────────────
         if not uris:
-            uris = [default_uri]
+            uris      = [u for u, _ in self._BUILTIN_NODES]
+            passwords = [p for _, p in self._BUILTIN_NODES]
 
         # Normalize URIs — Lavalink requires a scheme.
         # Bare "host:port" → http://, bare "host" → https://.
@@ -521,14 +537,11 @@ class Music(commands.Cog):
                 uri = f"{scheme}{uri}"
             normalized.append(uri)
 
+        # Build Node objects, reusing the last password for any extra URIs.
+        fallback_pw = passwords[-1] if passwords else self._BUILTIN_NODES[0][1]
         nodes: list[wavelink.Node] = []
         for i, uri in enumerate(normalized):
-            if i < len(passwords) and passwords[i]:
-                pw = passwords[i]
-            elif passwords:
-                pw = passwords[-1]          # reuse last supplied password
-            else:
-                pw = default_password
+            pw = passwords[i] if i < len(passwords) and passwords[i] else fallback_pw
             nodes.append(wavelink.Node(uri=uri, password=pw))
 
         return nodes
