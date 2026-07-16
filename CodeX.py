@@ -372,6 +372,19 @@ async def main():
 
     await asyncio.sleep(5)
     await restore_from_neon()
+
+    # ── Re-apply DB schema migrations after Neon restore ──────────────────────
+    # restore_from_neon() may overwrite db/branding.db with an older Neon
+    # snapshot that pre-dates newer columns (e.g. fun_prefix).  Running
+    # _setup_branding_db() here guarantees every column exists on the restored
+    # file before discord.py's setup_hook() loads the cogs and queries the DB.
+    try:
+        from utils.branding import _setup_branding_db as _fix_branding_schema
+        _fix_branding_schema()
+        print("[startup] Branding DB schema verified/migrated post-restore.")
+    except Exception as _br_err:
+        print(f"[startup] Branding DB schema migration warning: {_br_err}")
+
     # Re-load the emoji store after DB restoration so the in-memory cache
     # reflects the freshly restored emoji_store.db, even if emojis.py was
     # imported earlier in the startup sequence.

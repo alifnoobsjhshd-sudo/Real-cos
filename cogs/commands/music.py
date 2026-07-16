@@ -537,11 +537,21 @@ class Music(commands.Cog):
                 uri = f"{scheme}{uri}"
             normalized.append(uri)
 
-        # Build Node objects, reusing the last password for any extra URIs.
+        # Deduplicate by normalized URI — never connect to the same host twice.
+        seen: set[str] = set()
+        deduped_uris:      list[str] = []
+        deduped_passwords: list[str] = []
         fallback_pw = passwords[-1] if passwords else self._BUILTIN_NODES[0][1]
-        nodes: list[wavelink.Node] = []
         for i, uri in enumerate(normalized):
+            if uri in seen:
+                continue
+            seen.add(uri)
             pw = passwords[i] if i < len(passwords) and passwords[i] else fallback_pw
+            deduped_uris.append(uri)
+            deduped_passwords.append(pw)
+
+        nodes: list[wavelink.Node] = []
+        for uri, pw in zip(deduped_uris, deduped_passwords):
             nodes.append(wavelink.Node(uri=uri, password=pw))
 
         return nodes

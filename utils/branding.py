@@ -88,13 +88,26 @@ async def set_fun_prefix(guild_id: int, prefix: str):
 
 
 async def get_global_branding() -> dict:
-    """Get global default branding (stored with guild_id = 0)."""
-    async with aiosqlite.connect('db/branding.db') as db:
-        async with db.execute(
-            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
-            "FROM guild_branding WHERE guild_id = 0"
-        ) as cursor:
-            row = await cursor.fetchone()
+    """Get global default branding (stored with guild_id = 0).
+
+    Self-healing: automatically migrates a missing fun_prefix column and
+    retries rather than propagating a crash to callers.
+    """
+    _default = {
+        "branding_name":   DEFAULT_BRANDING,
+        "embed_color":     DEFAULT_COLOR,
+        "embed_thumbnail": None,
+        "embed_banner":    None,
+        "fun_prefix":      DEFAULT_FUN_PREFIX,
+    }
+    for _attempt in range(2):
+        try:
+            async with aiosqlite.connect('db/branding.db') as db:
+                async with db.execute(
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "FROM guild_branding WHERE guild_id = 0"
+                ) as cursor:
+                    row = await cursor.fetchone()
             if row:
                 return {
                     "branding_name":   row[0] if row[0] else DEFAULT_BRANDING,
@@ -103,13 +116,16 @@ async def get_global_branding() -> dict:
                     "embed_banner":    row[3],
                     "fun_prefix":      row[4] if row[4] else DEFAULT_FUN_PREFIX,
                 }
-    return {
-        "branding_name":   DEFAULT_BRANDING,
-        "embed_color":     DEFAULT_COLOR,
-        "embed_thumbnail": None,
-        "embed_banner":    None,
-        "fun_prefix":      DEFAULT_FUN_PREFIX,
-    }
+            return _default
+        except Exception as _e:
+            if _attempt == 0 and "fun_prefix" in str(_e):
+                try:
+                    _setup_branding_db()
+                except Exception:
+                    pass
+                continue
+            return _default
+    return _default
 
 
 async def set_global_branding(**kwargs):
@@ -144,20 +160,46 @@ async def get_branding(guild_id: int) -> dict:
     A guild that has only set some fields will still inherit the rest from global, so
     any change to global customization automatically propagates to guilds that haven't
     overridden that specific field.
-    """
-    async with aiosqlite.connect('db/branding.db') as db:
-        async with db.execute(
-            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
-            "FROM guild_branding WHERE guild_id = ?",
-            (guild_id,)
-        ) as cursor:
-            guild_row = await cursor.fetchone()
 
-        async with db.execute(
-            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
-            "FROM guild_branding WHERE guild_id = 0"
-        ) as cursor:
-            global_row = await cursor.fetchone()
+    Self-healing: if the fun_prefix column is missing (e.g. right after a Neon
+    restore overwrites the DB), the migration is applied automatically and the
+    query is retried once rather than crashing the bot.
+    """
+    for _attempt in range(2):
+        try:
+            async with aiosqlite.connect('db/branding.db') as db:
+                async with db.execute(
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "FROM guild_branding WHERE guild_id = ?",
+                    (guild_id,)
+                ) as cursor:
+                    guild_row = await cursor.fetchone()
+
+                async with db.execute(
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "FROM guild_branding WHERE guild_id = 0"
+                ) as cursor:
+                    global_row = await cursor.fetchone()
+            break  # success
+        except Exception as _e:
+            if _attempt == 0 and "fun_prefix" in str(_e):
+                # Column missing — run the migration and retry once.
+                try:
+                    _setup_branding_db()
+                except Exception:
+                    pass
+                continue
+            # On second attempt or unrelated error return safe defaults.
+            return {
+                "branding_name":   DEFAULT_BRANDING,
+                "embed_color":     DEFAULT_COLOR,
+                "embed_thumbnail": None,
+                "embed_banner":    None,
+                "fun_prefix":      DEFAULT_FUN_PREFIX,
+            }
+    else:
+        guild_row = None
+        global_row = None
 
     g  = guild_row  or (None, None, None, None, None)
     gl = global_row or (None, None, None, None, None)
