@@ -507,7 +507,7 @@ class Fun(commands.Cog):
 
             keyword = parts[1]
 
-            # ── sun game <game_name> [@user] ─────────────────────────────────
+            # ── <prefix> game <game_name> [@user] ────────────────────────────
             if keyword == "game":
                 game_name = parts[2] if len(parts) > 2 else None
                 AVAILABLE_GAMES = [
@@ -519,7 +519,7 @@ class Fun(commands.Cog):
                     games_list = ", ".join(f"`{g}`" for g in AVAILABLE_GAMES)
                     await message.channel.send(
                         f"🎮 **Available games:** {games_list}\n"
-                        f"Usage: `sun game <game_name> [@player]`"
+                        f"Usage: `{fun_prefix} game <game_name> [@player]`"
                     )
                     return
                 if game_name not in AVAILABLE_GAMES:

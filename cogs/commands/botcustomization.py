@@ -111,9 +111,9 @@ class EmbedThumbnailModal(discord.ui.Modal, title="Change Embed Thumbnail"):
 
 class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
     prefix_input = discord.ui.TextInput(
-        label="Fun Prefix (e.g. sun, fun, anime)",
+        label="Fun Prefix (1–3 letters, e.g. sun, cos, fun)",
         placeholder="sun",
-        max_length=16,
+        max_length=3,
         min_length=1,
         required=True,
     )
@@ -125,6 +125,12 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
+        if len(value) > 3 or not value.isalpha():
+            await interaction.response.send_message(
+                "❌ Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
+                ephemeral=True,
+            )
+            return
         try:
             await set_fun_prefix(self.guild_id, value)
         except Exception as e:
@@ -320,9 +326,9 @@ class MainCustomizationView(discord.ui.View):
 
 class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
     prefix_input = discord.ui.TextInput(
-        label="Fun Prefix (global default, e.g. sun)",
+        label="Fun Prefix (global default, 1–3 letters)",
         placeholder="sun",
-        max_length=16,
+        max_length=3,
         min_length=1,
         required=True,
     )
@@ -333,6 +339,12 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.prefix_input.value.strip().lower()
+        if len(value) > 3 or not value.isalpha():
+            await interaction.response.send_message(
+                "❌ Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
+                ephemeral=True,
+            )
+            return
         try:
             await set_fun_prefix(0, value)  # guild_id=0 = global default
         except Exception as e:

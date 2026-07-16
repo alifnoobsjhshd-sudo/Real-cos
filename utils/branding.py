@@ -24,6 +24,7 @@ def _setup_branding_db():
     # Add fun_prefix column to existing DBs that were created before this field
     try:
         conn.execute("ALTER TABLE guild_branding ADD COLUMN fun_prefix TEXT")
+        conn.commit()
     except Exception:
         pass  # Column already exists
     conn.execute('''
