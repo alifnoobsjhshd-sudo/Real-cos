@@ -91,22 +91,24 @@ async def get_global_branding() -> dict:
     """Get global default branding (stored with guild_id = 0)."""
     async with aiosqlite.connect('db/branding.db') as db:
         async with db.execute(
-            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner "
+            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
             "FROM guild_branding WHERE guild_id = 0"
         ) as cursor:
             row = await cursor.fetchone()
             if row:
                 return {
-                    "branding_name": row[0] if row[0] else DEFAULT_BRANDING,
-                    "embed_color":   row[1] if row[1] is not None else DEFAULT_COLOR,
+                    "branding_name":   row[0] if row[0] else DEFAULT_BRANDING,
+                    "embed_color":     row[1] if row[1] is not None else DEFAULT_COLOR,
                     "embed_thumbnail": row[2],
                     "embed_banner":    row[3],
+                    "fun_prefix":      row[4] if row[4] else DEFAULT_FUN_PREFIX,
                 }
     return {
         "branding_name":   DEFAULT_BRANDING,
         "embed_color":     DEFAULT_COLOR,
         "embed_thumbnail": None,
         "embed_banner":    None,
+        "fun_prefix":      DEFAULT_FUN_PREFIX,
     }
 
 
@@ -136,24 +138,45 @@ async def reset_branding(guild_id: int):
 
 
 async def get_branding(guild_id: int) -> dict:
-    """Get branding for a guild; falls back to global defaults then hardcoded defaults."""
+    """Get branding for a guild, merging per-field with global then hardcoded defaults.
+
+    Priority per field: guild-specific value → global default (guild_id=0) → hardcoded.
+    A guild that has only set some fields will still inherit the rest from global, so
+    any change to global customization automatically propagates to guilds that haven't
+    overridden that specific field.
+    """
     async with aiosqlite.connect('db/branding.db') as db:
         async with db.execute(
-            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner "
+            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
             "FROM guild_branding WHERE guild_id = ?",
             (guild_id,)
         ) as cursor:
-            row = await cursor.fetchone()
-            if row and any(v is not None for v in row):
-                return {
-                    "branding_name": row[0] if row[0] else DEFAULT_BRANDING,
-                    "embed_color":   row[1] if row[1] is not None else DEFAULT_COLOR,
-                    "embed_thumbnail": row[2],
-                    "embed_banner":    row[3],
-                }
+            guild_row = await cursor.fetchone()
 
-    # Fall back to global defaults (guild_id = 0)
-    return await get_global_branding()
+        async with db.execute(
+            "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+            "FROM guild_branding WHERE guild_id = 0"
+        ) as cursor:
+            global_row = await cursor.fetchone()
+
+    g  = guild_row  or (None, None, None, None, None)
+    gl = global_row or (None, None, None, None, None)
+
+    def _pick(guild_val, global_val, hardcoded):
+        """First non-null, non-empty value wins. Integer 0 is treated as valid."""
+        if guild_val is not None and guild_val != "":
+            return guild_val
+        if global_val is not None and global_val != "":
+            return global_val
+        return hardcoded
+
+    return {
+        "branding_name":   _pick(g[0], gl[0], DEFAULT_BRANDING),
+        "embed_color":     _pick(g[1], gl[1], DEFAULT_COLOR),
+        "embed_thumbnail": _pick(g[2], gl[2], None),
+        "embed_banner":    _pick(g[3], gl[3], None),
+        "fun_prefix":      _pick(g[4], gl[4], DEFAULT_FUN_PREFIX),
+    }
 
 
 async def set_branding(guild_id: int, **kwargs):

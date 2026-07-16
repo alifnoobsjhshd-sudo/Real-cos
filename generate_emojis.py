@@ -19,9 +19,9 @@ OUT  = "assets/emojis"
 FONT = "utils/arial.ttf"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-BG     = (185, 185, 185)   # medium gray
-SHADE  = (110, 110, 110)   # dark gray shadow
-HILITE = (220, 220, 220)   # light gray highlight
+BG     = (72,  72,  72)    # dark gray
+SHADE  = (42,  42,  42)    # very dark shadow
+HILITE = (105, 105, 105)   # slightly lighter edge highlight
 WHITE  = (255, 255, 255)
 HOLE   = BG
 GOLD   = HOLE

@@ -444,31 +444,57 @@ class Music(commands.Cog):
         """
         Build a list of wavelink Nodes from environment variables.
 
-        Supports two configuration styles:
+        Supported styles (checked in order; first match wins):
 
-        * Single node (legacy):
-            LAVALINK_URI=https://lavalink.example.com
-            LAVALINK_PASSWORD=some-password
+        1. Pipe-separated list:
+               LAVALINK_URIS=https://node1.com|http://node2:2333
+               LAVALINK_PASSWORDS=pass1|pass2
 
-        * Multiple nodes (fallback / redundancy):
-            LAVALINK_URIS=https://node1.com|https://node2.com|http://node3:2333
-            LAVALINK_PASSWORDS=pass1|pass2|pass3
+        2. Numbered variables (add as many as needed):
+               LAVALINK_URL_1=https://node1.com   LAVALINK_PASSWORD_1=pass1
+               LAVALINK_URL_2=http://node2:2333   LAVALINK_PASSWORD_2=pass2
+               LAVALINK_URL_3=http://node3:80     LAVALINK_PASSWORD_3=pass3
+               (also accepts LAVALINK_URI_N instead of LAVALINK_URL_N)
+               Scanning stops at the first gap (missing _N).
 
-        If the passwords list is shorter than the URI list, the last password
-        is repeated for the remaining nodes. URIs are normalized to a scheme.
+        3. Single node:
+               LAVALINK_URI=https://node.com  or  LAVALLINK_URL=...
+               LAVALINK_PASSWORD=...          or  LAVALLINK_PASSWORD=...
+
+        4. Built-in public fallback (AjieDev/Amane v4 node — always reachable).
+
+        When passwords list is shorter than the URI list, the last supplied
+        password is reused for the remaining nodes.
         """
-        default_uri = "https://lava-v4.ajieblogs.eu.org"
+        default_uri      = "https://lava-v4.ajieblogs.eu.org"
         default_password = "https://dsc.gg/ajidevserver"
 
-        multi_uris = os.getenv("LAVALINK_URIS", "")
-        multi_passwords = os.getenv("LAVALINK_PASSWORDS", "")
+        uris:      list[str] = []
+        passwords: list[str] = []
 
-        if multi_uris.strip():
-            uris = [u.strip() for u in multi_uris.split("|") if u.strip()]
-            passwords = [p.strip() for p in multi_passwords.split("|") if p.strip()] if multi_passwords.strip() else []
-        else:
-            # Support both LAVALINK_URI (original) and LAVALLINK_URL (Replit secret name)
-            # so either naming convention works without changing Render env vars.
+        # ── Style 1: pipe-separated LAVALINK_URIS ────────────────────────────
+        multi_uris      = os.getenv("LAVALINK_URIS",      "").strip()
+        multi_passwords = os.getenv("LAVALINK_PASSWORDS",  "").strip()
+        if multi_uris:
+            uris      = [u.strip() for u in multi_uris.split("|")      if u.strip()]
+            passwords = [p.strip() for p in multi_passwords.split("|") if p.strip()] if multi_passwords else []
+
+        # ── Style 2: numbered LAVALINK_URL_N / LAVALINK_URI_N ───────────────
+        if not uris:
+            for n in range(1, 21):          # supports up to 20 nodes
+                uri = (
+                    os.getenv(f"LAVALINK_URL_{n}") or
+                    os.getenv(f"LAVALINK_URI_{n}") or
+                    ""
+                ).strip()
+                if not uri:
+                    break                   # stop at first gap
+                uris.append(uri)
+                pw = (os.getenv(f"LAVALINK_PASSWORD_{n}") or "").strip()
+                passwords.append(pw)
+
+        # ── Style 3: single node ─────────────────────────────────────────────
+        if not uris:
             single_uri = (
                 os.getenv("LAVALINK_URI") or
                 os.getenv("LAVALLINK_URL") or
@@ -479,27 +505,32 @@ class Music(commands.Cog):
                 os.getenv("LAVALLINK_PASSWORD") or
                 default_password
             ).strip()
-            uris = [single_uri]
+            uris      = [single_uri]
             passwords = [single_password]
 
+        # ── Style 4: built-in fallback ───────────────────────────────────────
         if not uris:
             uris = [default_uri]
-        if not passwords:
-            passwords = [default_password]
 
-        # Normalize URIs: Lavalink needs a scheme. A bare host with a port is
-        # treated as HTTP; a bare host without a port is treated as HTTPS.
-        normalized_uris = []
+        # Normalize URIs — Lavalink requires a scheme.
+        # Bare "host:port" → http://, bare "host" → https://.
+        normalized: list[str] = []
         for uri in uris:
             if uri and not uri.startswith(("http://", "https://", "ws://", "wss://")):
                 scheme = "http://" if ":" in uri else "https://"
                 uri = f"{scheme}{uri}"
-            normalized_uris.append(uri)
+            normalized.append(uri)
 
-        nodes = []
-        for i, uri in enumerate(normalized_uris):
-            password = passwords[i] if i < len(passwords) else passwords[-1]
-            nodes.append(wavelink.Node(uri=uri, password=password))
+        nodes: list[wavelink.Node] = []
+        for i, uri in enumerate(normalized):
+            if i < len(passwords) and passwords[i]:
+                pw = passwords[i]
+            elif passwords:
+                pw = passwords[-1]          # reuse last supplied password
+            else:
+                pw = default_password
+            nodes.append(wavelink.Node(uri=uri, password=pw))
+
         return nodes
 
     async def connect_nodes(self) -> None:
