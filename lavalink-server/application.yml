@@ -40,8 +40,8 @@ lavalink:
     # These values are tuned for Render free/starter tier.
     # Increase bufferDurationMs and frameBufferDurationMs if you hear audio gaps
     # and are on a paid plan with more RAM.
-    bufferDurationMs: 400
-    frameBufferDurationMs: 2000
+    bufferDurationMs: 800
+    frameBufferDurationMs: 5000
     opusEncodingQuality: 5        # 0–10; 5 is a good quality/CPU balance
     resamplingQuality: LOW
     trackStuckThresholdMs: 10000
@@ -66,14 +66,16 @@ plugins:
     allowDirectPlaylistIds: true
 
     # Client order matters — the plugin tries each in turn and uses the first
-    # that succeeds.  WEB / WEB_REMIX are intentionally excluded (they require
-    # parsing YouTube's obfuscated rotating player JS, which breaks frequently).
-    # ANDROID_TESTSUITE and IOS are excluded as YouTube blocked / throttled them.
+    # that succeeds.
+    # With OAuth active, WEB is the highest-quality client and should be first.
+    # ANDROID_MUSIC is the most reliable for audio playback without JS parsing.
+    # WEB_EMBEDDED is excluded — it frequently returns throttled/silent streams.
+    # MUSIC client is search-only and does not provide audio playback.
     clients:
-      - TVHTML5EMBEDDED   # TV embedded iframe — most stable, no JS parsing
-      - ANDROID_VR        # Android VR — bypasses many rate-limit checks
-      - WEB_EMBEDDED      # Web embedded — no rotating-JS dependency
-      - MUSIC             # YouTube Music — powers ytmsearch: queries
+      - WEB               # Best quality — requires OAuth (set YOUTUBE_OAUTH_ENABLED=true)
+      - ANDROID_MUSIC     # Most reliable for music audio, no JS parsing needed
+      - ANDROID_VR        # Good fallback, bypasses many rate-limit checks
+      - TVHTML5EMBEDDED   # Stable last resort, no JS parsing
 
     # ── OAuth (STRONGLY recommended — eliminates most 429 / "unavailable" errors)
     #
@@ -122,7 +124,6 @@ plugins:
       clientId: ${SPOTIFY_CLIENT_ID:}
       clientSecret: ${SPOTIFY_CLIENT_SECRET:}
       countryCode: "US"
-      playback: "LOCAL"
       spDc: ""
 
     deezer:
