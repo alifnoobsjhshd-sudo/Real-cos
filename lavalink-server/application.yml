@@ -5,20 +5,14 @@ server:
     enabled: false
 
 lavalink:
-  plugins:
-    # youtube-source MUST come before lavasrc — LavaSrc 4.x depends on it.
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.1"
-      repository: "https://maven.lavalink.dev/releases"
-    # LavaSrc — Spotify, Apple Music, Yandex Music source support
-    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.3.0"
-      repository: "https://maven.topi.wtf/releases"
+  # No lavalink.plugins section needed — plugins are pre-downloaded into the
+  # ./plugins/ directory by the Dockerfile and auto-loaded by Lavalink at boot.
 
   pluginsDir: "./plugins"
 
   server:
-    # LAVALINK_PASSWORD is normalised in the Dockerfile ENTRYPOINT from both
-    # LAVALINK_PASSWORD (single-L) and LAVALLINK_PASSWORD (double-L, the name
-    # the user set in Render).  Either env var name works.
+    # Set LAVALINK_PASSWORD (or LAVALLINK_PASSWORD) in your Render environment.
+    # The Dockerfile ENTRYPOINT normalises both names before Java starts.
     password: ${LAVALINK_PASSWORD:youshallnotpass}
 
     sources:
@@ -42,13 +36,18 @@ lavalink:
       channelMix: true
       lowPass: true
 
+    # ── Low-resource tuning ───────────────────────────────────────────────────
+    # These values are tuned for Render free/starter tier.
+    # Increase bufferDurationMs and frameBufferDurationMs if you hear audio gaps
+    # and are on a paid plan with more RAM.
     bufferDurationMs: 400
     frameBufferDurationMs: 2000
-    opusEncodingQuality: 5
+    opusEncodingQuality: 5        # 0–10; 5 is a good quality/CPU balance
     resamplingQuality: LOW
     trackStuckThresholdMs: 10000
     useSeekGhosting: true
     playerUpdateInterval: 5
+    youtubePlaylistLoadLimit: 3   # pages per playlist — keep low on free tier
     soundcloudSearchEnabled: true
     gc-warnings: true
 
@@ -59,7 +58,7 @@ lavalink:
       proxyPassword: ""
 
 plugins:
-  # ── youtube-source plugin ────────────────────────────────────────────────────
+  # ── youtube-source plugin ─────────────────────────────────────────────────
   youtube:
     enabled: true
     allowSearch: true
@@ -67,58 +66,57 @@ plugins:
     allowDirectPlaylistIds: true
 
     # Client order matters — the plugin tries each in turn and uses the first
-    # that succeeds for a given track.
-    #
-    # Removed clients (do NOT re-add):
-    #   WEB / WEB_REMIX — require parsing YouTube's obfuscated player JS
-    #                      (player_embed.vflset). YouTube rotates the script
-    #                      hash frequently → "Must find action functions from
-    #                      script" / IllegalStateException errors.
-    #   ANDROID_TESTSUITE — YouTube blocked this client in 2024-2025.
-    #   IOS               — heavily throttled / geoblocked in 2025.
-    #
-    # Working clients (as of mid-2025):
+    # that succeeds.  WEB / WEB_REMIX are intentionally excluded (they require
+    # parsing YouTube's obfuscated rotating player JS, which breaks frequently).
+    # ANDROID_TESTSUITE and IOS are excluded as YouTube blocked / throttled them.
     clients:
-      - TVHTML5EMBEDDED    # TV embedded — most stable, no JS parsing, best first
-      - ANDROID_VR         # Android VR — bypasses many rate-limit checks
-      - WEB_EMBEDDED       # Web embedded — stable; no rotating-JS dependency
-      - MUSIC              # YouTube Music client — powers ytmsearch queries
+      - TVHTML5EMBEDDED   # TV embedded iframe — most stable, no JS parsing
+      - ANDROID_VR        # Android VR — bypasses many rate-limit checks
+      - WEB_EMBEDDED      # Web embedded — no rotating-JS dependency
+      - MUSIC             # YouTube Music — powers ytmsearch: queries
 
-    # ── OAuth (optional but strongly recommended) ────────────────────────────
-    # When a valid refreshToken is provided, the plugin uses an authenticated
-    # session which dramatically reduces 429 rate-limits and unblocks tracks
-    # that return "Video unavailable" for anonymous clients.
+    # ── OAuth (STRONGLY recommended — eliminates most 429 / "unavailable" errors)
     #
-    # How to obtain a token:
-    #   1. Run the bot locally once with oauth.enabled=true and no refreshToken.
-    #   2. Lavalink will print a URL — open it in a browser and approve access.
-    #   3. Copy the printed refreshToken into the YOUTUBE_REFRESH_TOKEN env var
-    #      on Render (Lavalink service), then redeploy.
+    # HOW TO SET UP (takes ~2 minutes):
+    #   1. Deploy to Render with YOUTUBE_OAUTH_ENABLED=true and NO refreshToken.
+    #      Leave YOUTUBE_SKIP_INIT unset (or set to false).
+    #   2. In your Render service → Logs, look for a line like:
+    #        Visit the following URL to authorize YouTube: https://www.youtube.com/activate?user_code=XXXX-XXXX
+    #   3. Open that URL in any browser, sign in to Google, click Allow.
+    #   4. Back in Render logs you will see:
+    #        OAuth token saved. Refresh token: eyJhb...
+    #      Copy that refresh token.
+    #   5. In Render → your Lavalink service → Environment, add:
+    #        YOUTUBE_REFRESH_TOKEN = <paste the token>
+    #        YOUTUBE_SKIP_INIT     = true        ← suppresses the prompt on future restarts
+    #   6. Redeploy — OAuth is now active. Done.
     #
-    # Leave YOUTUBE_REFRESH_TOKEN unset (or empty) to skip OAuth entirely.
+    # Leave YOUTUBE_OAUTH_ENABLED unset (defaults to false) to skip OAuth.
     oauth:
       enabled: ${YOUTUBE_OAUTH_ENABLED:false}
       refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
-      # skipInitialization: set true to suppress the browser-prompt on first boot
-      # when you have a valid token already.
-      skipInitialization: true
+      # skipInitialization:
+      #   false (default) → Lavalink PRINTS the auth URL in logs when no token exists.
+      #                      Use this on first deployment to get your token.
+      #   true            → Lavalink skips the auth prompt (use after you have a token).
+      skipInitialization: ${YOUTUBE_SKIP_INIT:false}
 
   # ── LavaSrc plugin ──────────────────────────────────────────────────────────
   lavasrc:
     providers:
-      # Resolution order for Spotify/generic queries:
-      - "spsearch:%ISRC%"     # Spotify by ISRC (exact match, best quality)
-      - "scsearch:%QUERY%"    # SoundCloud (reliable fallback)
-      - "ytsearch:%QUERY%"    # YouTube
-      - "ytmsearch:%QUERY%"   # YouTube Music
+      # Resolution order for Spotify / generic queries:
+      - "spsearch:%ISRC%"   # Spotify by ISRC — exact match, best quality
+      - "scsearch:%QUERY%"  # SoundCloud — reliable fallback
+      - "ytsearch:%QUERY%"  # YouTube
+      - "ytmsearch:%QUERY%" # YouTube Music
 
     sources:
       spotify: true
-      applemusic: false       # Enable + add credentials below if needed
-      deezer: false           # Enable + add masterDecryptionKey if needed
+      applemusic: false     # Enable + add mediaAPIToken below if needed
+      deezer: false         # Enable + add masterDecryptionKey if you have one
       yandexmusic: false
       flowerytts: false
-      youtube: true           # Uses the youtube-source plugin above
+      youtube: true         # Resolved via the youtube-source plugin above
 
     spotify:
       clientId: ${SPOTIFY_CLIENT_ID:}
@@ -154,8 +152,6 @@ sentry:
   environment: ""
 
 logging:
-  file:
-    path: ./logs/lavalink.log
   level:
     root: INFO
     lavalink: INFO
