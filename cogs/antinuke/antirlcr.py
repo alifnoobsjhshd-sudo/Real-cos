@@ -16,18 +16,17 @@ class AntiRoleCreate(commands.Cog):
             cursor = await block_db.execute("SELECT 1 FROM guild_blacklist WHERE guild_id = ?", (str(guild_id),))
             return await cursor.fetchone() is not None
 
-    async def fetch_audit_logs(self, guild, action):
+    async def fetch_audit_logs(self, guild, action, target_id):
         if not guild.me.guild_permissions.ban_members:
             return None
         try:
-            async for entry in guild.audit_logs(action=action, limit=1):
-                now = datetime.datetime.now(pytz.utc)
-                created_at = entry.created_at
-                difference = (now - created_at).total_seconds() * 1000
-
+            now = datetime.datetime.now(pytz.utc)
+            async for entry in guild.audit_logs(action=action, limit=5):
+                difference = (now - entry.created_at).total_seconds() * 1000
                 if difference >= 3600000:
-                    return None
-                return entry
+                    break  # entries are newest-first; if this is old, rest will be older
+                if entry.target.id == target_id:
+                    return entry
         except Exception:
             pass
         return None
@@ -66,7 +65,7 @@ class AntiRoleCreate(commands.Cog):
         if not self.can_fetch_audit(guild.id, 'role_create'):
             return
 
-        log_entry = await self.fetch_audit_logs(guild, discord.AuditLogAction.role_create)
+        log_entry = await self.fetch_audit_logs(guild, discord.AuditLogAction.role_create, role.id)
         if log_entry is None:
             return
 

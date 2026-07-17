@@ -1288,4 +1288,8 @@ class TicketCog(commands.Cog, name="Ticket System"):
 
 
 async def setup(bot):
-    await bot.add_cog(TicketCog(bot))
+    cog = TicketCog(bot)
+    await bot.add_cog(cog)
+    # Register persistent views so ticket buttons survive bot restarts
+    bot.add_view(TicketActionsView(cog))
+    bot.add_view(ClosedTicketView(cog))

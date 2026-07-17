@@ -87,7 +87,10 @@ class AntiSpam(commands.Cog):
         user_messages = self.recent_messages.get(user.id, [])
         user_messages = [msg for msg in user_messages if current_time - msg < 10]
         user_messages.append(current_time)
-        self.recent_messages[user.id] = user_messages
+        if user_messages:
+            self.recent_messages[user.id] = user_messages
+        else:
+            self.recent_messages.pop(user.id, None)
 
         if len(user_messages) > self.spam_threshold:
             punishment = await self.get_punishment(guild_id)

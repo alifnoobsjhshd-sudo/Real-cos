@@ -38,6 +38,19 @@ class Tracking(commands.Cog):
                 print(f"Missing Permissions in {guild.name}")
 
     @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        """Cache invites for guilds the bot joins while running."""
+        try:
+            self.invites[guild.id] = await guild.invites()
+        except discord.Forbidden:
+            self.invites[guild.id] = []
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild):
+        """Clean up invite cache when bot leaves a guild."""
+        self.invites.pop(guild.id, None)
+
+    @commands.Cog.listener()
     async def on_invite_create(self, invite):
         self.invites[invite.guild.id] = await invite.guild.invites()
 
@@ -66,16 +79,24 @@ class Tracking(commands.Cog):
         self.invites[guild.id] = invites_after
 
         async with aiosqlite.connect(INVITE_DB) as db:
-            if inviter:
-                # Check if user has been in DB before (Rejoin)
-                async with db.execute(f"SELECT user_id FROM invites_{guild.id} WHERE user_id = ?", (member.id,)) as cursor:
-                    user_row = await cursor.fetchone()
+            # Check if this member has been here before (Rejoin detection)
+            # We always maintain a row for every member who has ever been in the guild
+            async with db.execute(f"SELECT user_id FROM invites_{guild.id} WHERE user_id = ?", (member.id,)) as cursor:
+                member_row = await cursor.fetchone()
 
-                if user_row:
+            if inviter:
+                if member_row:
+                    # Member has been here before → rejoin
+                    await db.execute(f"INSERT OR IGNORE INTO invites_{guild.id} (user_id) VALUES (?)", (inviter.id,))
                     await db.execute(f"UPDATE invites_{guild.id} SET rejoin = rejoin + 1 WHERE user_id = ?", (inviter.id,))
                 else:
+                    # Brand new member
                     await db.execute(f"INSERT OR IGNORE INTO invites_{guild.id} (user_id) VALUES (?)", (inviter.id,))
                     await db.execute(f"UPDATE invites_{guild.id} SET total = total + 1 WHERE user_id = ?", (inviter.id,))
+
+            # Always ensure the joining member has a row so future rejoin checks and
+            # left-counter updates (on_member_remove) can find them
+            await db.execute(f"INSERT OR IGNORE INTO invites_{guild.id} (user_id) VALUES (?)", (member.id,))
             await db.commit()
 
             async with db.execute("SELECT channel_id FROM logging WHERE guild_id = ?", (guild.id,)) as cursor:

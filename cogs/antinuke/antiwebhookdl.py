@@ -11,15 +11,19 @@ class AntiWebhookDelete(commands.Cog):
         self.event_limits = {}
         self.cooldowns = {}
 
-    async def fetch_audit_logs(self, guild, action, target_id):
+    async def fetch_audit_logs(self, guild, action):
+        """Fetch the most recent audit log entry for the given action.
+        We don't filter by target_id because the webhook ID isn't known
+        from the on_webhooks_update event (which only provides the channel).
+        """
+        if not guild.me.guild_permissions.ban_members:
+            return None
         try:
             now = datetime.datetime.now(pytz.utc)
-            logs = [entry async for entry in guild.audit_logs(action=action, limit=1)]
-            for entry in logs:
-                if entry.target.id == target_id:
-                    difference = (now - entry.created_at).total_seconds() * 1000
-                    if difference < 3600000:  # Only consider entries from the last hour
-                        return entry
+            async for entry in guild.audit_logs(action=action, limit=3):
+                difference = (now - entry.created_at).total_seconds() * 1000
+                if difference < 5000:  # Only entries from the last 5 seconds
+                    return entry
         except Exception:
             return None
         return None
@@ -49,7 +53,9 @@ class AntiWebhookDelete(commands.Cog):
             return await cursor.fetchone() is not None
 
     @commands.Cog.listener()
-    async def on_webhooks_delete(self, channel):
+    async def on_webhooks_update(self, channel):
+        # discord.py fires on_webhooks_update for all webhook changes (create/update/delete).
+        # We check the audit log for a webhook_delete action to handle deletion specifically.
         guild = channel.guild
         if await self.is_blacklisted_guild(guild.id):
             return
@@ -64,7 +70,7 @@ class AntiWebhookDelete(commands.Cog):
         if not self.can_fetch_audit(guild.id, 'webhook_delete'):
             return
 
-        entry = await self.fetch_audit_logs(guild, discord.AuditLogAction.webhook_delete, channel.id)
+        entry = await self.fetch_audit_logs(guild, discord.AuditLogAction.webhook_delete)
         if entry is None:
             return
 
