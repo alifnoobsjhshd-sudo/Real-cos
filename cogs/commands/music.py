@@ -511,6 +511,7 @@ class Music(commands.Cog):
         if not uris:
             single_uri = (
                 os.getenv("LAVALINK_URI") or
+                os.getenv("LAVALINK_URL") or   # plain LAVALINK_URL also accepted
                 os.getenv("LAVALLINK_URL") or
                 ""
             ).strip()
