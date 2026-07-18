@@ -25,9 +25,9 @@ Once deployed, your bot connects to it automatically via two environment variabl
 
 | Component | Version |
 |---|---|
-| Lavalink | 4.0.8 (musl/Alpine build) |
-| youtube-source | 1.13.1 |
-| LavaSrc | 4.3.0 |
+| Lavalink | 4.2.2 (musl/Alpine build) |
+| youtube-source | 1.18.1 |
+| LavaSrc | 4.8.3 |
 
 ---
 
@@ -290,9 +290,9 @@ When new versions are released:
 
 | Component | Version | Release page |
 |---|---|---|
-| Lavalink | 4.0.8 | [releases](https://github.com/lavalink-devs/Lavalink/releases) |
-| youtube-source | 1.13.1 | [releases](https://github.com/lavalink-devs/youtube-source/releases) |
-| LavaSrc | 4.3.0 | [releases](https://github.com/topi314/LavaSrc/releases) |
+| Lavalink | 4.2.2 | [releases](https://github.com/lavalink-devs/Lavalink/releases) |
+| youtube-source | 1.18.1 | [releases](https://github.com/lavalink-devs/youtube-source/releases) |
+| LavaSrc | 4.8.3 | [releases](https://github.com/topi314/LavaSrc/releases) |
 
 ---
 
@@ -309,11 +309,11 @@ When new versions are released:
 ```bash
 sudo apt update && sudo apt install -y openjdk-17-jre wget
 mkdir -p ~/lavalink/plugins && cd ~/lavalink
-wget https://github.com/lavalink-devs/Lavalink/releases/download/4.0.8/Lavalink.jar
+wget https://github.com/lavalink-devs/Lavalink/releases/download/4.2.2/Lavalink.jar
 wget -O plugins/youtube-plugin.jar \
-  https://github.com/lavalink-devs/youtube-source/releases/download/1.13.1/youtube-plugin-1.13.1.jar
+  https://github.com/lavalink-devs/youtube-source/releases/download/1.18.1/youtube-plugin-1.18.1.jar
 wget -O plugins/lavasrc-plugin.jar \
-  https://github.com/topi314/LavaSrc/releases/download/4.3.0/lavasrc-plugin-4.3.0.jar
+  https://github.com/topi314/LavaSrc/releases/download/4.8.3/lavasrc-plugin-4.8.3.jar
 # Copy application.yml from this repo into ~/lavalink/
 export LAVALINK_PASSWORD="your-password"
 export SPOTIFY_CLIENT_ID="your-id"

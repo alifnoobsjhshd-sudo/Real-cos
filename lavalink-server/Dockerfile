@@ -3,9 +3,9 @@ FROM eclipse-temurin:17-jre-alpine
 # ── Versions ──────────────────────────────────────────────────────────────────
 # Lavalink-musl.jar is built for Alpine (musl libc). Using the plain
 # Lavalink.jar on Alpine causes native-library errors and slower UDP audio.
-ARG LAVALINK_VERSION=4.0.8
-ARG LAVASRC_VERSION=4.3.0
-ARG YTSOURCE_VERSION=1.13.1
+ARG LAVALINK_VERSION=4.2.2
+ARG LAVASRC_VERSION=4.8.3
+ARG YTSOURCE_VERSION=1.18.1
 
 WORKDIR /lavalink
 
