@@ -1,39 +1,66 @@
 # Lavalink Server — Render Deployment Guide
 
-This folder contains everything needed to run your own Lavalink v4 server on Render.
-Once deployed you point your bot at it using the `LAVALINK_URIS` and `LAVALINK_PASSWORDS`
-environment variables.
-
-**What's included:**
-
-| File | Purpose |
-|---|---|
-| `Dockerfile` | Lavalink 4.2.2 + youtube-source 1.18.1 + LavaSrc 4.8.3, tuned for Alpine + low RAM |
-| `application.yml` | Full config — sources, clients, OAuth, Spotify, filters |
-
-**Sources enabled out of the box:**
-- ✅ YouTube + YouTube Music  
-- ✅ SoundCloud, Bandcamp, Twitch, Vimeo  
-- ✅ Spotify (via LavaSrc — needs a free Spotify app key)  
-- ⚠️ Deezer — disabled by default (enable in `application.yml` only if you have a master key)
+A self-hosted Lavalink v4 node tuned for Render's free tier (512 MB RAM).
+Once deployed, your bot connects to it automatically via two environment variables.
 
 ---
 
-## Step 1 — Choose how to deploy
+## What's included
 
-### Option A — From your existing bot repo (recommended)
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Lavalink + youtube-source + LavaSrc on Alpine/musl, with HEALTHCHECK |
+| `application.yml` | Full config: YouTube OAuth, Spotify via ISRC, SoundCloud, filters |
+| `render.yaml` | Render Blueprint — one-click service creation (optional) |
+| `.dockerignore` | Keeps build context clean (only Dockerfile + yml go into image) |
 
-Render lets you set a **Root Directory** per service, so it only builds the
-`lavalink-server/` subfolder. You don't need a separate repo.
+### Sources enabled out of the box
+- ✅ YouTube + YouTube Music (via youtube-source plugin)
+- ✅ Spotify (via LavaSrc — needs a free Spotify app key)
+- ✅ SoundCloud, Bandcamp, Twitch, Vimeo
+- ⚠️ Deezer — disabled (requires a master decryption key you must source yourself)
+- ⚠️ Apple Music — disabled (requires a `mediaAPIToken`)
 
-### Option B — Separate repo
+### Baked-in versions
 
-Create a new GitHub repo, copy just the `lavalink-server/` folder contents into
-its root, push, and connect that repo in Render.
+| Component | Version |
+|---|---|
+| Lavalink | 4.0.8 (musl/Alpine build) |
+| youtube-source | 1.13.1 |
+| LavaSrc | 4.3.0 |
+
+---
+
+## Step 1 — Choose your deployment method
+
+### Method A — Separate GitHub repo (recommended)
+
+Create a fresh repo, copy the **contents** of this `lavalink-server/` folder to its
+root, and push. The `render.yaml` will be at the repo root where Render expects it.
+
+### Method B — From your bot's existing repo
+
+Render lets you set a **Root Directory** per service, so it only builds
+`lavalink-server/`. No separate repo needed.
+
+If you want to use the Blueprint (render.yaml):
+1. Copy `render.yaml` to the **root** of your bot's repo.
+2. Uncomment the `rootDir: lavalink-server` line inside it.
+3. Merge with any existing `render.yaml` if one exists — don't create two.
 
 ---
 
 ## Step 2 — Create the Render web service
+
+### Option A: Render Blueprint (fastest)
+
+1. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+2. Connect the GitHub repo (your new Lavalink repo or your bot repo).
+3. Render reads `render.yaml` and pre-fills the service for you.
+4. Review the settings → **Apply**.
+5. Skip to **Step 3** to set your environment variables.
+
+### Option B: Manual setup
 
 1. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**.
 2. Connect your GitHub repo.
@@ -41,21 +68,21 @@ its root, push, and connect that repo in Render.
 
 | Setting | Value |
 |---|---|
-| **Name** | `lavalink` (or anything you like) |
-| **Root Directory** | `lavalink-server` |
+| **Name** | `lavalink-server` (or anything) |
+| **Root Directory** | `lavalink-server` (only if using the bot repo — leave empty for a standalone repo) |
 | **Runtime** | `Docker` |
 | **Instance Type** | See below |
 
-**Instance type:**
+**Which instance type to pick:**
 
-| Tier | RAM | Recommended for |
+| Tier | RAM | Verdict |
 |---|---|---|
-| **Free (512 MB)** | 512 MB | Testing / light use. Spins down after 15 min of inactivity — music stops until someone runs `/play` again. |
-| **Starter ($7/mo)** | 1 GB | Best value. Stays online 24/7, handles 3–5 concurrent streams. |
-| **Standard ($25/mo)** | 2 GB | Heavy use / large servers with many concurrent streams. |
+| **Free (512 MB)** | 512 MB | Works for testing and light personal use. Render spins it down after 15 min of inactivity — music stops until someone runs `/play`. The bot's WebSocket keeps it alive during active use. |
+| **Starter ($7/mo)** | 1 GB | Best value. Stays up 24/7, handles 3–5 concurrent streams. Set `JAVA_OPTS=-Xms64M -Xmx600M -XX:+UseG1GC` in env vars. |
+| **Standard ($25/mo)** | 2 GB | Heavy use / multiple large servers. Set `JAVA_OPTS=-Xms128M -Xmx900M -XX:+UseG1GC`. |
 
 4. Click **Advanced** → confirm **Auto-Deploy** is on.
-5. Click **Create Web Service** — do NOT add env vars yet (do Step 3 first).
+5. Click **Create Web Service** — add env vars in the next step.
 
 ---
 
@@ -65,11 +92,15 @@ In Render → your Lavalink service → **Environment**, add the following.
 
 ### Required
 
-| Key | Value | Notes |
-|---|---|---|
-| `LAVALINK_PASSWORD` | A strong password you choose, e.g. `Zyrox#Lava2026!` | Must match what you set in the bot env vars |
+| Key | Value |
+|---|---|
+| `LAVALINK_PASSWORD` | A strong password you invent, e.g. `Zyrox#Lava2026!` |
 
-### For Spotify support (free, takes 2 minutes)
+> ⚠️ **Remember this password exactly.** You'll paste it into the bot's env vars as `LAVALINK_PASSWORDS` (case-sensitive).
+
+---
+
+### For Spotify support (free, 2 minutes)
 
 | Key | Value |
 |---|---|
@@ -77,17 +108,20 @@ In Render → your Lavalink service → **Environment**, add the following.
 | `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
 
 **Getting Spotify credentials:**
-1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) and log in (free account is fine).
-2. Click **Create app** — name it anything, set redirect URI to `http://localhost`.
+1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) — log in (free account is fine).
+2. Click **Create app** — name it anything. Set redirect URI to `http://localhost`.
 3. Open your new app → **Settings** → copy **Client ID** and **Client Secret**.
-4. Paste both into your Lavalink service env vars.
+4. Paste both into your **Lavalink** service env vars.
+5. Also set the same two vars on your **bot's** Render service (the bot uses them for playlist metadata).
+
+---
 
 ### For YouTube OAuth (strongly recommended)
 
-YouTube OAuth makes your server dramatically more reliable — it drastically
-reduces 429 rate-limit errors and "Video unavailable" blocks.
+OAuth eliminates most "Video unavailable" and HTTP 429 errors. It takes ~2 minutes
+to set up and is free.
 
-**First deployment — to get your token:**
+**First deployment — to capture the token:**
 
 | Key | Value |
 |---|---|
@@ -95,22 +129,14 @@ reduces 429 rate-limit errors and "Video unavailable" blocks.
 
 Leave `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_SKIP_INIT` **unset** for now.
 
-> This tells Lavalink to print the authorization URL in its logs.
-> If you skip this step and jump straight to setting a token, the token won't be used.
-
-### Optional
-
-| Key | Value | Notes |
-|---|---|---|
-| `JAVA_OPTS` | `-Xms64M -Xmx600M -XX:+UseG1GC` | Starter plan only — gives more heap. Leave unset on free tier. |
-| `DEEZER_MASTER_KEY` | your key | Only if you enable `deezer: true` in `application.yml` |
+> This tells Lavalink to print the authorization URL in the logs on boot.
 
 ---
 
 ## Step 4 — Deploy and watch the logs
 
 1. Click **Save Changes** → Render triggers a deploy.
-2. Build takes ~2–3 minutes (downloads Lavalink jar + plugins during image build).
+2. Build takes **2–4 minutes** (downloads jars during Docker build — done once).
 3. Once live, open **Logs** and look for:
    ```
    Lavalink is ready to accept connections.
@@ -118,76 +144,78 @@ Leave `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_SKIP_INIT` **unset** for now.
 
 ---
 
-## Step 5 — Complete YouTube OAuth (if you enabled it)
+## Step 5 — Complete YouTube OAuth
 
-1. In **Logs**, look for a line that looks like this:
+1. In Render **Logs**, look for:
    ```
-   Visit the following URL to authorize YouTube: https://www.youtube.com/activate?user_code=XXXX-XXXX
+   Visit the following URL to authorize YouTube:
+   https://www.youtube.com/activate?user_code=XXXX-XXXX
    ```
-   > ⚠️ If you don't see this line, make sure `YOUTUBE_OAUTH_ENABLED=true` is set
-   > and `YOUTUBE_SKIP_INIT` is **not** set (or is `false`).
+   > ⚠️ If you don't see this: confirm `YOUTUBE_OAUTH_ENABLED=true` is set on the
+   > **Lavalink** service (not the bot), and that `YOUTUBE_SKIP_INIT` is not set.
+   > Trigger a **Manual Deploy** if needed — the URL only appears on first boot
+   > when no refresh token exists.
 
-2. Open that URL in **any browser** on any device. Sign in to your Google account and click **Allow**.
+2. Open that URL on any device. Sign into Google → click **Allow**.
 
-3. Back in Render **Logs**, look for:
+3. Back in Render Logs, look for:
    ```
    OAuth token saved. Refresh token: eyJhb...
    ```
-   Copy the full token (starts with `eyJ` — it will be long).
+   Copy the **entire** token (starts with `eyJ` — it will be long).
 
-4. Go to Render → your Lavalink service → **Environment** and add:
+4. In Render → Lavalink service → **Environment**, add:
 
    | Key | Value |
    |---|---|
-   | `YOUTUBE_REFRESH_TOKEN` | The token you just copied |
+   | `YOUTUBE_REFRESH_TOKEN` | The token you copied |
    | `YOUTUBE_SKIP_INIT` | `true` |
 
-   > Setting `YOUTUBE_SKIP_INIT=true` stops Lavalink from printing the auth URL on
-   > every future restart (since you already have a token).
-
-5. Click **Save Changes** → Render redeploys. OAuth is now active.
+5. Click **Save Changes** → Render redeploys. OAuth is now permanently active.
 
 ---
 
-## Step 6 — Point your bot at the new server
+## Step 6 — Point your bot at the Lavalink server
 
-Your Render Lavalink URL looks like:
+Your Lavalink URL looks like:
 ```
-https://lavalink.onrender.com
+https://lavalink-server.onrender.com
 ```
-(Find it under your service name in the Render dashboard.)
+Find it under your service name in the Render dashboard (not `http://` — Render always uses HTTPS).
 
 In your **bot's** Render service → **Environment**, set:
 
 ```
-LAVALINK_URIS=https://your-lavalink-name.onrender.com
-LAVALINK_PASSWORDS=Zyrox#Lava2026!
+LAVALINK_URIS      = https://your-lavalink-name.onrender.com
+LAVALINK_PASSWORDS = Zyrox#Lava2026!
 ```
 
-Replace the URL and password with your actual values.
+Replace the URL and password with your actual values. The password must **exactly** match `LAVALINK_PASSWORD` on the Lavalink service.
 
 ### Adding public fallback nodes (optional but recommended)
 
-Your server might restart occasionally. Adding fallback nodes means music keeps
-playing on the public ones while yours comes back:
+If your self-hosted node restarts, having fallbacks means music continues on public nodes while yours comes back:
 
 ```
-LAVALINK_URIS=https://your-lavalink-name.onrender.com|https://lavalink-v4.triniumhost.com|https://lavalink.kennyy.com.br
-LAVALINK_PASSWORDS=Zyrox#Lava2026!|free|kennyy.com.br
+LAVALINK_URIS      = https://your-lavalink-name.onrender.com|https://lavalink-v4.triniumhost.com|https://lavalink.kennyy.com.br
+LAVALINK_PASSWORDS = Zyrox#Lava2026!|free|kennyy.com.br
 ```
 
-The bot will use your node first and fail over automatically.
+The bot tries nodes in order and fails over automatically.
 
 ---
 
 ## Step 7 — Redeploy the bot
 
-After updating the bot's env vars, Render redeploys it automatically. Watch the
-bot logs for:
+After setting the bot's env vars, Render redeploys it automatically (with Auto-Deploy on).
+Watch the **bot's** Render logs for:
 
 ```
 [Music] Connected to N Lavalink node(s): https://your-lavalink-name.onrender.com ...
 ```
+
+> If you see 0 nodes or a connection error, check Step 6 carefully — the most
+> common mistake is `http://` vs `https://`, or a password mismatch.
 
 ---
 
@@ -195,93 +223,97 @@ bot logs for:
 
 ### "Visit the following URL" never appears in logs
 
-- Confirm `YOUTUBE_OAUTH_ENABLED=true` is set in your **Lavalink** service (not the bot).
-- Confirm `YOUTUBE_SKIP_INIT` is **not** set or is `false`.
-- Trigger a manual redeploy — the URL appears only on first boot when no token exists.
+- Confirm `YOUTUBE_OAUTH_ENABLED=true` is set on the **Lavalink** service — not the bot.
+- Confirm `YOUTUBE_SKIP_INIT` is not set or is `false`.
+- Trigger a **Manual Deploy** from the Render dashboard.
 
-### OAuth token expired — 429 errors return after working fine
+### OAuth token expired (429 errors return after working fine)
 
-YouTube refresh tokens can expire if unused for several months.
-Repeat Step 5: temporarily remove `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_SKIP_INIT`,
-redeploy, get a new token, then restore both env vars and redeploy again.
+Tokens can expire after months of inactivity. To renew:
+1. Delete `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_SKIP_INIT` from the Lavalink service.
+2. Make sure `YOUTUBE_OAUTH_ENABLED=true`.
+3. Deploy → get a new token from the logs (Step 5).
+4. Add the new `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_SKIP_INIT=true`.
+5. Redeploy.
 
-### Build fails — cannot download Lavalink.jar
+### Build fails — "cannot download Lavalink-musl.jar"
 
 The GitHub release URL changes when a new version is released. Update
-`ARG LAVALINK_VERSION` in the `Dockerfile` to the latest tag on
+`ARG LAVALINK_VERSION` in `Dockerfile` to the latest tag from
 [github.com/lavalink-devs/Lavalink/releases](https://github.com/lavalink-devs/Lavalink/releases).
+Do the same for `YTSOURCE_VERSION` and `LAVASRC_VERSION` if needed.
 
 ### Server starts but bot can't connect
 
-- Use `https://` not `http://` — Render always serves HTTPS.
-- Make sure the password in the bot's `LAVALINK_PASSWORDS` matches `LAVALINK_PASSWORD`
-  on the Lavalink service **exactly** (case-sensitive).
+- Use `https://` — not `http://` — Render always terminates TLS.
+- Confirm the password in `LAVALINK_PASSWORDS` on the bot **exactly** matches
+  `LAVALINK_PASSWORD` on the Lavalink service (case-sensitive, no trailing spaces).
+- Confirm the bot service env vars were saved and a redeploy happened.
 
 ### Music cuts out every 15 minutes (free tier)
 
-This is Render's spin-down behaviour — free web services sleep after 15 minutes of
-no traffic. The WebSocket connection from the bot keeps it alive during active use,
-but if everyone leaves the voice channel and no commands are run, the server sleeps.
-Upgrade to **Starter ($7/mo)** to eliminate this. No config changes needed — the
-same Dockerfile and `application.yml` work on all tiers.
+This is Render's spin-down: free web services sleep after 15 minutes with no
+incoming HTTP traffic. The bot's WebSocket keeps the node alive during active
+playback, but once everyone leaves voice channels and no commands run, it eventually
+sleeps. **Upgrade to Starter ($7/mo)** to eliminate this entirely — no config
+changes needed.
 
-### Lavalink crashes with OOM (Out of Memory)
+### Lavalink crashes (OOM)
 
-- On free tier: leave `JAVA_OPTS` unset (the Dockerfile defaults to 300 MB heap).
-- On Starter: set `JAVA_OPTS=-Xms64M -Xmx600M -XX:+UseG1GC` (600 MB heap).
-- Reduce concurrent listeners — each active voice connection uses ~5–10 MB of heap.
+- On free tier: leave `JAVA_OPTS` unset — the Dockerfile defaults to 300 MB heap.
+- On Starter: set `JAVA_OPTS=-Xms64M -Xmx600M -XX:+UseG1GC`.
+- Each active voice player uses ~5–15 MB of heap. 300 MB supports ~15–20 concurrent players on free tier.
 
-### Spotify not resolving tracks
+### Spotify tracks play as wrong songs / low-quality matches
 
-- `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` must be set on the **Lavalink**
-  service, not the bot.
-- In the Spotify Developer Dashboard, make sure your app has at least one redirect
-  URI set (the value doesn't matter — `http://localhost` is fine).
+This usually means Spotify credentials are missing or wrong:
+- Verify `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` are set on the **Lavalink** service.
+- Make sure your Spotify Developer app has at least one redirect URI (`http://localhost` is fine).
+- ISRC-based matching (the default in this config) gives the most accurate results — no action needed.
 
-### YouTube gives 429 even with OAuth
+### YouTube 429 even with OAuth
 
-Your OAuth token may have expired. See **"OAuth token expired"** above.
-If the token is fresh, reduce the number of concurrent players or switch some
-users to SoundCloud (`scsearch:`) or Spotify links.
+- Your OAuth token may be expired — see "OAuth token expired" above.
+- Too many concurrent players for one node. Add a fallback node (Step 6) or upgrade.
 
 ---
 
-## Keeping Lavalink up to date
+## Updating Lavalink
 
-When a new version is released:
+When new versions are released:
 1. Update `ARG LAVALINK_VERSION` in `Dockerfile`.
-2. Update `ARG YTSOURCE_VERSION` if youtube-source also updated.
-3. Update `ARG LAVASRC_VERSION` if LavaSrc also updated.
+2. Update `ARG YTSOURCE_VERSION` if youtube-source updated.
+3. Update `ARG LAVASRC_VERSION` if LavaSrc updated.
 4. Push to GitHub — Render rebuilds automatically.
 
-Current versions baked into this setup:
+**Current versions:**
 
-| Component | Version |
-|---|---|
-| Lavalink | 4.2.2 |
-| youtube-source | 1.18.1 |
-| LavaSrc | 4.8.3 |
+| Component | Version | Release page |
+|---|---|---|
+| Lavalink | 4.0.8 | [releases](https://github.com/lavalink-devs/Lavalink/releases) |
+| youtube-source | 1.13.1 | [releases](https://github.com/lavalink-devs/youtube-source/releases) |
+| LavaSrc | 4.3.0 | [releases](https://github.com/topi314/LavaSrc/releases) |
 
 ---
 
 ## Free alternatives to Render (no spin-down)
 
-If you need 24/7 music and can't afford Render Starter, these options are genuinely free:
-
 | Host | Free RAM | Notes |
 |---|---|---|
-| **Oracle Cloud Free Tier** | 1 GB (2× AMD VMs) | Best free option. Create Ubuntu VM, install Java 17, run the jar directly. |
-| **Google Cloud Free Tier** | 1 GB (`e2-micro`) | Always-free in US regions. Same setup — install Java 17, run the jar. |
-| **Fly.io** | 256 MB | Tight but possible with the `-Xmx200M` JVM flag. Use this Dockerfile. |
-| **Old laptop / PC** | Whatever you have | Install Ubuntu + Java 17, run the jar, forward port 2333 on your router. |
+| **Oracle Cloud Free Tier** | 1 GB (2× AMD VMs) | Best free option. Ubuntu VM + Java 17 + run the jar directly. |
+| **Google Cloud Free Tier** | 1 GB (`e2-micro`) | Always-free in US regions. Same setup. |
+| **Fly.io** | 256 MB | Tight but possible with `-Xmx200M`. Use this Dockerfile. |
+| **Home server / old laptop** | Whatever you have | Ubuntu + Java 17 + port-forward 2333. |
 
 **Quick direct-run (Ubuntu/Debian):**
 ```bash
 sudo apt update && sudo apt install -y openjdk-17-jre wget
 mkdir -p ~/lavalink/plugins && cd ~/lavalink
-wget https://github.com/lavalink-devs/Lavalink/releases/download/4.2.2/Lavalink.jar
-wget -O plugins/youtube-plugin.jar https://github.com/lavalink-devs/youtube-source/releases/download/1.18.1/youtube-plugin-1.18.1.jar
-wget -O plugins/lavasrc-plugin.jar https://github.com/topi314/LavaSrc/releases/download/4.8.3/lavasrc-plugin-4.8.3.jar
+wget https://github.com/lavalink-devs/Lavalink/releases/download/4.0.8/Lavalink.jar
+wget -O plugins/youtube-plugin.jar \
+  https://github.com/lavalink-devs/youtube-source/releases/download/1.13.1/youtube-plugin-1.13.1.jar
+wget -O plugins/lavasrc-plugin.jar \
+  https://github.com/topi314/LavaSrc/releases/download/4.3.0/lavasrc-plugin-4.3.0.jar
 # Copy application.yml from this repo into ~/lavalink/
 export LAVALINK_PASSWORD="your-password"
 export SPOTIFY_CLIENT_ID="your-id"

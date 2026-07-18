@@ -2,21 +2,25 @@ server:
   port: 2333
   address: 0.0.0.0
   http2:
-    enabled: false
+    enabled: false   # Keep off — some reverse proxies (including Render) don't support h2
 
 lavalink:
-  # No lavalink.plugins section needed — plugins are pre-downloaded into the
-  # ./plugins/ directory by the Dockerfile and auto-loaded by Lavalink at boot.
-
+  # Plugins are pre-downloaded into ./plugins/ by the Dockerfile and auto-loaded
+  # at boot — no lavalink.plugins download section is needed.
   pluginsDir: "./plugins"
 
   server:
-    # Set LAVALINK_PASSWORD (or LAVALLINK_PASSWORD) in your Render environment.
-    # The Dockerfile ENTRYPOINT normalises both names before Java starts.
+    # ── Password ──────────────────────────────────────────────────────────────
+    # Set LAVALINK_PASSWORD in your Render env vars.
+    # The Dockerfile ENTRYPOINT normalises LAVALLINK_PASSWORD → LAVALINK_PASSWORD
+    # so either spelling works.
     password: ${LAVALINK_PASSWORD:youshallnotpass}
 
+    # ── Audio sources ─────────────────────────────────────────────────────────
+    # youtube MUST be false — the youtube-source plugin owns YouTube completely.
+    # Enabling both causes conflicts and broken playback.
     sources:
-      youtube: false      # MUST stay false — youtube-source plugin owns YouTube
+      youtube: false      # ← MUST stay false (youtube-source plugin handles this)
       bandcamp: true
       soundcloud: true
       twitch: true
@@ -24,6 +28,8 @@ lavalink:
       http: true
       local: false
 
+    # ── Audio filters ─────────────────────────────────────────────────────────
+    # All enabled — these are applied in the JVM so they don't depend on plugins.
     filters:
       volume: true
       equalizer: true
@@ -36,18 +42,40 @@ lavalink:
       channelMix: true
       lowPass: true
 
-    # ── Low-resource tuning ───────────────────────────────────────────────────
-    # These values are tuned for Render free/starter tier.
-    # Increase bufferDurationMs and frameBufferDurationMs if you hear audio gaps
-    # and are on a paid plan with more RAM.
-    bufferDurationMs: 800
+    # ── Performance tuning (Render free tier: 512 MB RAM, 0.1 vCPU) ──────────
+    #
+    # bufferDurationMs     — How many ms of audio to buffer ahead per track.
+    #   800 ms is too short on a low-CPU host; occasional GC pauses cause audible
+    #   glitches. 2000 ms gives the JVM ~2 seconds of headroom before the player
+    #   runs dry. Only increases RAM by ~160 KB per active player — negligible.
+    #
+    # frameBufferDurationMs — Discord Opus frame buffer. 5000 ms covers network
+    #   hiccups and Render's occasional CPU throttling without wasting memory.
+    #
+    # opusEncodingQuality  — 0–10. 5 = good quality at ~20% less CPU than 10.
+    #   Raise to 7–8 on Starter/Standard. Don't go below 4 (noticeably muddy).
+    #
+    # resamplingQuality    — LOW = fast linear resampling. MEDIUM/HIGH use more
+    #   CPU (sinc). LOW is indistinguishable for 44.1 → 48 kHz (Discord's rate).
+    #
+    # trackStuckThresholdMs — Mark a track stuck after 10 s of silence.
+    #   wavelink fires on_wavelink_track_stuck and the bot auto-skips.
+    #
+    # useSeekGhosting       — Pre-buffer the seek target so seeking feels instant.
+    #
+    # playerUpdateInterval  — Send player position updates to the bot every 5 s.
+    #   Lower = more WebSocket traffic. 5 s is fine for a progress bar.
+    #
+    # youtubePlaylistLoadLimit — Max pages fetched per playlist. Each page = 100
+    #   tracks. 3 pages = 300 tracks max. Keep low on free tier to avoid OOM.
+    bufferDurationMs: 2000
     frameBufferDurationMs: 5000
-    opusEncodingQuality: 5        # 0–10; 5 is a good quality/CPU balance
+    opusEncodingQuality: 5
     resamplingQuality: LOW
     trackStuckThresholdMs: 10000
     useSeekGhosting: true
     playerUpdateInterval: 5
-    youtubePlaylistLoadLimit: 3   # pages per playlist — keep low on free tier
+    youtubePlaylistLoadLimit: 3
     soundcloudSearchEnabled: true
     gc-warnings: true
 
@@ -58,80 +86,117 @@ lavalink:
       proxyPassword: ""
 
 plugins:
-  # ── youtube-source plugin ─────────────────────────────────────────────────
+  # ── youtube-source plugin ──────────────────────────────────────────────────
+  # Replaces Lavalink's built-in YouTube handler. Required when LavaSrc is used
+  # because LavaSrc delegates all YouTube playback to this plugin.
   youtube:
     enabled: true
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
 
-    # Client order matters — the plugin tries each in turn and uses the first
-    # that succeeds.
-    # With OAuth active, WEB is the highest-quality client and should be first.
-    # ANDROID_MUSIC is the most reliable for audio playback without JS parsing.
-    # WEB_EMBEDDED is excluded — it frequently returns throttled/silent streams.
-    # MUSIC client is search-only and does not provide audio playback.
+    # Client selection strategy:
+    #   The plugin tries each client in order; first to return a valid stream wins.
+    #   Clients are listed best→worst for audio quality / reliability.
+    #
+    #   WEB              — Highest quality. Requires OAuth token (set
+    #                      YOUTUBE_OAUTH_ENABLED=true). Throttled without OAuth.
+    #   ANDROID_MUSIC    — Most reliable for music. No JavaScript parsing needed.
+    #                      Works without OAuth. Best client for free-tier hosts.
+    #   IOS              — Very reliable, uses native iOS API path. Good backup.
+    #   ANDROID_VR       — Good fallback for clips/shorts, minimal rate-limiting.
+    #   TVHTML5EMBEDDED  — Stable last resort. Embedded-player path, no JS parse.
+    #
+    # Do NOT add WEB_EMBEDDED — it frequently returns throttled/silent streams.
+    # Do NOT add MUSIC — it is search-only and cannot stream audio.
     clients:
-      - WEB               # Best quality — requires OAuth (set YOUTUBE_OAUTH_ENABLED=true)
-      - ANDROID_MUSIC     # Most reliable for music audio, no JS parsing needed
-      - ANDROID_VR        # Good fallback, bypasses many rate-limit checks
-      - TVHTML5EMBEDDED   # Stable last resort, no JS parsing
+      - WEB
+      - ANDROID_MUSIC
+      - IOS
+      - ANDROID_VR
+      - TVHTML5EMBEDDED
 
-    # ── OAuth (STRONGLY recommended — eliminates most 429 / "unavailable" errors)
+    # ── YouTube OAuth ─────────────────────────────────────────────────────────
+    # OAuth eliminates most "Video unavailable" and HTTP 429 errors by logging
+    # in as a real Google account. Strongly recommended even on free nodes.
     #
-    # HOW TO SET UP (takes ~2 minutes):
-    #   1. Deploy to Render with YOUTUBE_OAUTH_ENABLED=true and NO refreshToken.
-    #      Leave YOUTUBE_SKIP_INIT unset (or set to false).
-    #   2. In your Render service → Logs, look for a line like:
-    #        Visit the following URL to authorize YouTube: https://www.youtube.com/activate?user_code=XXXX-XXXX
-    #   3. Open that URL in any browser, sign in to Google, click Allow.
-    #   4. Back in Render logs you will see:
-    #        OAuth token saved. Refresh token: eyJhb...
-    #      Copy that refresh token.
-    #   5. In Render → your Lavalink service → Environment, add:
-    #        YOUTUBE_REFRESH_TOKEN = <paste the token>
-    #        YOUTUBE_SKIP_INIT     = true        ← suppresses the prompt on future restarts
-    #   6. Redeploy — OAuth is now active. Done.
-    #
-    # Leave YOUTUBE_OAUTH_ENABLED unset (defaults to false) to skip OAuth.
+    # SETUP (takes ~2 minutes):
+    #   1. Set YOUTUBE_OAUTH_ENABLED=true in Render. Leave YOUTUBE_REFRESH_TOKEN
+    #      and YOUTUBE_SKIP_INIT unset.
+    #   2. Deploy → watch Render Logs for:
+    #        "Visit the following URL to authorize YouTube:
+    #         https://www.youtube.com/activate?user_code=XXXX-XXXX"
+    #   3. Open that URL, sign into Google, click Allow.
+    #   4. Logs will show: "OAuth token saved. Refresh token: eyJhb..."
+    #      Copy the full token.
+    #   5. In Render → Lavalink service → Environment, add:
+    #        YOUTUBE_REFRESH_TOKEN = <token you copied>
+    #        YOUTUBE_SKIP_INIT     = true
+    #   6. Redeploy. Done — OAuth is active on all future restarts.
     oauth:
       enabled: ${YOUTUBE_OAUTH_ENABLED:false}
       refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
       # skipInitialization:
-      #   false (default) → Lavalink PRINTS the auth URL in logs when no token exists.
-      #                      Use this on first deployment to get your token.
-      #   true            → Lavalink skips the auth prompt (use after you have a token).
+      #   false (default) → prints the auth URL in logs when no token is present.
+      #   true            → silences the prompt once you already have a token.
       skipInitialization: ${YOUTUBE_SKIP_INIT:false}
 
-  # ── LavaSrc plugin ──────────────────────────────────────────────────────────
+  # ── LavaSrc plugin ────────────────────────────────────────────────────────
+  # Handles Spotify (and optionally Apple Music, Yandex, Deezer) by fetching
+  # track metadata from their APIs, then resolving audio via YouTube / SoundCloud.
   lavasrc:
+    # ── Provider resolution chain ─────────────────────────────────────────
+    # When a Spotify (or other) link is played, LavaSrc fetches metadata
+    # (title, artist, ISRC) and then tries each provider in order until it
+    # finds a playable stream.
+    #
+    # ISRC (International Standard Recording Code) is the most accurate way
+    # to match the exact recording — YouTube Music indexes most tracks by ISRC.
+    #
+    # Priority order chosen here:
+    #   1. ytmsearch:%ISRC%   — YouTube Music by ISRC. Exact match, best quality.
+    #   2. ytsearch:%ISRC%    — YouTube by ISRC. Good fallback when YTM has no hit.
+    #   3. ytmsearch:%QUERY%  — YouTube Music by "Artist - Title". For tracks
+    #                           without an ISRC (rare, mostly older releases).
+    #   4. ytsearch:%QUERY%   — YouTube by query. Wide coverage.
+    #   5. scsearch:%QUERY%   — SoundCloud. Last resort for anything YouTube lacks.
+    #
+    # Do NOT put scsearch first — SoundCloud quality is lower and ISRC matching
+    # is less reliable. Keep YouTube/YouTube Music at the top.
     providers:
-      # Resolution order for Spotify / generic queries:
-      - "spsearch:%ISRC%"   # Spotify by ISRC — exact match, best quality
-      - "scsearch:%QUERY%"  # SoundCloud — reliable fallback
-      - "ytsearch:%QUERY%"  # YouTube
-      - "ytmsearch:%QUERY%" # YouTube Music
+      - "ytmsearch:%ISRC%"
+      - "ytsearch:%ISRC%"
+      - "ytmsearch:%QUERY%"
+      - "ytsearch:%QUERY%"
+      - "scsearch:%QUERY%"
 
     sources:
       spotify: true
-      applemusic: false     # Enable + add mediaAPIToken below if needed
-      deezer: false         # Enable + add masterDecryptionKey if you have one
+      applemusic: false    # Enable if you add a mediaAPIToken below
+      deezer: false        # Enable only if you have a Deezer master decryption key
       yandexmusic: false
       flowerytts: false
-      youtube: true         # Resolved via the youtube-source plugin above
+      youtube: true        # Resolved via the youtube-source plugin above
 
+    # ── Spotify credentials ───────────────────────────────────────────────
+    # Get a free Client ID + Secret from https://developer.spotify.com/dashboard
+    # (Create app → Settings → copy Client ID and Client Secret).
+    # Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in Render env vars.
+    # The bot ALSO needs these same vars set — it uses them to fetch playlist
+    # metadata client-side, while Lavalink uses them for ISRC resolution.
     spotify:
       clientId: ${SPOTIFY_CLIENT_ID:}
       clientSecret: ${SPOTIFY_CLIENT_SECRET:}
       countryCode: "US"
-      spDc: ""
+      # spDc: ""  # Only needed for direct Spotify streaming (not recommended;
+      #           # requires a premium account cookie and expires frequently).
 
     deezer:
       masterDecryptionKey: ${DEEZER_MASTER_KEY:}
 
     applemusic:
       countryCode: "US"
-      mediaAPIToken: ""
+      mediaAPIToken: ""   # Required for Apple Music — leave empty to keep disabled
 
     yandexmusic:
       accessToken: ""
@@ -143,15 +208,21 @@ plugins:
       speed: 1.0
       audioFormat: "mp3"
 
+# ── Prometheus metrics ─────────────────────────────────────────────────────────
+# Disabled by default. Enable if you run a Prometheus + Grafana stack.
 metrics:
   prometheus:
     enabled: false
     endpoint: /metrics
 
+# ── Sentry error reporting ─────────────────────────────────────────────────────
 sentry:
   dsn: ""
   environment: ""
 
+# ── Logging ────────────────────────────────────────────────────────────────────
+# INFO level for both root and lavalink keeps logs readable without being noisy.
+# Set lavalink: DEBUG temporarily if you're diagnosing playback issues.
 logging:
   level:
     root: INFO
