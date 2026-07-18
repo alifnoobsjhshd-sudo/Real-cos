@@ -384,14 +384,16 @@ class MusicControlView(View):
 class Music(commands.Cog):
     def __init__(self, client: zyrox):
         self.client = client
-        # Wrap initial connect in a silent helper so a startup failure is only
-        # logged, not an unhandled task exception. connect_nodes() itself now
-        # re-raises so the reconnect loop can detect genuine failures.
+        # Wait until the bot is actually logged in before connecting to Lavalink.
+        # Wavelink's websocket handshake requires a valid client.user.id in the
+        # headers; connecting too early (before on_ready) results in a silent
+        # handshake failure. Exceptions are logged so they are visible in Render.
         async def _initial_connect():
+            await self.client.wait_until_ready()
             try:
                 await self.connect_nodes()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[Music] Initial Lavalink connect failed: {e}")
         self.client.loop.create_task(_initial_connect())
         self.client.loop.create_task(self.monitor_inactivity())
         
@@ -517,6 +519,7 @@ class Music(commands.Cog):
             ).strip()
             single_password = (
                 os.getenv("LAVALINK_PASSWORD") or
+                os.getenv("LAVALINK_PASSWORDS") or  # accept plural form too if only one node
                 os.getenv("LAVALLINK_PASSWORD") or
                 ""
             ).strip()
