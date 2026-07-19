@@ -5,7 +5,6 @@ from discord.ext import commands, tasks
 import datetime
 from discord.ui import Button, View
 import wavelink
-from wavelink.enums import TrackSource
 from utils import Paginator, DescriptionEmbedPaginator
 from core import Cog, zyrox, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -95,8 +94,7 @@ class PlatformSelectView(View):
         self.query = query
 
         platforms = [
-            ("YouTube",  "ytsearch", discord.ButtonStyle.red,   _pe("YouTube")),
-            ("Spotify",  "spsearch", discord.ButtonStyle.green,  _pe("spotify")),
+            ("Spotify", "spsearch", discord.ButtonStyle.green, _pe("spotify")),
         ]
 
         for name, source, style, emoji in platforms:
@@ -441,22 +439,6 @@ class Music(commands.Cog):
                 except:
                     pass
 
-    # Built-in public fallback nodes — tested live from Replit (July 2026).
-    # Listed best-first: Lavalink v4 nodes before NodeLink nodes.
-    # wavelink uses all connected nodes as a pool and fails over automatically.
-    _BUILTIN_NODES: list[tuple[str, str]] = [
-        # ── Lavalink v4 (fully compatible with wavelink 3.x) ─────────────────
-        ("https://lavalink-v4.triniumhost.com",  "free"),                       # TriniumHost — v4.2.2
-        ("https://lavalink.kennyy.com.br",       "kennyy.com.br"),              # Kennyy — v4.2.2
-        ("https://lava-v4.millohost.my.id",      "https://discord.gg/mjS5J2K3ep"),  # Millohost — v4.2.1
-        # ── NodeLink v3.8 (Lavalink-compatible REST API, non-SSL) ────────────
-        ("http://sg1-nodelink.nyxbot.app:3000",  "nyxbot.app/support"),         # NyxBot SG1
-        ("http://sg2-nodelink.nyxbot.app:3000",  "nyxbot.app/support"),         # NyxBot SG2
-        ("https://nodelink.triniumhost.com",     "free"),                       # TriniumHost NodeLink
-        # ── Legacy / may come back online ────────────────────────────────────
-        ("https://lava-v4.ajieblogs.eu.org",     "https://dsc.gg/ajidevserver"), # AjieDev/Amane
-    ]
-
     def _build_lavalink_nodes(self) -> list[wavelink.Node]:
         """
         Build a list of wavelink Nodes from environment variables.
@@ -526,11 +508,6 @@ class Music(commands.Cog):
                 uris      = [single_uri]
                 passwords = [single_password] if single_password else []
 
-        # ── Style 4: built-in pool ───────────────────────────────────────────
-        if not uris:
-            uris      = [u for u, _ in self._BUILTIN_NODES]
-            passwords = [p for _, p in self._BUILTIN_NODES]
-
         # Normalize URIs — Lavalink requires a scheme.
         # Bare "host:port" → http://, bare "host" → https://.
         normalized: list[str] = []
@@ -544,7 +521,7 @@ class Music(commands.Cog):
         seen: set[str] = set()
         deduped_uris:      list[str] = []
         deduped_passwords: list[str] = []
-        fallback_pw = passwords[-1] if passwords else self._BUILTIN_NODES[0][1]
+        fallback_pw = passwords[-1] if passwords else "youshallnotpass"
         for i, uri in enumerate(normalized):
             if uri in seen:
                 continue
@@ -603,7 +580,6 @@ class Music(commands.Cog):
 
         color = (
             0x1DB954 if "spotify" in _src else
-            0xFF0000 if "youtube" in _src else
             0xFF5500
         )
 
@@ -612,8 +588,7 @@ class Music(commands.Cog):
         embed.add_field(name="Duration", value=f"`{duration}`")
 
         # Source link — emoji placed BEFORE the hyperlink so it renders as a real emoji
-        if "spotify" in _src: _src_txt = f"{_e('zplay') or '▶'}  [Listen on Spotify]({track.uri})"
-        else:                 _src_txt = f"{_e('YouTube') or '▶'} [Listen on YouTube]({track.uri})"
+        _src_txt = f"{_e('zplay') or '▶'}  [Listen on Spotify]({track.uri})"
         embed.add_field(name="Source", value=_src_txt)
 
         # Thumbnail = song artwork (replaces the old composite banner image)
@@ -639,68 +614,19 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
-        """
-        When a YouTube track fails to stream (player errors, 429s, geo-blocks, age-gate),
-        automatically retry the same song via YouTube Music (ytmsearch). YouTube Music
-        often has a different upload that is not blocked. If the retry also fails, send
-        a clear error message. No SoundCloud fallback is used.
-        """
+        """When a Spotify-resolved track fails to stream, log it and tell the user."""
         player = payload.player
         exc    = payload.exception
         title  = payload.track.title
         print(f"[Music] Track exception on '{title}': {exc}")
         ctx = getattr(player, "ctx", None)
 
-        # Detect YouTube-side failures by the error message content
-        yt_fail_keywords = (
-            "IllegalStateException", "player_embed", "player.js",
-            "action functions", "Something broke", "age-restricted",
-            "429", "Too Many Requests", "unavailable", "Video unavailable",
-        )
-        exc_str = str(exc)
-        is_yt_failure = any(kw in exc_str for kw in yt_fail_keywords)
-
-        # Prevent infinite retry loops: only retry once per title
-        retried = getattr(player, "_ytm_retried", set())
-        if title in retried:
-            is_yt_failure = False
-        else:
-            retried.add(title)
-            player._ytm_retried = retried
-
-        if is_yt_failure:
-            try:
-                ytm_results = await wavelink.Playable.search(f"ytmsearch:{title}")
-                if ytm_results:
-                    retry_track = ytm_results[0]
-                    print(f"[Music] Retrying '{title}' on YouTube Music: {retry_track.title}")
-                    await player.queue.put_wait(retry_track)
-                    if not player.playing:
-                        nxt = await player.queue.get_wait()
-                        await player.play(nxt)
-                        await self.display_player_embed(player, nxt, ctx)
-                    if ctx:
-                        await ctx.send(embed=discord.Embed(
-                            description=(
-                                f"⚠️ YouTube blocked **{title}**.\n"
-                                f"🔁 Retrying on YouTube Music: `{retry_track.title}`"
-                            ),
-                            color=0xFFA500,
-                        ))
-                    return
-                else:
-                    print(f"[Music] No YouTube Music results for '{title}'")
-            except Exception as ytm_err:
-                print(f"[Music] YouTube Music retry also failed: {ytm_err}")
-
-        # No fallback available — report the error
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
                     description=(
                         f"⚠️ Could not play **{title}**.\n"
-                        "Try a different query, a Spotify link, or ask the bot owner to enable "
-                        "YouTube OAuth on the Lavalink server."
+                        "Try a different Spotify track or check the Lavalink server."
                     ),
                     color=0xFF0000,
                 ))
@@ -802,11 +728,21 @@ class Music(commands.Cog):
                 return
         vc.autoplay = wavelink.AutoPlayMode.disabled
 
+        # Spotify-only mode: plain text queries are searched with spsearch, and
+        # Spotify URLs are passed straight to Lavalink so LavaSrc resolves them.
+        is_spotify_url = bool(
+            re.search(SPOTIFY_TRACK_REGEX, query) or
+            re.search(SPOTIFY_PLAYLIST_REGEX, query) or
+            re.search(SPOTIFY_ALBUM_REGEX, query)
+        )
         try:
-            tracks = await wavelink.Playable.search(query)
+            if is_spotify_url:
+                tracks = await wavelink.Playable.search(query)
+            else:
+                tracks = await wavelink.Playable.search(query, source="spsearch")
         except Exception as e:
             await ctx.send(embed=discord.Embed(
-                description=f"⚠️ Search failed: `{e}`\nThe music node may be temporarily unavailable.",
+                description=f"⚠️ Search failed: `{e}`\nMake sure Spotify credentials are set on the Lavalink server.",
                 color=0xFF0000,
             ))
             return
@@ -832,105 +768,13 @@ class Music(commands.Cog):
             self.client.loop.create_task(self.check_inactivity(ctx.guild.id))
 
 
-    
-    async def handle_spotify_link(self, ctx, vc, link, type_):
-        try:
-            if type_ == "track":
-                track_id = re.search(SPOTIFY_TRACK_REGEX, link).group(1)
-                track_info = await spotify_api.get_track(track_id)
-
-                
-                title = track_info['name']
-                author = ', '.join(artist['name'] for artist in track_info['artists'])
-
-                
-                search_query = f"{title} by {author}"
-                search_results = await wavelink.Playable.search(search_query, source=wavelink.enums.TrackSource.YouTube)
-
-                if not search_results:
-                    await ctx.send("Can't play this track from Spotify, please try with another track.")
-                    return
-
-                track = search_results[0]
-                await vc.queue.put_wait(track)
-                await ctx.send(embed=discord.Embed(description=f"➕  Added [{track.title}](https://discord.gg/codexdev) to the queue.", color=0xFF0000))
-                if not vc.playing:
-                    await vc.play(track)
-                    await self.display_player_embed(vc, track, ctx)
-
-                #await self.display_player_embed(vc, track, ctx)
-                
-            elif type_ == "playlist":
-                lmao = await ctx.send("⏳ Processing to add tracks from the playlist, this may take a while...")
-                
-                playlist_id = re.search(SPOTIFY_PLAYLIST_REGEX, link).group(1)
-                playlist_info = await spotify_api.get(f"playlists/{playlist_id}")
-                tracks = playlist_info.get("tracks", {}).get("items", [])
-                playlist_length = len(tracks)
-
-                if not tracks:
-                    await ctx.send("No tracks found in the playlist.")
-                    return
-
-                c = 0
-                for track in tracks:
-                    title = track['track']['name']
-                    author = ', '.join(artist['name'] for artist in track['track']['artists'])
-                    search_query = f"{title} {author}"
-
-                    track_results = await wavelink.Playable.search(search_query, source=wavelink.enums.TrackSource.YouTube)
-                    if track_results:
-                        await vc.queue.put_wait(track_results[0])
-                        c += 1
-                        await ctx.message.add_reaction("✅")
-
-                await ctx.send(embed=discord.Embed(description=f"➕ Added **{c}** of **{playlist_length}** tracks from **playlist** **[{playlist_info['name']}](https://discord.gg/codexdev)** to the queue.", color=0xFF0000))
-                await lmao.delete()
-                
-                if not vc.playing:
-                    next_track = await vc.queue.get_wait()
-                    await vc.play(next_track)
-                    await self.display_player_embed(vc, next_track, ctx)
-
-
-            elif type_ == "album":
-                await ctx.message.add_reaction("⌛")
-                album_id = re.search(SPOTIFY_ALBUM_REGEX, link).group(1)
-                album_info = await spotify_api.get(f"albums/{album_id}")
-                tracks = album_info.get("tracks", {}).get("items", [])
-
-                if not tracks:
-                    await ctx.send("No tracks found in the album.")
-                    return
-
-                for track in tracks:
-                    title = track['name']
-                    author = ', '.join(artist['name'] for artist in track['artists'])
-                    search_query = f"{title} {author}"
-
-                    track_results = await wavelink.Playable.search(search_query, source=wavelink.enums.TrackSource.YouTube)
-                    if track_results:
-                        await vc.queue.put_wait(track_results[0])
-
-                await ctx.send(embed=discord.Embed(description=f"➕ Added all tracks from album **[{album_info['name']}](https://discord.gg/codexdev)** to the queue.", color=0xFF0000))
-                if not vc.playing:
-                    next_track = await vc.queue.get_wait()
-                    await vc.play(next_track)
-                    await self.display_player_embed(vc, next_track, ctx)
-
-                
-        except Exception as e:
-            await ctx.send(f"An error occurred while processing the Spotify link: {e}")
-
-
-
     def create_progress_bar(self, completed, total, length=10):
         filled_length = int(length * (completed / total))
         bar = '█' * filled_length + '░' * (length - filled_length)
         return bar
 
-    @commands.hybrid_command(name="play", aliases=['p'], usage="play <query>", help="Plays a song or playlist.")
-    @discord.app_commands.describe(query="A song name, YouTube or Spotify link, or playlist link.")
+    @commands.hybrid_command(name="play", aliases=['p'], usage="play <query>", help="Plays a Spotify song or playlist.")
+    @discord.app_commands.describe(query="A Spotify song/playlist/album link, or a search query.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -939,7 +783,7 @@ class Music(commands.Cog):
         await self.play_source(ctx, query)
 
 
-    @commands.command(name="search", usage="search <query>", help="Searches music from YouTube or Spotify.")
+    @commands.command(name="search", usage="search <query>", help="Searches music from Spotify.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -949,8 +793,8 @@ class Music(commands.Cog):
             return
 
         embed = discord.Embed(
-            title="Select a platform to search from:",
-            description="YouTube or Spotify. (Spotify needs SPOTIFY_CLIENT_ID/SECRET set on the Lavalink server.)",
+            title="Spotify Search",
+            description="Searching Spotify for your query. (Spotify needs SPOTIFY_CLIENT_ID/SECRET set on the Lavalink server.)",
             color=0xff0000
         )
         await ctx.send(embed=embed, view=PlatformSelectView(ctx, query))
@@ -984,10 +828,8 @@ class Music(commands.Cog):
 
         if "spotify" in track.uri:
             source_name = "Spotify"
-        elif "youtube" in track.uri:
-            source_name = "YouTube"
         else:
-            source_name = "Unknown Source"
+            source_name = "Music"
 
 
         embed = discord.Embed(

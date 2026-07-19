@@ -317,6 +317,9 @@ class Fun(commands.Cog):
             )
         }
 
+        def _valid(url: str) -> bool:
+            return isinstance(url, str) and url.startswith(("http://", "https://"))
+
         async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
             # ── Primary: otakugifs.xyz (most reliable from Replit/Render) ─────
             og_endpoint = _OTAKUGIFS.get(keyword, "hug")
@@ -327,8 +330,8 @@ class Fun(commands.Cog):
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json(content_type=None)
-                        url = data.get("url", "")
-                        if url:
+                        url = data.get("url") or data.get("link") or data.get("image") or ""
+                        if _valid(url):
                             return url
                     logger.warning(
                         "[Fun] otakugifs returned %s for '%s' (%s)",
@@ -350,8 +353,8 @@ class Fun(commands.Cog):
                         data = await resp.json(content_type=None)
                         results = data.get("results", [])
                         if results:
-                            url = results[0].get("url", "")
-                            if url:
+                            url = results[0].get("url") or results[0].get("url") or ""
+                            if _valid(url):
                                 return url
                     logger.warning(
                         "[Fun] nekos.best returned %s for '%s' (%s)",
@@ -372,8 +375,8 @@ class Fun(commands.Cog):
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json(content_type=None)
-                            url = data.get("url", "")
-                            if url:
+                            url = data.get("url") or data.get("link") or ""
+                            if _valid(url):
                                 return url
                         logger.warning(
                             "[Fun] waifu.pics (%s) returned %s for '%s' (%s)",
@@ -399,11 +402,11 @@ class Fun(commands.Cog):
         emotion  = EMOTIONS[keyword]
 
         embed = discord.Embed(
-            description="",   # kept empty per design
+            title=emotion,
             color=0xFFD700,
         )
         embed.set_author(
-            name=f"{author.display_name} {past} {target.display_name}! {emotion}",
+            name=f"{author.display_name} {past} {target.display_name}!",
             icon_url=author.display_avatar.url,
         )
         if gif_url:
