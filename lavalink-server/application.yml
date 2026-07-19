@@ -110,12 +110,15 @@ plugins:
     # Do NOT add WEB_EMBEDDED — it frequently returns throttled/silent streams.
     # Do NOT add MUSIC — it is search-only and cannot stream audio.
     clients:
-      - WEB               # Best quality — needs OAuth. Falls back gracefully without it.
+      # Order matters: the plugin tries each client in turn until one succeeds.
+      # Without YouTube OAuth, keep WEB near the bottom — it throttles and fails
+      # on most videos. ANDROID_MUSIC / IOS are the most reliable no-OAuth clients.
       - ANDROID_MUSIC     # Most reliable for music audio, no JS parsing needed.
-      - MUSIC             # Required for ytmsearch: (YouTube Music search). Search-only — no audio.
       - IOS               # Very reliable, uses native iOS API path.
       - ANDROID_VR        # Good fallback, minimal rate-limiting.
       - TVHTML5EMBEDDED   # Stable last resort, no JS parsing.
+      - WEB               # Highest quality — only works well with OAuth enabled.
+      - MUSIC             # Required for ytmsearch: (YouTube Music search). Search-only — no audio.
 
     # ── YouTube OAuth ─────────────────────────────────────────────────────────
     # OAuth eliminates most "Video unavailable" and HTTP 429 errors by logging

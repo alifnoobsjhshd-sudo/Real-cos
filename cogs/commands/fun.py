@@ -302,14 +302,44 @@ class Fun(commands.Cog):
     async def _get_gif(self, keyword: str) -> str:
         """Return a GIF URL for the keyword.
 
-        Tries nekos.best first (primary), then waifu.pics, then otakugifs.xyz.
-        Returns "" if all fail so the embed still posts without an image.
-        Uses ssl=False connector to avoid SSL verification issues in hosted envs.
+        Tries otakugifs.xyz first (reliable, no auth), then nekos.best with a
+        proper User-Agent, then waifu.pics on both known hostnames. Returns ""
+        if all fail so the embed still posts without an image.
         """
-        import ssl as _ssl
         connector = aiohttp.TCPConnector(ssl=False)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            # ── Primary: nekos.best ───────────────────────────────────────────
+        # Several anime GIF APIs block requests with no User-Agent or with a
+        # generic aiohttp string. Use a browser-like one.
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/125.0.0.0 Safari/537.36"
+            )
+        }
+
+        async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
+            # ── Primary: otakugifs.xyz (most reliable from Replit/Render) ─────
+            og_endpoint = _OTAKUGIFS.get(keyword, "hug")
+            try:
+                async with session.get(
+                    f"https://api.otakugifs.xyz/gif?reaction={og_endpoint}",
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json(content_type=None)
+                        url = data.get("url", "")
+                        if url:
+                            return url
+                    logger.warning(
+                        "[Fun] otakugifs returned %s for '%s' (%s)",
+                        resp.status, keyword, og_endpoint,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "[Fun] otakugifs fetch failed for '%s': %s", keyword, exc
+                )
+
+            # ── Fallback 1: nekos.best (needs a real User-Agent) ──────────────
             nb_endpoint = _NEKOSBEST.get(keyword, "hug")
             try:
                 async with session.get(
@@ -332,47 +362,28 @@ class Fun(commands.Cog):
                     "[Fun] nekos.best fetch failed for '%s': %s", keyword, exc
                 )
 
-            # ── Fallback 1: waifu.pics ────────────────────────────────────────
+            # ── Fallback 2: waifu.pics (two possible hostnames) ─────────────────
             wp_endpoint = _WAIFUPICS.get(keyword, "hug")
-            try:
-                async with session.get(
-                    f"https://api.waifu.pics/sfw/{wp_endpoint}",
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json(content_type=None)
-                        url = data.get("url", "")
-                        if url:
-                            return url
+            for wp_base in ("https://api.waifu.pics", "https://waifu.pics/api"):
+                try:
+                    async with session.get(
+                        f"{wp_base}/sfw/{wp_endpoint}",
+                        timeout=aiohttp.ClientTimeout(total=10),
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json(content_type=None)
+                            url = data.get("url", "")
+                            if url:
+                                return url
+                        logger.warning(
+                            "[Fun] waifu.pics (%s) returned %s for '%s' (%s)",
+                            wp_base, resp.status, keyword, wp_endpoint,
+                        )
+                except Exception as exc:
                     logger.warning(
-                        "[Fun] waifu.pics returned %s for '%s' (%s)",
-                        resp.status, keyword, wp_endpoint,
+                        "[Fun] waifu.pics (%s) fetch failed for '%s': %s",
+                        wp_base, keyword, exc,
                     )
-            except Exception as exc:
-                logger.warning(
-                    "[Fun] waifu.pics fetch failed for '%s': %s", keyword, exc
-                )
-
-            # ── Fallback 2: otakugifs.xyz ─────────────────────────────────────
-            og_endpoint = _OTAKUGIFS.get(keyword, "hug")
-            try:
-                async with session.get(
-                    f"https://api.otakugifs.xyz/gif?reaction={og_endpoint}",
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json(content_type=None)
-                        url = data.get("url", "")
-                        if url:
-                            return url
-                    logger.warning(
-                        "[Fun] otakugifs returned %s for '%s' (%s)",
-                        resp.status, keyword, og_endpoint,
-                    )
-            except Exception as exc:
-                logger.warning(
-                    "[Fun] otakugifs fetch failed for '%s': %s", keyword, exc
-                )
 
         return ""
 

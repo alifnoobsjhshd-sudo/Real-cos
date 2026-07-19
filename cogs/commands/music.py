@@ -95,9 +95,8 @@ class PlatformSelectView(View):
         self.query = query
 
         platforms = [
-            ("YouTube",   "ytsearch", discord.ButtonStyle.red,   _pe("YouTube")),
-            ("JioSaavn",  "jssearch", discord.ButtonStyle.green,  _pe("jiosaavn")),
-            ("SoundCloud","scsearch", discord.ButtonStyle.grey,   _pe("SoundCloud")),
+            ("YouTube",  "ytsearch", discord.ButtonStyle.red,   _pe("YouTube")),
+            ("Spotify",  "spsearch", discord.ButtonStyle.green,  _pe("spotify")),
         ]
 
         for name, source, style, emoji in platforms:
@@ -603,9 +602,8 @@ class Music(commands.Cog):
         _src     = track.source if track.source else ""
 
         color = (
-            0x1DB954 if "spotify"    in _src else
-            0x00E6A7 if "jiosaavn"   in _src else
-            0xFF0000 if "youtube"    in _src else
+            0x1DB954 if "spotify" in _src else
+            0xFF0000 if "youtube" in _src else
             0xFF5500
         )
 
@@ -614,10 +612,8 @@ class Music(commands.Cog):
         embed.add_field(name="Duration", value=f"`{duration}`")
 
         # Source link — emoji placed BEFORE the hyperlink so it renders as a real emoji
-        if "spotify"     in _src: _src_txt = f"{_e('zplay') or '▶'}  [Listen on Spotify]({track.uri})"
-        elif "jiosaavn"  in _src: _src_txt = f"{_e('jiosaavn') or '🎵'} [Listen on JioSaavn]({track.uri})"
-        elif "soundcloud" in _src: _src_txt = f"{_e('SoundCloud') or '☁'} [Listen on SoundCloud]({track.uri})"
-        else:                     _src_txt = f"{_e('YouTube') or '▶'} [Listen on YouTube]({track.uri})"
+        if "spotify" in _src: _src_txt = f"{_e('zplay') or '▶'}  [Listen on Spotify]({track.uri})"
+        else:                 _src_txt = f"{_e('YouTube') or '▶'} [Listen on YouTube]({track.uri})"
         embed.add_field(name="Source", value=_src_txt)
 
         # Thumbnail = song artwork (replaces the old composite banner image)
@@ -644,29 +640,40 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
         """
-        When YouTube fails (player-script errors, 429s, geo-blocks), automatically
-        retry the same track on SoundCloud before giving up.
+        When a YouTube track fails to stream (player errors, 429s, geo-blocks, age-gate),
+        automatically retry the same song via YouTube Music (ytmsearch). YouTube Music
+        often has a different upload that is not blocked. If the retry also fails, send
+        a clear error message. No SoundCloud fallback is used.
         """
         player = payload.player
         exc    = payload.exception
-        print(f"[Music] Track exception on '{payload.track.title}': {exc}")
+        title  = payload.track.title
+        print(f"[Music] Track exception on '{title}': {exc}")
         ctx = getattr(player, "ctx", None)
 
         # Detect YouTube-side failures by the error message content
         yt_fail_keywords = (
             "IllegalStateException", "player_embed", "player.js",
-            "action functions", "Something broke",
+            "action functions", "Something broke", "age-restricted",
+            "429", "Too Many Requests", "unavailable", "Video unavailable",
         )
         exc_str = str(exc)
         is_yt_failure = any(kw in exc_str for kw in yt_fail_keywords)
 
+        # Prevent infinite retry loops: only retry once per title
+        retried = getattr(player, "_ytm_retried", set())
+        if title in retried:
+            is_yt_failure = False
+        else:
+            retried.add(title)
+            player._ytm_retried = retried
+
         if is_yt_failure:
-            # Auto-retry on SoundCloud so the user doesn't have to do anything
-            title = payload.track.title
             try:
-                sc_tracks = await wavelink.Playable.search(f"scsearch:{title}")
-                if sc_tracks:
-                    retry_track = sc_tracks[0]
+                ytm_results = await wavelink.Playable.search(f"ytmsearch:{title}")
+                if ytm_results:
+                    retry_track = ytm_results[0]
+                    print(f"[Music] Retrying '{title}' on YouTube Music: {retry_track.title}")
                     await player.queue.put_wait(retry_track)
                     if not player.playing:
                         nxt = await player.queue.get_wait()
@@ -676,21 +683,24 @@ class Music(commands.Cog):
                         await ctx.send(embed=discord.Embed(
                             description=(
                                 f"⚠️ YouTube blocked **{title}**.\n"
-                                f"🔁 Auto-retrying on **SoundCloud**: `{retry_track.title}`"
+                                f"🔁 Retrying on YouTube Music: `{retry_track.title}`"
                             ),
                             color=0xFFA500,
                         ))
                     return
-            except Exception as sc_err:
-                print(f"[Music] SoundCloud fallback also failed: {sc_err}")
+                else:
+                    print(f"[Music] No YouTube Music results for '{title}'")
+            except Exception as ytm_err:
+                print(f"[Music] YouTube Music retry also failed: {ytm_err}")
 
         # No fallback available — report the error
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
                     description=(
-                        f"⚠️ Could not play **{payload.track.title}**.\n"
-                        f"Try searching with `sc:` prefix for SoundCloud, e.g. `>play sc:{payload.track.title}`"
+                        f"⚠️ Could not play **{title}**.\n"
+                        "Try a different query, a Spotify link, or ask the bot owner to enable "
+                        "YouTube OAuth on the Lavalink server."
                     ),
                     color=0xFF0000,
                 ))
@@ -920,7 +930,7 @@ class Music(commands.Cog):
         return bar
 
     @commands.hybrid_command(name="play", aliases=['p'], usage="play <query>", help="Plays a song or playlist.")
-    @discord.app_commands.describe(query="A song name, YouTube/Spotify/SoundCloud link, or playlist link.")
+    @discord.app_commands.describe(query="A song name, YouTube or Spotify link, or playlist link.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -929,7 +939,7 @@ class Music(commands.Cog):
         await self.play_source(ctx, query)
 
 
-    @commands.command(name="search", usage="search <query>", help="Searches music from multiple platforms.")
+    @commands.command(name="search", usage="search <query>", help="Searches music from YouTube or Spotify.")
     @blacklist_check()
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
@@ -940,7 +950,7 @@ class Music(commands.Cog):
 
         embed = discord.Embed(
             title="Select a platform to search from:",
-            description="Click a button below to choose.",
+            description="YouTube or Spotify. (Spotify needs SPOTIFY_CLIENT_ID/SECRET set on the Lavalink server.)",
             color=0xff0000
         )
         await ctx.send(embed=embed, view=PlatformSelectView(ctx, query))
@@ -976,10 +986,6 @@ class Music(commands.Cog):
             source_name = "Spotify"
         elif "youtube" in track.uri:
             source_name = "YouTube"
-        elif "soundcloud" in track.uri:
-            source_name = "SoundCloud"
-        elif "jiosaavn" in track.uri:
-            source_name = "JioSaavn"
         else:
             source_name = "Unknown Source"
 
