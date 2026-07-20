@@ -169,7 +169,7 @@ class PlaylistDB:
             db.row_factory = aiosqlite.Row
             async with db.execute(
                 "SELECT id, song_name, song_uri, position, added_at "
-                "FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC, id ASC",
+                "FROM playlist_songs WHERE playlist_id = ? ORDER BY id DESC",
                 (playlist_id,)
             ) as cur:
                 return [dict(r) for r in await cur.fetchall()]
@@ -425,7 +425,7 @@ class PlaylistDetailView(discord.ui.View):
     """
     Shown after a user selects a playlist.
     Layout:
-      Row 0 — ▶ Play All | 🔁 Loop
+      Row 0 — ▶ Play All | 🔁 Loop | 🔀 Shuffle
       Row 1 — ⏪ Rewind  | ⏸ Pause  | ⏩ Forward
       Row 2 — ⏮ Previous | ⏹ Stop  | ⏭ Skip
       Row 3 — 🔊 Volume  | ⏮ Prev page | Next page ⏭
@@ -436,11 +436,13 @@ class PlaylistDetailView(discord.ui.View):
 
     def __init__(self, playlist: dict, songs: list, page: int = 0):
         super().__init__(timeout=300)
-        self.playlist     = playlist
-        self.songs        = songs
-        self.page         = page
-        self._loop_on     = False
-        self._start_index = 0   # used by song-jump dropdown → Play All button
+        self.playlist      = playlist
+        self.songs         = songs
+        self._original_songs = list(songs)   # keep original order for un-shuffle
+        self.page          = page
+        self._loop_on      = False
+        self._shuffled     = False
+        self._start_index  = 0   # used by song-jump dropdown → Play All button
 
         self._rebuild_dropdown()
         self._update_nav_buttons()
@@ -533,6 +535,31 @@ class PlaylistDetailView(discord.ui.View):
             vc.queue.mode = wavelink.QueueMode.loop_all if self._loop_on else wavelink.QueueMode.normal
 
         await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label="🔀 Shuffle", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_shuffle(self, interaction: discord.Interaction, button: discord.ui.Button):
+        import random as _random
+        if self._shuffled:
+            # Restore original order
+            self.songs     = list(self._original_songs)
+            self._shuffled = False
+            button.label   = "🔀 Shuffle"
+            button.style   = discord.ButtonStyle.secondary
+        else:
+            # Shuffle in place
+            shuffled = list(self.songs)
+            _random.shuffle(shuffled)
+            self.songs     = shuffled
+            self._shuffled = True
+            button.label   = "🔀 Shuffled ✓"
+            button.style   = discord.ButtonStyle.success
+
+        # Reset start index and rebuild dropdown with new order
+        self._start_index = 0
+        self.page         = 0
+        self._rebuild_dropdown()
+        self._update_nav_buttons()
+        await interaction.response.edit_message(embed=self._build_embed(), view=self)
 
     # ── Row 1: Rewind | Pause | Forward ──────────────────────────────────────
 

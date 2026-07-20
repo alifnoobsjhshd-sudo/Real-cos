@@ -761,10 +761,15 @@ class Music(commands.Cog):
         else:
             track = tracks[0]
             await vc.queue.put_wait(track)
-            await ctx.send(embed=discord.Embed(description=f"➕ Added **{track.title}** to the queue.", color=0xFF0000))
             if not vc.playing:
                 await vc.play(await vc.queue.get_wait())
                 await self.display_player_embed(vc, track, ctx)
+            else:
+                queue_pos = len(vc.queue)
+                await ctx.send(embed=discord.Embed(
+                    description=f"➕ Added **{track.title}** to the queue  `#{queue_pos}`",
+                    color=0x1DB954,
+                ))
             self.client.loop.create_task(self.check_inactivity(ctx.guild.id))
 
 

@@ -236,17 +236,20 @@ _WAIFUPICS = {
 }
 
 _OTAKUGIFS = {
+    # ── Confirmed-working otakugifs endpoints ───────────────────────────────
+    # Endpoints that return 400 on otakugifs are remapped to the closest
+    # working alternative so every keyword always produces a GIF.
     "bite":        "bite",
     "boop":        "poke",
-    "bully":       "bully",
+    "bully":       "slap",        # "bully" → 400; use slap
     "cuddle":      "cuddle",
     "greet":       "wave",
-    "handholding": "handholding",
-    "highfive":    "highfive",
+    "handholding": "cuddle",      # "handholding" → 400; use cuddle
+    "highfive":    "wave",        # "highfive" → 400; use wave
     "hold":        "hug",
     "hug":         "hug",
-    "insult":      "bully",
-    "kill":        "shoot",
+    "insult":      "slap",        # "shoot" → 400; use slap
+    "kill":        "slap",        # "shoot" → 400; use slap
     "kiss":        "kiss",
     "lick":        "lick",
     "nom":         "nom",
@@ -272,17 +275,17 @@ _OTAKUGIFS = {
     "smile":       "smile",
     "smug":        "smug",
     "teehee":      "laugh",
-    "thinking":    "think",
-    "thonking":    "think",
+    "thinking":    "stare",       # "think" → 400; use stare
+    "thonking":    "stare",       # "think" → 400; use stare
     "thumbsup":    "thumbsup",
-    "triggered":   "triggered",
-    "wag":         "wag",
+    "triggered":   "punch",       # "triggered" → 400; use punch
+    "wag":         "smile",       # "wag" → 400; use smile
     "headpat":     "pat",
-    "kick":        "kick",
+    "kick":        "punch",       # "kick" → 400; use punch
     "tackle":      "slap",
-    "bonk":        "bonk",
+    "bonk":        "pat",         # "bonk" → 400; use pat
     "nuzzle":      "cuddle",
-    "yeet":        "throw",
+    "yeet":        "slap",        # "throw" → 400; use slap
 }
 
 KEYWORDS = frozenset(PAST_TENSE.keys())

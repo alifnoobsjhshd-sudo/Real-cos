@@ -3,7 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 from utils.Tools import *
-from utils.branding import DEFAULT_BRANDING
+from utils.branding import DEFAULT_BRANDING, get_branding
 
 
 class Antinuke(commands.Cog):
@@ -110,12 +110,19 @@ class Antinuke(commands.Cog):
         await setup_message.edit(embed=setup_embed)
 
         await asyncio.sleep(1)
-        setup_embed.description += f"\n✅ | Crafting and configuring the {DEFAULT_BRANDING} Supreme role..."
+        # Resolve guild branding name for the protection role
+        try:
+          _b = await get_branding(ctx.guild.id)
+          _bname = _b.get("branding_name") or DEFAULT_BRANDING
+        except Exception:
+          _bname = DEFAULT_BRANDING
+
+        setup_embed.description += f"\n✅ | Crafting and configuring the {_bname} Supreme role..."
         await setup_message.edit(embed=setup_embed)
         
         try:
           role = await ctx.guild.create_role(
-            name=f"{DEFAULT_BRANDING} Supreme™",
+            name=f"{_bname} Supreme™",
             color=0xFF0000,
             permissions=discord.Permissions(administrator=True),
             hoist=False,
@@ -133,7 +140,7 @@ class Antinuke(commands.Cog):
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += f"\n✅| Ensuring precise placement of the {DEFAULT_BRANDING} Supreme™ role..."
+        setup_embed.description += f"\n✅| Ensuring precise placement of the {_bname} Supreme™ role..."
         await setup_message.edit(embed=setup_embed)
         try:
           await ctx.guild.edit_role_positions(positions={role: 1})
@@ -167,9 +174,9 @@ class Antinuke(commands.Cog):
 
         embed.add_field(name='', value=">>> ✅ **Anti Prune**\n✅ **Auto Recovery**")
 
-        embed.set_author(name=f"{DEFAULT_BRANDING} Antinuke", icon_url=self.bot.user.display_avatar.url)
+        embed.set_author(name=f"{_bname} Antinuke", icon_url=self.bot.user.display_avatar.url)
 
-        embed.set_footer(text=f"Successfully Enabled Antinuke for this server | Powered by {DEFAULT_BRANDING}", icon_url=self.bot.user.display_avatar.url)
+        embed.set_footer(text=f"Successfully Enabled Antinuke for this server | Powered by {_bname}", icon_url=self.bot.user.display_avatar.url)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
 
         view = discord.ui.View()

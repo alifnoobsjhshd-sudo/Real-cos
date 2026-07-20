@@ -43,7 +43,7 @@ def get_ctrl_guild_ids():
 class BrandingNameModal(discord.ui.Modal, title="Change Branding Name"):
     name_input = discord.ui.TextInput(
         label="Branding Name",
-        placeholder="e.g. Sunlight",
+        placeholder="e.g. MyBot, GuardBot, ServerGuard",
         max_length=32,
         required=True,
     )
@@ -379,7 +379,7 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
 class GlobalBrandingNameModal(discord.ui.Modal, title="Set Global Branding Name"):
     name_input = discord.ui.TextInput(
         label="Branding Name (global default)",
-        placeholder="e.g. Sunlight",
+        placeholder="e.g. MyBot, GuardBot, ServerGuard",
         max_length=32,
         required=True,
     )
@@ -464,7 +464,7 @@ class GlobalBannerModal(discord.ui.Modal, title="Set Global Embed Banner"):
 class GlobalUsernameModal(discord.ui.Modal, title="Set Bot Global Username"):
     name_input = discord.ui.TextInput(
         label="Bot Username (global)",
-        placeholder="e.g. Sunlight",
+        placeholder="e.g. MyBot, GuardBot",
         max_length=32,
         required=True,
     )
