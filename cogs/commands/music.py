@@ -1126,6 +1126,59 @@ class Music(commands.Cog):
         else:
             await ctx.send(embed=discord.Embed(description="Bot is not connected to any voice channel.", color=0xFF0000))
 
+    @commands.hybrid_command(name="lavalink", usage="lavalink", help="Shows connected Lavalink nodes and their status.")
+    @blacklist_check()
+    @ignore_check()
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def lavalink_info(self, ctx: commands.Context):
+        """Shows all connected Lavalink nodes, their host URLs and live stats."""
+        nodes = wavelink.Pool.nodes
+
+        if not nodes:
+            await ctx.send(embed=discord.Embed(
+                description="❌ No Lavalink nodes are currently configured or connected.",
+                color=0xFF0000,
+            ))
+            return
+
+        embed = discord.Embed(
+            title="🎵 Lavalink Nodes",
+            color=0x1DB954,
+        )
+
+        for identifier, node in nodes.items():
+            connected = node.status == wavelink.NodeStatus.CONNECTED
+            status_icon = "🟢" if connected else "🔴"
+            status_text = "Connected" if connected else "Disconnected"
+
+            lines = [
+                f"**Host:** `{node.uri}`",
+                f"**Status:** {status_icon} {status_text}",
+            ]
+
+            stats = node.stats
+            if stats:
+                mem_used = stats.memory.used // (1024 * 1024)
+                mem_free = stats.memory.free // (1024 * 1024)
+                uptime_s = stats.uptime // 1000
+                h, rem   = divmod(uptime_s, 3600)
+                m, s     = divmod(rem, 60)
+                lines += [
+                    f"**Players:** `{stats.players}` total · `{stats.playing_players}` playing",
+                    f"**Memory:** `{mem_used} MB used` / `{mem_free} MB free`",
+                    f"**CPU (bot):** `{stats.cpu.lavalink_load * 100:.1f}%`",
+                    f"**Uptime:** `{h}h {m}m {s}s`",
+                ]
+
+            embed.add_field(
+                name=f"Node — {identifier}",
+                value="\n".join(lines),
+                inline=False,
+            )
+
+        embed.set_footer(text=f"Total: {len(nodes)} node(s) configured")
+        await ctx.send(embed=embed)
+
     @commands.command(name="seek", usage="seek <percentage>", help="Seeks to a specific percentage of the song.")
     @blacklist_check()
     @ignore_check()

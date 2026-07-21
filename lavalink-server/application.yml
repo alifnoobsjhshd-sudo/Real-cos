@@ -17,7 +17,8 @@ lavalink:
     password: ${LAVALINK_PASSWORD:youshallnotpass}
 
     # ── Audio sources ─────────────────────────────────────────────────────────
-    # YouTube is removed from this node. Only generic sources + SoundCloud remain.
+    # youtube: false — built-in YouTube is disabled; the youtube-source plugin
+    # takes over and provides OAuth-authenticated playback + MUSIC/WEB clients.
     sources:
       youtube: false
       bandcamp: true
@@ -85,17 +86,37 @@ lavalink:
       proxyPassword: ""
 
 plugins:
+  # ── youtube-source plugin ─────────────────────────────────────────────────
+  # Replaces Lavalink's built-in YouTube source with proper OAuth support and
+  # multiple clients (MUSIC, WEB). Required by LavaSrc 4.x for YouTube resolution.
+  # Set YOUTUBE_OAUTH_ENABLED=true and YOUTUBE_REFRESH_TOKEN in Render env vars
+  # to enable authenticated playback (bypasses age-gates and quota limits).
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - WEB
+      - TVHTML5SIMPLY
+    oauth:
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: ${YOUTUBE_REFRESH_TOKEN:}
+      skipInitialization: ${YOUTUBE_SKIP_INIT:false}
+
   # ── LavaSrc plugin ────────────────────────────────────────────────────────
   # Handles Spotify by fetching track metadata from the Spotify API, then
-  # resolving audio via the configured non-YouTube provider chain.
+  # resolving audio via the provider chain below.
+  # Provider order: SoundCloud ISRC → SoundCloud search → YouTube ISRC → YouTube search.
+  # SoundCloud is tried first (no quota); YouTube is the reliable fallback.
   lavasrc:
     # ── Provider resolution chain ─────────────────────────────────────────
-    # Since YouTube is removed, LavaSrc resolves Spotify tracks via SoundCloud.
-    # ISRC matching is tried first for accuracy, then a plain query search.
-    # SoundCloud catalog is smaller than YouTube, so some tracks may not resolve.
     providers:
       - "scsearch:%ISRC%"
       - "scsearch:%QUERY%"
+      - "ytsearch:%ISRC%"
+      - "ytsearch:%QUERY%"
 
     sources:
       spotify: true
