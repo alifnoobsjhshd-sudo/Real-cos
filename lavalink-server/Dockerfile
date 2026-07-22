@@ -5,7 +5,6 @@ FROM eclipse-temurin:17-jre-alpine
 # Lavalink.jar on Alpine causes native-library errors and slower UDP audio.
 ARG LAVALINK_VERSION=4.2.2
 ARG LAVASRC_VERSION=4.8.3
-ARG YT_SOURCE_VERSION=1.11.1
 
 WORKDIR /lavalink
 
@@ -33,9 +32,7 @@ RUN wget -q --tries=3 -O Lavalink.jar \
 #   of the youtube-source playback backend. ISRC matching gives accurate results.
 RUN mkdir -p plugins && \
     wget -q --tries=3 -O plugins/lavasrc-plugin.jar \
-      "https://github.com/topi314/LavaSrc/releases/download/${LAVASRC_VERSION}/lavasrc-plugin-${LAVASRC_VERSION}.jar" && \
-    wget -q --tries=3 -O plugins/youtube-source.jar \
-      "https://github.com/lavalink-devs/youtube-source/releases/download/${YT_SOURCE_VERSION}/youtube-source-${YT_SOURCE_VERSION}.jar"
+      "https://github.com/topi314/LavaSrc/releases/download/${LAVASRC_VERSION}/lavasrc-plugin-${LAVASRC_VERSION}.jar"
 
 # ── Copy config ────────────────────────────────────────────────────────────────
 COPY application.yml application.yml
