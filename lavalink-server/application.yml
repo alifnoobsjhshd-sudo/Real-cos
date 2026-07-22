@@ -86,17 +86,37 @@ lavalink:
       proxyPassword: ""
 
 plugins:
+  # ── youtube-source plugin ─────────────────────────────────────────────────
+  # Provides YouTube audio resolution without the broken built-in YT source.
+  # Used as a fallback when SoundCloud (primary) cannot resolve a track.
+  # YOUTUBE_OAUTH_ENABLED / YOUTUBE_REFRESH_TOKEN / YOUTUBE_SKIP_INIT are read
+  # from Render env vars — set them there to enable authenticated playback.
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - WEB
+      - TVHTML5SIMPLY
+    oauth:
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: ${YOUTUBE_REFRESH_TOKEN:}
+      skipInitialization: ${YOUTUBE_SKIP_INIT:false}
+
   # ── LavaSrc plugin ────────────────────────────────────────────────────────
-  # Handles Spotify by fetching track metadata from the Spotify API, then
-  # resolving audio via the configured non-YouTube provider chain.
+  # Resolves Spotify tracks: fetches metadata via Spotify API, then resolves
+  # audio using the provider chain below.
+  # SoundCloud is tried first (fast, no quota). YouTube is the reliable fallback
+  # for when Render's IP is blocked by SoundCloud.
   lavasrc:
     # ── Provider resolution chain ─────────────────────────────────────────
-    # Since YouTube is removed, LavaSrc resolves Spotify tracks via SoundCloud.
-    # ISRC matching is tried first for accuracy, then a plain query search.
-    # SoundCloud catalog is smaller than YouTube, so some tracks may not resolve.
     providers:
       - "scsearch:%ISRC%"
       - "scsearch:%QUERY%"
+      - "ytsearch:%ISRC%"
+      - "ytsearch:%QUERY%"
 
     sources:
       spotify: true

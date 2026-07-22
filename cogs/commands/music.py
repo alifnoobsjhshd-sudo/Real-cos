@@ -742,8 +742,8 @@ class Music(commands.Cog):
                 try:
                     tracks = await wavelink.Playable.search(query, source="spsearch")
                 except Exception as _sp_err:
-                    print(f"[Music] spsearch failed, trying default sources: {_sp_err}")
-                    tracks = await wavelink.Playable.search(query)
+                    print(f"[Music] spsearch failed, trying scsearch: {_sp_err}")
+                    tracks = await wavelink.Playable.search(query, source="scsearch")
         except Exception as e:
             await ctx.send(embed=discord.Embed(
                 description=f"⚠️ Search failed: `{e}`\nMake sure Spotify credentials are set on the Lavalink server.",
@@ -1136,7 +1136,10 @@ class Music(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def lavalink_info(self, ctx: commands.Context):
         """Shows all connected Lavalink nodes, their host URLs and live stats."""
-        nodes = wavelink.Pool.nodes
+        try:
+            nodes = wavelink.Pool.nodes
+        except Exception:
+            nodes = {}
 
         if not nodes:
             await ctx.send(embed=discord.Embed(
@@ -1151,7 +1154,15 @@ class Music(commands.Cog):
         )
 
         for identifier, node in nodes.items():
-            connected = node.status == wavelink.NodeStatus.CONNECTED
+            # Determine connected status safely (API varies across wavelink 3.x builds)
+            try:
+                connected = node.status == wavelink.NodeStatus.CONNECTED
+            except Exception:
+                try:
+                    connected = getattr(node, "connected", False)
+                except Exception:
+                    connected = True  # in pool → likely connected
+
             status_icon = "🟢" if connected else "🔴"
             status_text = "Connected" if connected else "Disconnected"
 
@@ -1160,19 +1171,23 @@ class Music(commands.Cog):
                 f"**Status:** {status_icon} {status_text}",
             ]
 
-            stats = node.stats
-            if stats:
-                mem_used = stats.memory.used // (1024 * 1024)
-                mem_free = stats.memory.free // (1024 * 1024)
-                uptime_s = stats.uptime // 1000
-                h, rem   = divmod(uptime_s, 3600)
-                m, s     = divmod(rem, 60)
-                lines += [
-                    f"**Players:** `{stats.players}` total · `{stats.playing_players}` playing",
-                    f"**Memory:** `{mem_used} MB used` / `{mem_free} MB free`",
-                    f"**CPU (bot):** `{stats.cpu.lavalink_load * 100:.1f}%`",
-                    f"**Uptime:** `{h}h {m}m {s}s`",
-                ]
+            try:
+                stats = node.stats
+                if stats:
+                    mem_used = stats.memory.used // (1024 * 1024)
+                    mem_free = stats.memory.free // (1024 * 1024)
+                    uptime_s = stats.uptime // 1000
+                    h, rem   = divmod(uptime_s, 3600)
+                    m, s     = divmod(rem, 60)
+                    cpu_load = stats.cpu.lavalink_load * 100
+                    lines += [
+                        f"**Players:** `{stats.players}` total · `{stats.playing_players}` playing",
+                        f"**Memory:** `{mem_used} MB used` / `{mem_free} MB free`",
+                        f"**CPU:** `{cpu_load:.1f}%`",
+                        f"**Uptime:** `{h}h {m}m {s}s`",
+                    ]
+            except Exception:
+                pass  # stats not yet received or structure differs — host+status is enough
 
             embed.add_field(
                 name=f"Node — {identifier}",
