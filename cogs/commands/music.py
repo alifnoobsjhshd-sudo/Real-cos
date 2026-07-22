@@ -394,8 +394,14 @@ class Music(commands.Cog):
         self.client.loop.create_task(_initial_connect())
         self.client.loop.create_task(self.monitor_inactivity())
         
-        self.inactivity_timeout = 120 
-        self.player_inactivity = {}  
+        self.inactivity_timeout = 120
+        self.player_inactivity = {}
+
+        # Ordered list of every configured node — populated by _build_lavalink_nodes().
+        # [{index, uri, password}]  — index is 1-based priority order.
+        self._configured_nodes: list[dict] = []
+        # Tracks the last time each node (by URI) returned a successful search result.
+        self._node_last_success: dict[str, datetime.datetime] = {}
 
     async def monitor_inactivity(self):
         while True:
@@ -478,16 +484,22 @@ class Music(commands.Cog):
 
         # ── Style 2: numbered LAVALINK_URL_N / LAVALINK_URI_N ───────────────
         if not uris:
-            for n in range(1, 21):          # supports up to 20 nodes
+            for n in range(1, 51):          # supports up to 50 nodes
                 uri = (
                     os.getenv(f"LAVALINK_URL_{n}") or
                     os.getenv(f"LAVALINK_URI_{n}") or
+                    os.getenv(f"LAVALLINK_URL_{n}") or   # double-L variant
+                    os.getenv(f"LAVALLINK_URI_{n}") or   # double-L variant
                     ""
                 ).strip()
                 if not uri:
                     break                   # stop at first gap
                 uris.append(uri)
-                pw = (os.getenv(f"LAVALINK_PASSWORD_{n}") or "").strip()
+                pw = (
+                    os.getenv(f"LAVALINK_PASSWORD_{n}") or
+                    os.getenv(f"LAVALLINK_PASSWORD_{n}") or   # double-L variant
+                    ""
+                ).strip()
                 passwords.append(pw)
 
         # ── Style 3: single node ─────────────────────────────────────────────
@@ -534,6 +546,12 @@ class Music(commands.Cog):
         for uri, pw in zip(deduped_uris, deduped_passwords):
             nodes.append(wavelink.Node(uri=uri, password=pw))
 
+        # Save the ordered config for failover search and /lavalink display.
+        self._configured_nodes = [
+            {"index": i + 1, "uri": uri, "password": pw}
+            for i, (uri, pw) in enumerate(zip(deduped_uris, deduped_passwords))
+        ]
+
         return nodes
 
     async def connect_nodes(self) -> None:
@@ -570,8 +588,72 @@ class Music(commands.Cog):
                 print(f"[Music] Reconnect attempt {attempt} failed: {e}")
         print("[Music] Could not reconnect to Lavalink after 5 attempts.")
 
+    async def _search_with_failover(
+        self,
+        query: str,
+        is_spotify_url: bool,
+    ):
+        """
+        Try every connected Lavalink node in configured priority order until one
+        successfully returns tracks.  For text queries we attempt spsearch first,
+        then fall back to scsearch on the same node before moving on.
 
+        Returns the first non-empty track list/playlist found, or None if every
+        node fails.  Also records which node succeeded in self._node_last_success
+        so the /lavalink command can display playback health per node.
+        """
+        pool = wavelink.Pool.nodes          # dict — Python 3.7+ preserves insertion order
+        if not pool:
+            return None
 
+        # Build a priority-sorted list of connected nodes.
+        # self._configured_nodes is in the order the user declared them (env var index).
+        configured_uris = [n["uri"] for n in self._configured_nodes]
+
+        def _priority(node: wavelink.Node) -> int:
+            try:
+                return configured_uris.index(node.uri)
+            except ValueError:
+                return 9999  # any extra node goes last
+
+        ordered = sorted(pool.values(), key=_priority)
+
+        for node in ordered:
+            label = node.uri
+            try:
+                if is_spotify_url:
+                    # Spotify / playlist URL — pass raw to LavaSrc
+                    tracks = await wavelink.Playable.search(query, node=node)
+                else:
+                    # Text query — prefer Spotify search, fall back to SoundCloud
+                    tracks = None
+                    try:
+                        tracks = await wavelink.Playable.search(
+                            query, source="spsearch", node=node
+                        )
+                    except Exception as sp_err:
+                        print(f"[Music] {label}: spsearch failed — {sp_err}")
+
+                    if not tracks:
+                        try:
+                            tracks = await wavelink.Playable.search(
+                                query, source="scsearch", node=node
+                            )
+                        except Exception as sc_err:
+                            print(f"[Music] {label}: scsearch failed — {sc_err}")
+
+                if tracks:
+                    self._node_last_success[label] = datetime.datetime.utcnow()
+                    print(f"[Music] Search resolved via {label}")
+                    return tracks
+
+                print(f"[Music] {label}: returned no tracks, trying next node …")
+
+            except Exception as e:
+                print(f"[Music] {label}: search error — {e}")
+                continue
+
+        return None
 
     async def display_player_embed(self, player, track, ctx, autoplay=False):
         sec      = track.length // 1000
@@ -735,24 +817,19 @@ class Music(commands.Cog):
             re.search(SPOTIFY_PLAYLIST_REGEX, query) or
             re.search(SPOTIFY_ALBUM_REGEX, query)
         )
-        try:
-            if is_spotify_url:
-                tracks = await wavelink.Playable.search(query)
-            else:
-                try:
-                    tracks = await wavelink.Playable.search(query, source="spsearch")
-                except Exception as _sp_err:
-                    print(f"[Music] spsearch failed, trying scsearch: {_sp_err}")
-                    tracks = await wavelink.Playable.search(query, source="scsearch")
-        except Exception as e:
-            await ctx.send(embed=discord.Embed(
-                description=f"⚠️ Search failed: `{e}`\nMake sure Spotify credentials are set on the Lavalink server.",
-                color=0xFF0000,
-            ))
-            return
+
+        # Try every configured node in priority order until one returns tracks.
+        tracks = await self._search_with_failover(query, is_spotify_url)
 
         if not tracks:
-            await ctx.send(embed=discord.Embed(description="No results found for that query.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(
+                description=(
+                    "❌ No results found.\n"
+                    "All Lavalink nodes failed to resolve this track — "
+                    "they may be temporarily unavailable or the track doesn't exist."
+                ),
+                color=0xFF0000,
+            ))
             return
 
         if isinstance(tracks, wavelink.Playlist):
@@ -1130,72 +1207,136 @@ class Music(commands.Cog):
         else:
             await ctx.send(embed=discord.Embed(description="Bot is not connected to any voice channel.", color=0xFF0000))
 
-    @commands.hybrid_command(name="lavalink", usage="lavalink", help="Shows connected Lavalink nodes and their status.")
+    @commands.hybrid_command(name="lavalink", usage="lavalink", help="Shows all configured Lavalink nodes with connection and playback status.")
     @blacklist_check()
     @ignore_check()
-    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def lavalink_info(self, ctx: commands.Context):
-        """Shows all connected Lavalink nodes, their host URLs and live stats."""
-        try:
-            nodes = wavelink.Pool.nodes
-        except Exception:
-            nodes = {}
+        """
+        Shows every configured Lavalink node in priority order.
+        For each node: WebSocket status, REST reachability, live stats, and
+        when it last successfully resolved a search for this bot.
+        """
+        # ── Gather configured nodes ──────────────────────────────────────────
+        cfg_nodes = self._configured_nodes  # [{index, uri, password}]
 
-        if not nodes:
+        # Also include any pool nodes that aren't in _configured_nodes
+        # (can happen if nodes were added dynamically or config was reloaded).
+        pool: dict = {}
+        try:
+            pool = wavelink.Pool.nodes or {}
+        except Exception:
+            pool = {}
+
+        # Build a pool lookup by URI  →  wavelink Node
+        pool_by_uri: dict[str, "wavelink.Node"] = {}
+        for node in pool.values():
+            pool_by_uri[node.uri] = node
+
+        # Merge: all configured + any extra pool nodes not in config
+        all_uris_ordered: list[tuple[int, str, str]] = [
+            (c["index"], c["uri"], c["password"]) for c in cfg_nodes
+        ]
+        configured_uris = {c["uri"] for c in cfg_nodes}
+        extra_idx = len(cfg_nodes) + 1
+        for node in pool.values():
+            if node.uri not in configured_uris:
+                all_uris_ordered.append((extra_idx, node.uri, ""))
+                extra_idx += 1
+
+        if not all_uris_ordered:
             await ctx.send(embed=discord.Embed(
-                description="❌ No Lavalink nodes are currently configured or connected.",
+                description="❌ No Lavalink nodes are configured. Set `LAVALINK_URL` (or `LAVALINK_URL_1`, `LAVALINK_URL_2` …) in your environment.",
                 color=0xFF0000,
             ))
             return
 
+        # ── Ping every node's REST API in parallel ───────────────────────────
+        async def _rest_ping(uri: str, password: str) -> bool:
+            """Returns True if the node responds to GET /v4/info within 4 s."""
+            try:
+                async with aiohttp.ClientSession() as s:
+                    async with s.get(
+                        f"{uri}/v4/info",
+                        headers={"Authorization": password or "youshallnotpass"},
+                        timeout=aiohttp.ClientTimeout(total=4),
+                    ) as r:
+                        return r.status < 500
+            except Exception:
+                return False
+
+        ping_tasks = [_rest_ping(uri, pw) for _, uri, pw in all_uris_ordered]
+        rest_results: list[bool] = list(await asyncio.gather(*ping_tasks, return_exceptions=False))
+
+        # ── Build embed ───────────────────────────────────────────────────────
+        now = datetime.datetime.utcnow()
         embed = discord.Embed(
             title="🎵 Lavalink Nodes",
+            description=(
+                f"**{len(all_uris_ordered)}** node(s) configured · "
+                f"nodes are tried in priority order (#1 first) when you play a track."
+            ),
             color=0x1DB954,
         )
 
-        for identifier, node in nodes.items():
-            # Determine connected status safely (API varies across wavelink 3.x builds)
-            try:
-                connected = node.status == wavelink.NodeStatus.CONNECTED
-            except Exception:
-                try:
-                    connected = getattr(node, "connected", False)
-                except Exception:
-                    connected = True  # in pool → likely connected
+        for i, ((idx, uri, pw), rest_ok) in enumerate(zip(all_uris_ordered, rest_results)):
+            wl_node = pool_by_uri.get(uri)
 
-            status_icon = "🟢" if connected else "🔴"
-            status_text = "Connected" if connected else "Disconnected"
+            # WebSocket connection status
+            ws_connected = False
+            if wl_node is not None:
+                try:
+                    ws_connected = wl_node.status == wavelink.NodeStatus.CONNECTED
+                except Exception:
+                    ws_connected = getattr(wl_node, "connected", True)
+
+            ws_icon   = "🟢" if ws_connected  else "🔴"
+            rest_icon = "✅" if rest_ok        else "❌"
 
             lines = [
-                f"**Host:** `{node.uri}`",
-                f"**Status:** {status_icon} {status_text}",
+                f"`{uri}`",
+                f"{ws_icon} **WebSocket** {'Connected' if ws_connected else 'Disconnected'} · "
+                f"{rest_icon} **REST** {'Reachable' if rest_ok else 'Unreachable'}",
             ]
 
-            try:
-                stats = node.stats
-                if stats:
-                    mem_used = stats.memory.used // (1024 * 1024)
-                    mem_free = stats.memory.free // (1024 * 1024)
-                    uptime_s = stats.uptime // 1000
-                    h, rem   = divmod(uptime_s, 3600)
-                    m, s     = divmod(rem, 60)
-                    cpu_load = stats.cpu.lavalink_load * 100
-                    lines += [
-                        f"**Players:** `{stats.players}` total · `{stats.playing_players}` playing",
-                        f"**Memory:** `{mem_used} MB used` / `{mem_free} MB free`",
-                        f"**CPU:** `{cpu_load:.1f}%`",
-                        f"**Uptime:** `{h}h {m}m {s}s`",
-                    ]
-            except Exception:
-                pass  # stats not yet received or structure differs — host+status is enough
+            # Live stats (only if WebSocket is connected and stats arrived)
+            if ws_connected and wl_node is not None:
+                try:
+                    stats = wl_node.stats
+                    if stats:
+                        mem_mb   = stats.memory.used // (1024 * 1024)
+                        up_s     = stats.uptime // 1000
+                        h, r     = divmod(up_s, 3600)
+                        m, s     = divmod(r, 60)
+                        cpu      = stats.cpu.lavalink_load * 100
+                        playing  = stats.playing_players
+                        total_p  = stats.players
+                        lines.append(
+                            f"🎵 **{playing}** playing / **{total_p}** total · "
+                            f"💾 **{mem_mb} MB** · 🖥️ **{cpu:.1f}%** · ⏱️ {h}h {m}m {s}s"
+                        )
+                except Exception:
+                    pass
 
+            # Last successful search on this node
+            last = self._node_last_success.get(uri)
+            if last:
+                delta   = now - last
+                mins    = int(delta.total_seconds() // 60)
+                ago_str = f"{mins}m ago" if mins < 60 else f"{mins // 60}h {mins % 60}m ago"
+                lines.append(f"🔍 **Last search:** {ago_str}")
+            else:
+                lines.append("🔍 **Last search:** not yet used this session")
+
+            field_name = f"#{idx}  {'(priority)' if idx == 1 else ''}"
             embed.add_field(
-                name=f"Node — {identifier}",
+                name=field_name.strip(),
                 value="\n".join(lines),
                 inline=False,
             )
 
-        embed.set_footer(text=f"Total: {len(nodes)} node(s) configured")
+        connected_count = sum(1 for uri, _ in [(u, n) for _, u, _ in all_uris_ordered] if pool_by_uri.get(u) is not None)
+        embed.set_footer(text=f"{connected_count}/{len(all_uris_ordered)} nodes connected via WebSocket")
         await ctx.send(embed=embed)
 
     @commands.command(name="seek", usage="seek <percentage>", help="Seeks to a specific percentage of the song.")
