@@ -739,7 +739,11 @@ class Music(commands.Cog):
             if is_spotify_url:
                 tracks = await wavelink.Playable.search(query)
             else:
-                tracks = await wavelink.Playable.search(query, source="spsearch")
+                try:
+                    tracks = await wavelink.Playable.search(query, source="spsearch")
+                except Exception as _sp_err:
+                    print(f"[Music] spsearch failed, trying default sources: {_sp_err}")
+                    tracks = await wavelink.Playable.search(query)
         except Exception as e:
             await ctx.send(embed=discord.Embed(
                 description=f"⚠️ Search failed: `{e}`\nMake sure Spotify credentials are set on the Lavalink server.",
