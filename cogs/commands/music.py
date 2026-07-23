@@ -686,45 +686,39 @@ class Music(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
-        """Confirm track started on the Lavalink side (useful for debugging)."""
-        player = payload.player
-        print(f"[Music] Track started: {payload.track.title}")
-        # Ensure volume is audible — Lavalink defaults to 100 but be explicit
-        if player.volume != 100:
-            await player.set_volume(100)
-
-    @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
-        """When a Spotify-resolved track fails to stream, log it and tell the user."""
+        """When a track fails to stream, log it, notify the user, and advance the queue."""
         player = payload.player
         exc    = payload.exception
         title  = payload.track.title
         print(f"[Music] Track exception on '{title}': {exc}")
         ctx = getattr(player, "ctx", None)
-
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
                     description=(
                         f"⚠️ Could not play **{title}**.\n"
-                        "Try a different Spotify track or check the Lavalink server."
+                        "Skipping to next track in queue…"
                     ),
                     color=0xFF0000,
                 ))
             except Exception:
                 pass
+        # Advance the queue so the bot doesn't freeze on a bad track
+        if not player.queue.is_empty:
+            next_track = await player.queue.get_wait()
+            await player.play(next_track)
 
     @commands.Cog.listener()
     async def on_wavelink_track_stuck(self, payload: wavelink.TrackStuckEventPayload) -> None:
-        """Handle a stuck track by skipping it."""
+        """Handle a stuck track by skipping it and advancing the queue."""
         player = payload.player
         print(f"[Music] Track stuck: {payload.track.title}")
         ctx = getattr(player, "ctx", None)
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
-                    description=f"⚠️ Track **{payload.track.title}** got stuck and was skipped.",
+                    description=f"⚠️ Track **{payload.track.title}** got stuck — skipping.",
                     color=0xFF0000,
                 ))
             except Exception:
@@ -732,45 +726,6 @@ class Music(commands.Cog):
         if not player.queue.is_empty:
             next_track = await player.queue.get_wait()
             await player.play(next_track)
-
-    @commands.Cog.listener()
-    async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
-        player = payload.player
-        if player.queue.is_empty:
-            if player.queue.mode == wavelink.QueueMode.loop:
-                await player.play(payload.track)
-            elif player.autoplay == wavelink.AutoPlayMode.enabled:
-                await asyncio.sleep(5)
-                if player.current:
-                    try:
-                        await self.display_player_embed(player, player.current, player.ctx, autoplay=True)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        await player.ctx.send("No suitable track found for autoplay.")
-                    except Exception:
-                        pass
-            else:
-                try:
-                    await player.disconnect()
-                except Exception:
-                    pass
-                ended = discord.Embed(description="All tracks have been played, leaving the voice channel.", color=0xFF0000)
-                ended.set_author(name="Queue Ended", icon_url=self.client.user.display_avatar.url)
-                try:
-                    await player.ctx.send(embed=ended)
-                except Exception:
-                    pass
-        else:
-            next_track = await player.queue.get_wait()
-            await player.play(next_track)
-            # Wrap in try/except — ctx may be a lightweight proxy (e.g. from playlist.py)
-            # that doesn't have every method a real Context has; playback must not stop.
-            try:
-                await self.display_player_embed(player, next_track, player.ctx)
-            except Exception:
-                pass
 
 
 
@@ -791,6 +746,16 @@ class Music(commands.Cog):
             ))
             return
 
+        # Defer slash-command interactions immediately so they don't time out
+        # during the (potentially multi-node) search. No-op for prefix commands.
+        try:
+            await ctx.defer()
+        except Exception:
+            pass
+
+        # Remember whether a player was already active before we connect.
+        was_connected = ctx.voice_client is not None
+
         try:
             vc = ctx.voice_client or await ctx.author.voice.channel.connect(cls=wavelink.Player)
         except Exception as e:
@@ -808,7 +773,11 @@ class Music(commands.Cog):
             if ctx.voice_client and ctx.voice_client.channel != ctx.author.voice.channel:
                 await ctx.send(embed=discord.Embed(description=f"You must be connected to {ctx.voice_client.channel.mention} to play.", color=0xFF0000))
                 return
-        vc.autoplay = wavelink.AutoPlayMode.disabled
+
+        # Only reset autoplay for brand-new connections; don't override a setting
+        # the user has already toggled while music was playing.
+        if not was_connected:
+            vc.autoplay = wavelink.AutoPlayMode.disabled
 
         # Spotify-only mode: plain text queries are searched with spsearch, and
         # Spotify URLs are passed straight to Lavalink so LavaSrc resolves them.
@@ -1217,6 +1186,12 @@ class Music(commands.Cog):
         For each node: WebSocket status, REST reachability, live stats, and
         when it last successfully resolved a search for this bot.
         """
+        # Defer immediately — REST pings can take several seconds per node.
+        try:
+            await ctx.defer()
+        except Exception:
+            pass
+
         # ── Gather configured nodes ──────────────────────────────────────────
         cfg_nodes = self._configured_nodes  # [{index, uri, password}]
 
@@ -1366,28 +1341,73 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload):
         player = payload.player
-        track = player.current
+        track = payload.track
         guild_id = player.guild.id
 
-        voice_channel = player.channel
-        if voice_channel:
-            await voice_channel.edit(status=f"🎵 Playing: {track.title}")  # type: ignore
+        # Ensure audible volume on every track start (reconnects can reset it)
+        try:
+            if player.volume != 100:
+                await player.set_volume(100)
+        except Exception:
+            pass
 
+        # Update VC status banner
+        try:
+            if player.channel:
+                await player.channel.edit(status=f"🎵 Playing: {track.title}")  # type: ignore
+        except Exception:
+            pass
+
+        # Track history (used by the Previous button)
         if guild_id not in track_histories:
             track_histories[guild_id] = []
-
         if not track_histories[guild_id] or track_histories[guild_id][-1] != track:
             track_histories[guild_id].append(track)
-
-
             if len(track_histories[guild_id]) > 10:
                 track_histories[guild_id].pop(0)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
         player = payload.player
-        voice_channel = player.channel
 
-        if voice_channel:
-            await voice_channel.edit(status=None)  # type: ignore
-        await self.on_track_end(payload)
+        # Clear VC status banner
+        try:
+            if player.channel:
+                await player.channel.edit(status=None)  # type: ignore
+        except Exception:
+            pass
+
+        # ── Queue advancement ─────────────────────────────────────────────────
+        # If something is already playing (e.g. wavelink's own autoplay kicked
+        # in before this event fired) just let it run.
+        if player.playing:
+            return
+
+        if not player.queue.is_empty:
+            # Pop the next track and start it; on_wavelink_track_start handles
+            # the embed / history / volume.
+            next_track = player.queue.get()
+            await player.play(next_track)
+        elif player.queue.mode in (wavelink.QueueMode.loop, wavelink.QueueMode.loop_all):
+            # Wavelink loop modes re-queue automatically; nothing to do here.
+            pass
+        else:
+            # Queue exhausted — disconnect and notify.
+            ctx = getattr(player, "ctx", None)
+            try:
+                await player.disconnect()
+            except Exception:
+                pass
+            if ctx:
+                try:
+                    ended = discord.Embed(
+                        description="Queue finished — leaving the voice channel.",
+                        color=0xFF0000,
+                    )
+                    ended.set_author(
+                        name="Queue Ended",
+                        icon_url=self.client.user.display_avatar.url,
+                    )
+                    await ctx.send(embed=ended)
+                except Exception:
+                    pass
