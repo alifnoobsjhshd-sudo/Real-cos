@@ -418,25 +418,32 @@ async def main():
             # It carries the correct retry_after from Discord's response header.
             wait = max(float(e.retry_after), 60)
             print(f"[startup] Rate limited (RateLimited). Waiting {wait:.0f}s …")
-            # NOTE: do NOT call client.close() here — we haven't established a
-            # gateway connection yet, so there is nothing to clean up.  Calling
-            # close() sets client._closed = True, which makes the subsequent
-            # client.connect() loop exit immediately even after a successful
-            # login(), leaving the bot permanently offline.
+            # Close the internal HTTP session so the next attempt starts clean.
+            try:
+                await client.close()
+            except Exception:
+                pass
             await asyncio.sleep(wait)
         except discord.HTTPException as e:
             if e.status == 429:
                 # Fallback: plain HTTPException with status 429 (older path).
+                # Try to read retry_after from the JSON body discord.py attaches.
                 retry_after = getattr(e, 'retry_after', None)
-                wait = max(float(retry_after) if retry_after else 60, 60)
+                wait = max(float(retry_after) if retry_after else 300, 60)
                 print(f"[startup] Rate limited (HTTP 429). Waiting {wait:.0f}s …")
-                # Same reason: do NOT call client.close() before the gateway
-                # has been established.
+                try:
+                    await client.close()
+                except Exception:
+                    pass
                 await asyncio.sleep(wait)
             else:
                 raise
         except Exception as e:
             print(f"[startup] Unexpected login error: {e}. Retrying in 60s …")
+            try:
+                await client.close()
+            except Exception:
+                pass
             await asyncio.sleep(60)
 
     # ── Gateway connection — discord.py reconnects automatically ───────────────
