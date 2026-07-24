@@ -483,7 +483,11 @@ class Music(commands.Cog):
             passwords = [p.strip() for p in multi_passwords.split("|") if p.strip()] if multi_passwords else []
 
         # ── Style 2: numbered LAVALINK_URL_N / LAVALINK_URI_N ───────────────
+        # NOTE: scan ALL indices 1-50 without stopping at gaps.
+        # Users sometimes configure e.g. _1, _3, _5 with gaps — we collect
+        # every index that has a URI and ignore the ones that don't.
         if not uris:
+            found_any = False
             for n in range(1, 51):          # supports up to 50 nodes
                 uri = (
                     os.getenv(f"LAVALINK_URL_{n}") or
@@ -493,7 +497,8 @@ class Music(commands.Cog):
                     ""
                 ).strip()
                 if not uri:
-                    break                   # stop at first gap
+                    continue                # skip gaps — do NOT break
+                found_any = True
                 uris.append(uri)
                 pw = (
                     os.getenv(f"LAVALINK_PASSWORD_{n}") or
@@ -865,7 +870,11 @@ class Music(commands.Cog):
     @ignore_check()
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def play(self, ctx: commands.Context, *, query: str):
-        
+        # Defer immediately when invoked as slash command — Lavalink search can
+        # take several seconds and Discord's 3-second interaction timeout fires
+        # before we respond, causing "application did not respond".
+        if ctx.interaction:
+            await ctx.defer()
         await self.play_source(ctx, query)
 
 
@@ -1217,6 +1226,10 @@ class Music(commands.Cog):
         For each node: WebSocket status, REST reachability, live stats, and
         when it last successfully resolved a search for this bot.
         """
+        # Defer immediately so Discord doesn't time out while we ping nodes.
+        if ctx.interaction:
+            await ctx.defer()
+
         # ── Gather configured nodes ──────────────────────────────────────────
         cfg_nodes = self._configured_nodes  # [{index, uri, password}]
 
