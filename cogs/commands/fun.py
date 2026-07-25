@@ -281,7 +281,7 @@ _OTAKUGIFS = {
     "triggered":   "punch",       # "triggered" → 400; use punch
     "wag":         "smile",       # "wag" → 400; use smile
     "headpat":     "pat",
-    "kick":        "kick",         # try kick directly; 400 falls through to nekos.best kick
+    "kick":        "punch",        # "kick" → 400 on otakugifs; punch is the closest working action
     "tackle":      "slap",
     "bonk":        "pat",         # "bonk" → 400; use pat
     "nuzzle":      "cuddle",

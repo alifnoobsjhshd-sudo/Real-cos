@@ -290,9 +290,20 @@ async def _queue_playlist_and_play(
         author       = _user
         channel      = _channel
         voice_client = vc
+        # Set after the first NP message is created so subsequent songs edit
+        # it in-place rather than flooding the channel with new messages.
+        _np_msg: Optional[discord.Message] = None
 
         async def send(self, *args, **kwargs):
             try:
+                # If a pinned NP message exists, edit it in-place.
+                # Also strip any MusicControlView — the playlist panel owns controls.
+                if self._np_msg is not None and "embed" in kwargs:
+                    try:
+                        await self._np_msg.edit(embed=kwargs["embed"], view=None)
+                        return self._np_msg
+                    except Exception:
+                        pass
                 return await _channel.send(*args, **kwargs)
             except Exception:
                 pass
@@ -343,6 +354,8 @@ async def _queue_playlist_and_play(
             if first_track.artwork:
                 np_embed.set_thumbnail(url=first_track.artwork)
             await loading.edit(embed=np_embed)
+            # Pin the loading message so subsequent songs update it in-place
+            vc.ctx._np_msg = loading
         else:
             await loading.edit(embed=discord.Embed(
                 description=f"{_e('zcross') or '❌'} Could not load any songs.",
@@ -465,13 +478,13 @@ class PlaylistDetailView(discord.ui.View):
             discord.SelectOption(
                 label=f"{i + 1}. {self.songs[i]['song_name'][:80]}",
                 value=str(i),
-                description="Set starting song for Play All"
+                description="Play immediately from this song"
             )
             for i in range(start, min(end, start + 25))
         ]
 
         sel = discord.ui.Select(
-            placeholder="Select starting song for Play All …",
+            placeholder="Select song to play …",
             options=options,
             row=4,
         )
@@ -492,20 +505,35 @@ class PlaylistDetailView(discord.ui.View):
         return _build_playlist_embed(self.playlist, self.songs, self.page, self.PER_PAGE)
 
     # ── Song-jump dropdown callback ───────────────────────────────────────────
-    # Task 5: selecting a song sets the starting position but does NOT play;
-    # the user must click "▶ Play All" (label updates to show the chosen song).
+    # Selecting a song immediately starts playback from that position and
+    # continues through the playlist in order from that point.
 
     async def _on_song_jump(self, interaction: discord.Interaction):
         idx = int(interaction.data["values"][0])
         self._start_index = idx
 
-        # Update the Play All button label so the user sees the chosen start point
-        for item in self.children:
-            if isinstance(item, discord.ui.Button) and getattr(item, "custom_id", "") == "pdv_play_all":
-                item.label = f"▶ Play from #{idx + 1}"
-                break
+        # Acknowledge the interaction immediately so Discord doesn't time out.
+        await interaction.response.defer()
 
-        await interaction.response.edit_message(embed=self._build_embed(), view=self)
+        # Stop and clear any existing playback so the new start takes over cleanly.
+        existing_vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
+        if existing_vc and isinstance(existing_vc, wavelink.Player):
+            existing_vc.queue.clear()
+            if existing_vc.playing:
+                # Flag the player so on_wavelink_track_end skips its auto-disconnect.
+                existing_vc._playlist_restarting = True
+                await existing_vc.stop()
+                import asyncio as _aio
+                await _aio.sleep(0.3)
+                existing_vc._playlist_restarting = False
+
+        # Queue songs from the selected position and start playing.
+        await _queue_playlist_and_play(
+            interaction,
+            self.songs,
+            start_index=idx,
+            loop_all=self._loop_on,
+        )
 
     # ── Row 0: Play All | Loop ────────────────────────────────────────────────
 
@@ -517,12 +545,11 @@ class PlaylistDetailView(discord.ui.View):
             start_index=self._start_index,
             loop_all=self._loop_on,
         )
-        # Reset button label after play
+        # Reset state after play
         button.label = "▶ Play All"
         self._start_index = 0
-        # Task 4: send a now-playing embed below the playlist message
-        if first_track:
-            await _send_now_playing_embed(interaction, first_track)
+        # NP embed is already shown inside _queue_playlist_and_play (on the
+        # loading message); no second embed needed here.
 
     @discord.ui.button(label="🔁 Loop: OFF", style=discord.ButtonStyle.secondary, row=0)
     async def btn_loop(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -777,7 +804,8 @@ class PlaylistBrowserView(discord.ui.View):
         songs = await _db.get_songs(pid)
         view  = PlaylistDetailView(pl, songs)
         embed = _build_playlist_embed(pl, songs)
-        await interaction.response.send_message(embed=embed, view=view)
+        # Edit the browser message in-place instead of posting a new one
+        await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="⏮ Prev", style=discord.ButtonStyle.secondary,
                        row=1, custom_id="pbv_prev", disabled=True)

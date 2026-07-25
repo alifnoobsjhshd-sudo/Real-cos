@@ -428,12 +428,14 @@ class Music(commands.Cog):
 
     async def inactivity_timer(self, guild):
         await asyncio.sleep(self.inactivity_timeout)
-        if len(guild.voice_channels[0].members) == 1:
-            player = None
-            for vc in self.client.voice_clients:
-                if vc.guild.id == guild.id:
-                    player = vc
-                    break
+        # Find the bot's player in this guild
+        player = None
+        for vc in self.client.voice_clients:
+            if vc.guild.id == guild.id:
+                player = vc
+                break
+        # Check the correct voice channel — not guild.voice_channels[0]
+        if player and len(player.channel.members) == 1:
             if player:
                 await player.disconnect(force=True)
                 try:
@@ -692,12 +694,31 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
-        """Confirm track started on the Lavalink side (useful for debugging)."""
-        player = payload.player
-        print(f"[Music] Track started: {payload.track.title}")
+        """Track started: log, fix volume, update VC status, record history."""
+        player   = payload.player
+        track    = player.current
+        guild_id = player.guild.id
+
+        print(f"[Music] Track started: {track.title}")
         # Ensure volume is audible — Lavalink defaults to 100 but be explicit
         if player.volume != 100:
             await player.set_volume(100)
+
+        # Update VC status
+        voice_channel = player.channel
+        if voice_channel:
+            try:
+                await voice_channel.edit(status=f"🎵 Playing: {track.title}")
+            except Exception:
+                pass
+
+        # Update track history (used by Previous button in music + playlist)
+        if guild_id not in track_histories:
+            track_histories[guild_id] = []
+        if not track_histories[guild_id] or track_histories[guild_id][-1] != track:
+            track_histories[guild_id].append(track)
+            if len(track_histories[guild_id]) > 10:
+                track_histories[guild_id].pop(0)
 
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload: wavelink.TrackExceptionEventPayload) -> None:
@@ -741,6 +762,20 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
         player = payload.player
+
+        # If a playlist restart is in progress, skip normal end-of-track logic
+        # so the fresh re-queue can take over without triggering a disconnect.
+        if getattr(player, '_playlist_restarting', False):
+            return
+
+        # Clear VC status when a track ends
+        if player.channel:
+            try:
+                await player.channel.edit(status=None)
+            except Exception:
+                pass
+
+        # Queue progression
         if player.queue.is_empty:
             if player.queue.mode == wavelink.QueueMode.loop:
                 await player.play(payload.track)
@@ -1348,7 +1383,11 @@ class Music(commands.Cog):
                 inline=False,
             )
 
-        connected_count = sum(1 for uri, _ in [(u, n) for _, u, _ in all_uris_ordered] if pool_by_uri.get(u) is not None)
+        connected_count = sum(
+            1 for _, uri, _ in all_uris_ordered
+            if pool_by_uri.get(uri) is not None
+               and getattr(pool_by_uri[uri], "status", None) == wavelink.NodeStatus.CONNECTED
+        )
         embed.set_footer(text=f"{connected_count}/{len(all_uris_ordered)} nodes connected via WebSocket")
         await ctx.send(embed=embed)
 
@@ -1376,31 +1415,7 @@ class Music(commands.Cog):
 
         await ctx.send(embed=discord.Embed(description=f"Seeked to {percentage}% of the current track.", color=0x1DB954))
 
-    @commands.Cog.listener()
-    async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload):
-        player = payload.player
-        track = player.current
-        guild_id = player.guild.id
-
-        voice_channel = player.channel
-        if voice_channel:
-            await voice_channel.edit(status=f"🎵 Playing: {track.title}")  # type: ignore
-
-        if guild_id not in track_histories:
-            track_histories[guild_id] = []
-
-        if not track_histories[guild_id] or track_histories[guild_id][-1] != track:
-            track_histories[guild_id].append(track)
-
-
-            if len(track_histories[guild_id]) > 10:
-                track_histories[guild_id].pop(0)
-
-    @commands.Cog.listener()
-    async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
-        player = payload.player
-        voice_channel = player.channel
-
-        if voice_channel:
-            await voice_channel.edit(status=None)  # type: ignore
-        await self.on_track_end(payload)
+    # NOTE: on_wavelink_track_start and on_wavelink_track_end are defined earlier
+    # in this class (single merged implementations). Duplicate definitions were
+    # removed — Python silently overwrites the first with the second, so keeping
+    # two methods with the same name means the first (with the full logic) is lost.
