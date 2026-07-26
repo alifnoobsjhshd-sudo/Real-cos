@@ -394,7 +394,7 @@ class Music(commands.Cog):
         self.client.loop.create_task(_initial_connect())
         self.client.loop.create_task(self.monitor_inactivity())
         
-        self.inactivity_timeout = 120
+        self.inactivity_timeout = 300  # 5 minutes
         self.player_inactivity = {}
 
         # Ordered list of every configured node — populated by _build_lavalink_nodes().
@@ -421,31 +421,43 @@ class Music(commands.Cog):
                 break
 
         if player and player.playing and len(player.channel.members) == 1:
-            # Rule: if loop is active, never auto-disconnect (only /stop disconnects)
-            if player.queue.mode in (wavelink.QueueMode.loop, wavelink.QueueMode.loop_all):
-                return
             await self.inactivity_timer(guild)
 
     async def inactivity_timer(self, guild):
         await asyncio.sleep(self.inactivity_timeout)
-        # Find the bot's player in this guild
+        # Re-find the player after the sleep (state may have changed)
         player = None
         for vc in self.client.voice_clients:
             if vc.guild.id == guild.id:
                 player = vc
                 break
-        # Check the correct voice channel — not guild.voice_channels[0]
+        # Only act if still no human user in the voice channel
         if player and len(player.channel.members) == 1:
-            if player:
-                await player.disconnect(force=True)
+            # Stop music but do NOT disconnect — bot stays in the VC
+            if player.playing or player.paused:
                 try:
-                    ended = discord.Embed(description="Bot has been disconnected due to inactivity (being idle in Voice Channel) for more than 2 minutes." , color=0xFF0000)
-                    ended.set_author(name="Inactive Timeout", icon_url=self.client.user.display_avatar.url)
-                    from utils.branding import DEFAULT_BRANDING
-                    ended.set_footer(text=f"Thanks for choosing {DEFAULT_BRANDING}!")
-                    await player.ctx.channel.send(embed=ended)
-                except:
+                    await player.stop()
+                except Exception:
                     pass
+            try:
+                await player.channel.edit(status=None)
+            except Exception:
+                pass
+            try:
+                from utils.branding import DEFAULT_BRANDING
+                ended = discord.Embed(
+                    description=(
+                        "⏹ Songs stopped due to **5 minutes of inactivity** "
+                        "(no one in the voice channel).\n"
+                        "Use `/play` or `/playlist` to start playing again."
+                    ),
+                    color=0xFF0000,
+                )
+                ended.set_author(name="Inactivity Timeout", icon_url=self.client.user.display_avatar.url)
+                ended.set_footer(text=f"Thanks for choosing {DEFAULT_BRANDING}!")
+                await player.ctx.channel.send(embed=ended)
+            except Exception:
+                pass
 
     def _build_lavalink_nodes(self) -> list[wavelink.Node]:
         """
@@ -791,7 +803,31 @@ class Music(commands.Cog):
                         await player.ctx.send("No suitable track found for autoplay.")
                     except Exception:
                         pass
+            elif getattr(player, '_is_playlist', False):
+                # Playlist mode: the loading loop may still be adding songs.
+                # Wait briefly then re-check before declaring the queue truly done.
+                await asyncio.sleep(2)
+                if not player.queue.is_empty:
+                    # More songs arrived — continue normally
+                    next_track = await player.queue.get_wait()
+                    await player.play(next_track)
+                    try:
+                        await self.display_player_embed(player, next_track, player.ctx)
+                    except Exception:
+                        pass
+                else:
+                    # Queue is genuinely exhausted — notify but stay in VC
+                    ended = discord.Embed(
+                        description="▶ Playlist finished. Use `/playlist` to play again.",
+                        color=0xFF0000,
+                    )
+                    ended.set_author(name="Playlist Ended", icon_url=self.client.user.display_avatar.url)
+                    try:
+                        await player.ctx.send(embed=ended)
+                    except Exception:
+                        pass
             else:
+                # Normal music mode: disconnect when queue ends
                 try:
                     await player.disconnect()
                 except Exception:

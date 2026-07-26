@@ -322,16 +322,24 @@ async def _queue_playlist_and_play(
         )
     )
 
-    first_track = None
-    queued      = 0
+    # Mark this player as being driven by the playlist system.
+    # on_wavelink_track_end uses this flag to avoid disconnecting when the
+    # queue is momentarily empty while songs are still being loaded.
+    vc._is_playlist = True
+
+    first_track     = None
+    started_playback = False  # use a flag, not vc.playing, to avoid timing races
+    queued          = 0
     for song in songs_to_play:
         try:
             results = await wavelink.Playable.search(song["song_uri"] or song["song_name"])
             if not results:
                 continue
             track = results.tracks[0] if isinstance(results, wavelink.Playlist) else results[0]
-            if first_track is None and not vc.playing:
-                first_track = track
+            if not started_playback:
+                first_track      = track
+                started_playback = True
+                # vc.play() replaces any currently-playing track cleanly
                 await vc.play(track)
             else:
                 await vc.queue.put_wait(track)
@@ -636,7 +644,7 @@ class PlaylistDetailView(discord.ui.View):
 
     @discord.ui.button(label="⏮ Previous", style=discord.ButtonStyle.secondary, row=2)
     async def btn_vc_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Go to the actual previous track in history (not restart current)."""
+        """Go to the previous track in history; restart current track if none."""
         from cogs.commands.music import track_histories
         vc = interaction.guild.voice_client
         if not (vc and isinstance(vc, wavelink.Player)):
@@ -644,6 +652,7 @@ class PlaylistDetailView(discord.ui.View):
 
         guild_id = interaction.guild.id
         if guild_id in track_histories and len(track_histories[guild_id]) > 1:
+            # More than one entry → go back one track
             track_histories[guild_id].pop()
             previous_track = track_histories[guild_id][-1]
 
@@ -657,10 +666,16 @@ class PlaylistDetailView(discord.ui.View):
             if vc.playing:
                 await vc.stop()
             await interaction.response.send_message(
-                f"⏮ Playing previous track: **{previous_track.title}**", ephemeral=True
+                f"⏮ Playing previous: **{previous_track.title}**", ephemeral=True
+            )
+        elif vc.current:
+            # Only one track in history (first song) — restart it from the beginning
+            await vc.seek(0)
+            await interaction.response.send_message(
+                f"⏮ Restarted **{vc.current.title}** from the beginning.", ephemeral=True
             )
         else:
-            await interaction.response.send_message("No previous track available.", ephemeral=True)
+            await interaction.response.send_message("No track is currently playing.", ephemeral=True)
 
     @discord.ui.button(label="⏹ Stop", style=discord.ButtonStyle.danger, row=2)
     async def btn_stop(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -804,8 +819,8 @@ class PlaylistBrowserView(discord.ui.View):
         songs = await _db.get_songs(pid)
         view  = PlaylistDetailView(pl, songs)
         embed = _build_playlist_embed(pl, songs)
-        # Edit the browser message in-place instead of posting a new one
-        await interaction.response.edit_message(embed=embed, view=view)
+        # Open the playlist detail as a new message so the browser stays visible
+        await interaction.response.send_message(embed=embed, view=view)
 
     @discord.ui.button(label="⏮ Prev", style=discord.ButtonStyle.secondary,
                        row=1, custom_id="pbv_prev", disabled=True)
