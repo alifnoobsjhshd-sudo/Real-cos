@@ -2,7 +2,7 @@
 cogs/commands/playlist.py — Global playlist system for Zyrox X bot.
 
 Commands:
-  /playlist list [search]       — browse all playlists (searchable)
+  /playlist list                — browse all playlists
   /playlist create <name>       — create a personal playlist
   /playlist delete <name>       — delete one of your playlists
   /song add <playlist> <song>   — add a song to one of your playlists
@@ -466,7 +466,6 @@ class PlaylistDetailView(discord.ui.View):
         self._start_index  = 0   # used by song-jump dropdown → Play All button
 
         self._rebuild_dropdown()
-        self._update_nav_buttons()
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -498,16 +497,6 @@ class PlaylistDetailView(discord.ui.View):
         )
         sel.callback = self._on_song_jump
         self.add_item(sel)
-
-    def _update_nav_buttons(self):
-        total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                cid = getattr(item, "custom_id", "")
-                if cid == "pdv_prev":
-                    item.disabled = (self.page == 0)
-                elif cid == "pdv_next":
-                    item.disabled = (self.page >= total_pages - 1)
 
     def _build_embed(self) -> discord.Embed:
         return _build_playlist_embed(self.playlist, self.songs, self.page, self.PER_PAGE)
@@ -640,42 +629,7 @@ class PlaylistDetailView(discord.ui.View):
         else:
             await interaction.response.send_message("Nothing is playing.", ephemeral=True)
 
-    # ── Row 2: Previous | Stop | Skip ────────────────────────────────────────
-
-    @discord.ui.button(label="⏮ Previous", style=discord.ButtonStyle.secondary, row=2)
-    async def btn_vc_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Go to the previous track in history; restart current track if none."""
-        from cogs.commands.music import track_histories
-        vc = interaction.guild.voice_client
-        if not (vc and isinstance(vc, wavelink.Player)):
-            return await interaction.response.send_message("Nothing is playing.", ephemeral=True)
-
-        guild_id = interaction.guild.id
-        if guild_id in track_histories and len(track_histories[guild_id]) > 1:
-            # More than one entry → go back one track
-            track_histories[guild_id].pop()
-            previous_track = track_histories[guild_id][-1]
-
-            # Insert previous track at the front of the queue
-            _current_queue = list(vc.queue)
-            vc.queue.clear()
-            await vc.queue.put_wait(previous_track)
-            for _t in _current_queue:
-                await vc.queue.put_wait(_t)
-
-            if vc.playing:
-                await vc.stop()
-            await interaction.response.send_message(
-                f"⏮ Playing previous: **{previous_track.title}**", ephemeral=True
-            )
-        elif vc.current:
-            # Only one track in history (first song) — restart it from the beginning
-            await vc.seek(0)
-            await interaction.response.send_message(
-                f"⏮ Restarted **{vc.current.title}** from the beginning.", ephemeral=True
-            )
-        else:
-            await interaction.response.send_message("No track is currently playing.", ephemeral=True)
+    # ── Row 2: Stop ───────────────────────────────────────────────────────────
 
     @discord.ui.button(label="⏹ Stop", style=discord.ButtonStyle.danger, row=2)
     async def btn_stop(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -691,16 +645,7 @@ class PlaylistDetailView(discord.ui.View):
         else:
             await interaction.response.send_message("Not connected.", ephemeral=True)
 
-    @discord.ui.button(label="⏭ Skip", style=discord.ButtonStyle.secondary, row=2)
-    async def btn_skip(self, interaction: discord.Interaction, button: discord.ui.Button):
-        vc = interaction.guild.voice_client
-        if vc and isinstance(vc, wavelink.Player) and vc.playing:
-            await vc.stop()
-            await interaction.response.send_message("⏭ Skipped.", ephemeral=True)
-        else:
-            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
-
-    # ── Row 3: Volume | Prev page | Next page ─────────────────────────────────
+    # ── Row 3: Volume ─────────────────────────────────────────────────────────
 
     @discord.ui.button(label="🔊 Volume", style=discord.ButtonStyle.secondary, row=3)
     async def btn_volume(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -710,31 +655,6 @@ class PlaylistDetailView(discord.ui.View):
         else:
             await interaction.response.send_message("Not connected to a voice channel.", ephemeral=True)
 
-    @discord.ui.button(label="⏮ Prev", style=discord.ButtonStyle.secondary,
-                       row=3, custom_id="pdv_prev", disabled=True)
-    async def btn_prev(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.page > 0:
-            self.page -= 1
-            self._rebuild_dropdown()
-            self._update_nav_buttons()
-            await interaction.response.edit_message(embed=self._build_embed(), view=self)
-        else:
-            await interaction.response.defer()
-
-    @discord.ui.button(label="Next ⏭", style=discord.ButtonStyle.secondary,
-                       row=3, custom_id="pdv_next")
-    async def btn_next(self, interaction: discord.Interaction, button: discord.ui.Button):
-        total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
-        if self.page < total_pages - 1:
-            self.page += 1
-            self._rebuild_dropdown()
-            self._update_nav_buttons()
-            await interaction.response.edit_message(embed=self._build_embed(), view=self)
-        else:
-            await interaction.response.defer()
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
 
 
 class PlaylistBrowserView(discord.ui.View):
@@ -742,11 +662,10 @@ class PlaylistBrowserView(discord.ui.View):
 
     PER_PAGE = 10
 
-    def __init__(self, playlists: list, page: int = 0, search: str = None):
+    def __init__(self, playlists: list, page: int = 0):
         super().__init__(timeout=300)
         self.playlists = playlists
         self.page      = page
-        self.search    = search
 
         self._rebuild_select()
         self._update_nav()
@@ -790,8 +709,6 @@ class PlaylistBrowserView(discord.ui.View):
     def build_embed(self) -> discord.Embed:
         total = len(self.playlists)
         title = f"{_e('zmusic') or '🎵'}  Playlists"
-        if self.search:
-            title += f"  —  search: *{self.search}*"
 
         em = discord.Embed(title=title, color=0xFF0000)
 
@@ -858,18 +775,6 @@ async def _ac_user_playlists(interaction: discord.Interaction, current: str):
     ][:25]
 
 
-async def _ac_all_playlists(interaction: discord.Interaction, current: str):
-    """Autocomplete for /playlist list search — shows all playlists matching the typed text."""
-    rows = await _db.get_all_playlists(current if current else None)
-    return [
-        app_commands.Choice(
-            name=f"{r['name']}  ({r['song_count']} songs)",
-            value=r["name"]
-        )
-        for r in rows
-    ][:25]
-
-
 async def _ac_songs_in_playlist(interaction: discord.Interaction, current: str):
     try:
         pl_name = getattr(interaction.namespace, "playlist", None)
@@ -925,25 +830,20 @@ class PlaylistCog(Cog):
 
     # ── /playlist list ────────────────────────────────────────────────────────
 
-    @playlist_group.command(name="list", description="Browse all playlists (searchable by name).")
-    @app_commands.describe(search="Filter playlists by name (optional)")
-    @app_commands.autocomplete(search=_ac_all_playlists)
-    async def cmd_playlist_list(
-        self, interaction: discord.Interaction, search: str = None
-    ):
+    @playlist_group.command(name="list", description="Browse all playlists.")
+    async def cmd_playlist_list(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        playlists = await _db.get_all_playlists(search)
+        playlists = await _db.get_all_playlists()
 
         if not playlists:
-            msg = f"No playlists found" + (f" matching **{search}**." if search else ".")
             return await interaction.followup.send(
                 embed=discord.Embed(
-                    description=f"{_e('zcross') or '❌'} {msg}",
+                    description=f"{_e('zcross') or '❌'} No playlists found.",
                     color=0xFF0000
                 )
             )
 
-        view  = PlaylistBrowserView(playlists, search=search)
+        view  = PlaylistBrowserView(playlists)
         embed = view.build_embed()
         await interaction.followup.send(embed=embed, view=view)
 
