@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord.ui import View, Select, Button
 import aiosqlite
@@ -743,7 +744,7 @@ class Welcomer(commands.Cog):
             """, (auto_delete_duration, ctx.guild.id))
             await db.commit()
 
-        await ctx.send(f"✅ Auto delete duration has been set to **{auto_delete_duration}** seconds.")
+        await ctx.send(f"{_e('ztick')} Auto delete duration has been set to **{auto_delete_duration}** seconds.")
 
 
 

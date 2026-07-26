@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 from utils.Tools import *
@@ -155,7 +156,7 @@ class Unmute(commands.Cog):
 
             
             try:
-                await user.send(f"✅ You have been unmuted in **{ctx.guild.name}**.")
+                await user.send(f"{_e('ztick')} You have been unmuted in **{ctx.guild.name}**.")
                 dm_status = "Yes"
             except discord.Forbidden:
                 dm_status = "No"
@@ -169,7 +170,7 @@ class Unmute(commands.Cog):
             return await ctx.send(embed=error)
 
         embed = discord.Embed(
-            description=f"**✅ | Successfully Unmuted [{user}](https://discord.com/users/{user.id})**",
+            description=f"**{_e('ztick')} | Successfully Unmuted [{user}](https://discord.com/users/{user.id})**",
             color=self.color
         )        
         embed.set_thumbnail(url=ctx.author.display_avatar.url)

@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 from datetime import timedelta
@@ -169,7 +170,7 @@ class Mute(commands.Cog):
             return await ctx.send(embed=error)
 
         try:
-            await user.send(f"⚠️ You have been muted in **{ctx.guild.name}** by **{ctx.author}** for {duration_text}. Reason: {reason or 'None'}")
+            await user.send(f"{_e('zwarning')} You have been muted in **{ctx.guild.name}** by **{ctx.author}** for {duration_text}. Reason: {reason or 'None'}")
             dm_status = "Yes"
         except discord.Forbidden:
             dm_status = "No"
@@ -179,7 +180,7 @@ class Mute(commands.Cog):
         await user.edit(timed_out_until=discord.utils.utcnow() + time_delta, reason=f"Muted by {ctx.author} for {duration_text}. Reason: {reason or 'None'}")
 
 
-        embed = discord.Embed(description=f"**✅ | Successfully Muted [{user}](https://discord.com/users/{user.id}) For {duration_text}\nReason {reason}**",
+        embed = discord.Embed(description=f"**{_e('ztick')} | Successfully Muted [{user}](https://discord.com/users/{user.id}) For {duration_text}\nReason {reason}**",
                               color=self.color)
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
         embed.set_author(name=f"Successfully Muted {user.name}", icon_url=self.get_user_avatar(user))
@@ -195,13 +196,13 @@ class Mute(commands.Cog):
     async def mute_error(self, ctx, error):
         
         if isinstance(error, commands.BotMissingPermissions):
-            embed = discord.Embed(title="❌> Access Denied", description="I don't have permission to mute members.", color=self.color)
+            embed = discord.Embed(title=f"{_e('zcross')} Access Denied", description="I don't have permission to mute members.", color=self.color)
             await ctx.send(embed=embed)
         elif isinstance(error, discord.Forbidden):
-            embed = discord.Embed(title="❌ Missing Permissions", description="I can't mute this user as they might have higher privileges (e.g., Admin).", color=self.color)
+            embed = discord.Embed(title=f"{_e('zcross')} Missing Permissions", description="I can't mute this user as they might have higher privileges (e.g., Admin).", color=self.color)
             await ctx.send(embed=embed)
             
         else:
-            embed = discord.Embed(title="❌ Unexpected Error", description=str(error), color=self.color)
+            embed = discord.Embed(title=f"{_e('zcross')} Unexpected Error", description=str(error), color=self.color)
             await ctx.send(embed=embed)
 

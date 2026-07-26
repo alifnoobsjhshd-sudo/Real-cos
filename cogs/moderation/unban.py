@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 from utils.Tools import *
@@ -143,7 +144,7 @@ class Unban(commands.Cog):
             return
 
         try:
-            await user.send(f"✅ You have been unbanned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
+            await user.send(f"{_e('ztick')} You have been unbanned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
             dm_status = "Yes"
         except discord.Forbidden:
             dm_status = "No"
@@ -153,7 +154,7 @@ class Unban(commands.Cog):
         await ctx.guild.unban(user, reason=f"Unban requested by {ctx.author} for reason: {reason or 'No reason provided'}")
 
         reasonn = reason or "No reason provided"
-        embed = discord.Embed(description=f"**✅ | Successfully Unbaned [{user}](https://discord.com/users/{user.id})\nReason {reasonn}**", color=0xFF0000)
+        embed = discord.Embed(description=f"**{_e('ztick')} | Successfully Unbaned [{user}](https://discord.com/users/{user.id})\nReason {reasonn}**", color=0xFF0000)
         embed.set_author(name=f"Successfully Unbanned {user.name}", icon_url=self.get_user_avatar(user))
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
        # embed.add_field(name=" Moderator:", value=ctx.author.mention, inline=False)

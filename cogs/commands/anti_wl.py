@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 from utils.Tools import *
@@ -51,7 +52,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
+                description=f"{_e('zcross')} | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -71,7 +72,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="❌ Access Denied",
+            embed = discord.Embed(title=f"{_e('zcross')} Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -107,7 +108,7 @@ class Whitelist(commands.Cog):
             data = await cursor.fetchone()
 
         if data:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 color=0xFF0000,
                 description=f"<@{member.id}> is already a whitelisted member, **Unwhitelist** the user and try again."
             )
@@ -270,7 +271,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
+                description=f"{_e('zcross')} | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -290,7 +291,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="❌ Access Denied",
+            embed = discord.Embed(title=f"{_e('zcross')} Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -316,7 +317,7 @@ class Whitelist(commands.Cog):
             data = await cursor.fetchall()
 
         if not data:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 color=0xFF0000,
                 description="No whitelisted users found."
             )
@@ -344,7 +345,7 @@ class Whitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0xFF0000,
-                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
+                description=f"{_e('zcross')} | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -364,7 +365,7 @@ class Whitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="❌ Access Denied",
+            embed = discord.Embed(title=f"{_e('zcross')} Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -390,7 +391,7 @@ class Whitelist(commands.Cog):
 
 
         if not data:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 color=0xFF0000,
                 description="No whitelisted users found."
             )

@@ -187,7 +187,7 @@ class VolumeModal(discord.ui.Modal, title="Set Volume"):
             return await interaction.response.send_message("Volume must be between 1 and 150.", ephemeral=True)
         await self.player.set_volume(level)
         await interaction.response.send_message(
-            f"🔊 Volume set to **{level}%** by {interaction.user.display_name}.", ephemeral=True
+            f"{_e('zunmute')} Volume set to **{level}%** by {interaction.user.display_name}.", ephemeral=True
         )
 
 
@@ -212,7 +212,7 @@ class MusicControlView(View):
             _pe("shuffle"),                           # 7  shuffle
             _pe("zloop"),                             # 8  loop
             _pe("zplay"),                             # 9  replay
-            discord.PartialEmoji.from_str("🔊"),      # 10 volume
+            _pe("zunmute"),                            # 10 volume
         ]
         _label_map = [
             "Rewind",    # 0
@@ -310,7 +310,7 @@ class MusicControlView(View):
         else:
             await interaction.response.send_message("No previous track available.", ephemeral=True)
 
-    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(emoji="⏹", style=discord.ButtonStyle.danger, row=1)
     async def stop_button(self, interaction: discord.Interaction, button: Button):
         if self.player:
             voice_channel = self.player.channel
@@ -335,7 +335,7 @@ class MusicControlView(View):
 
     # ── Row 2: Autoplay | Shuffle | Loop ─────────────────────────────────────
 
-    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(emoji="🔄", style=discord.ButtonStyle.secondary, row=2)
     async def autoplay_button(self, interaction: discord.Interaction, button: Button):
         self.player.autoplay = (
             wavelink.AutoPlayMode.enabled if self.player.autoplay != wavelink.AutoPlayMode.enabled else wavelink.AutoPlayMode.disabled
@@ -352,7 +352,7 @@ class MusicControlView(View):
         else:
             await interaction.response.send_message("Queue is empty.", ephemeral=True)
 
-    @discord.ui.button(emoji="⏳", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(emoji="⌛", style=discord.ButtonStyle.secondary, row=2)
     async def loop_button(self, interaction: discord.Interaction, button: Button):
         self.player.queue.mode = (
             wavelink.QueueMode.loop if self.player.queue.mode != wavelink.QueueMode.loop
@@ -364,7 +364,7 @@ class MusicControlView(View):
 
     # ── Row 3: Replay | Volume ────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(emoji="🎶", style=discord.ButtonStyle.secondary, row=3)
     async def replay_button(self, interaction: discord.Interaction, button: Button):
         if self.player.playing:
             await self.player.seek(0)
@@ -372,7 +372,7 @@ class MusicControlView(View):
         else:
             await interaction.response.send_message("No track is currently playing.", ephemeral=True)
 
-    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(emoji="🔉", style=discord.ButtonStyle.secondary, row=3)
     async def volume_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(VolumeModal(self.player))
 
@@ -447,7 +447,7 @@ class Music(commands.Cog):
                 from utils.branding import DEFAULT_BRANDING
                 ended = discord.Embed(
                     description=(
-                        "⏹ Songs stopped due to **5 minutes of inactivity** "
+                        f"{_e('musicstop_icons')} Songs stopped due to **5 minutes of inactivity** "
                         "(no one in the voice channel).\n"
                         "Use `/play` or `/playlist` to start playing again."
                     ),
@@ -745,7 +745,7 @@ class Music(commands.Cog):
             try:
                 await ctx.send(embed=discord.Embed(
                     description=(
-                        f"⚠️ Could not play **{title}**.\n"
+                        f"{_e('zwarning')} Could not play **{title}**.\n"
                         "Try a different Spotify track or check the Lavalink server."
                     ),
                     color=0xFF0000,
@@ -762,7 +762,7 @@ class Music(commands.Cog):
         if ctx:
             try:
                 await ctx.send(embed=discord.Embed(
-                    description=f"⚠️ Track **{payload.track.title}** got stuck and was skipped.",
+                    description=f"{_e('zwarning')} Track **{payload.track.title}** got stuck and was skipped.",
                     color=0xFF0000,
                 ))
             except Exception:
@@ -818,7 +818,7 @@ class Music(commands.Cog):
                 else:
                     # Queue is genuinely exhausted — notify but stay in VC
                     ended = discord.Embed(
-                        description="▶ Playlist finished. Use `/playlist` to play again.",
+                        description=f"{_e('zplay')} Playlist finished. Use `/playlist` to play again.",
                         color=0xFF0000,
                     )
                     ended.set_author(name="Playlist Ended", icon_url=self.client.user.display_avatar.url)
@@ -852,7 +852,7 @@ class Music(commands.Cog):
 
     async def play_source(self, ctx, query):
         if not ctx.author.voice:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in a voice channel to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in a voice channel to use this command.", color=0xFF0000))
             return
 
         # Guard: make sure at least one Lavalink node is available
@@ -862,7 +862,7 @@ class Music(commands.Cog):
                 raise RuntimeError("no nodes")
         except Exception:
             await ctx.send(embed=discord.Embed(
-                description="⚠️ Music is currently unavailable — Lavalink node not connected. Please try again in a moment.",
+                description=f"{_e('zwarning')} Music is currently unavailable — Lavalink node not connected. Please try again in a moment.",
                 color=0xFF0000,
             ))
             return
@@ -870,7 +870,7 @@ class Music(commands.Cog):
         try:
             vc = ctx.voice_client or await ctx.author.voice.channel.connect(cls=wavelink.Player)
         except Exception as e:
-            await ctx.send(embed=discord.Embed(description=f"⚠️ Could not join your voice channel: {e}", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} Could not join your voice channel: {e}", color=0xFF0000))
             return
 
         vc.ctx = ctx
@@ -900,7 +900,7 @@ class Music(commands.Cog):
         if not tracks:
             await ctx.send(embed=discord.Embed(
                 description=(
-                    "❌ No results found.\n"
+                    f"{_e('zcross')} No results found.\n"
                     "All Lavalink nodes failed to resolve this track — "
                     "they may be temporarily unavailable or the track doesn't exist."
                 ),
@@ -910,7 +910,7 @@ class Music(commands.Cog):
 
         if isinstance(tracks, wavelink.Playlist):
             await vc.queue.put_wait(tracks.tracks)
-            await ctx.send(embed=discord.Embed(description=f"➕ Added playlist **{tracks.name}** with **{len(tracks.tracks)} songs** to the queue.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zplus')} Added playlist **{tracks.name}** with **{len(tracks.tracks)} songs** to the queue.", color=0xFF0000))
             if not vc.playing:
                 track = await vc.queue.get_wait()
                 await vc.play(track)
@@ -924,7 +924,7 @@ class Music(commands.Cog):
             else:
                 queue_pos = len(vc.queue)
                 await ctx.send(embed=discord.Embed(
-                    description=f"➕ Added **{track.title}** to the queue  `#{queue_pos}`",
+                    description=f"{_e('zplus')} Added **{track.title}** to the queue  `#{queue_pos}`",
                     color=0x1DB954,
                 ))
             self.client.loop.create_task(self.check_inactivity(ctx.guild.id))
@@ -955,7 +955,7 @@ class Music(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def search2(self, ctx: commands.Context, *, query: str):
         if not ctx.author.voice:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in a voice channel to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in a voice channel to use this command.", color=0xFF0000))
             return
 
         embed = discord.Embed(
@@ -1020,18 +1020,18 @@ class Music(commands.Cog):
     async def autoplay(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is currently playing.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is currently playing.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc:
             vc.autoplay = (
                 wavelink.AutoPlayMode.enabled if vc.autoplay != wavelink.AutoPlayMode.enabled else wavelink.AutoPlayMode.disabled
             )
-            await ctx.send(embed=discord.Embed(description=f"✅ Autoplay {'enabled' if vc.autoplay == wavelink.AutoPlayMode.enabled else 'disabled'} by {ctx.author.mention}.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('ztick')} Autoplay {'enabled' if vc.autoplay == wavelink.AutoPlayMode.enabled else 'disabled'} by {ctx.author.mention}.", color=0xFF0000))
 
     @commands.command(name="loop", usage="loop", help="Toggles loop mode.")
     @blacklist_check()
@@ -1040,16 +1040,16 @@ class Music(commands.Cog):
     async def loop(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is currently playing.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is currently playing.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc:
             vc.queue.mode = wavelink.QueueMode.loop if vc.queue.mode != wavelink.QueueMode.loop else wavelink.QueueMode.normal
-            await ctx.send(embed=discord.Embed(description=f"✅ Loop {'enabled' if vc.queue.mode == wavelink.QueueMode.loop else 'disabled'} by {ctx.author.mention}.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('ztick')} Loop {'enabled' if vc.queue.mode == wavelink.QueueMode.loop else 'disabled'} by {ctx.author.mention}.", color=0xFF0000))
         else:
             await ctx.send(embed=discord.Embed(description="I'm not connected to a voice channel.", color=0xFF0000))
 
@@ -1061,11 +1061,11 @@ class Music(commands.Cog):
     async def pause(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is currently playing.", color=0x000000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is currently playing.", color=0x000000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and vc.playing and not vc.paused:
@@ -1073,7 +1073,7 @@ class Music(commands.Cog):
             await vc.channel.edit(status=f"⏸️ Paused: {vc.current.title}")
             await ctx.send(embed=discord.Embed(description=f"Paused by {ctx.author.mention}.", color=0x000000))
         else:
-            await ctx.send(embed=discord.Embed(description="⚠️   Nothing is playing or already paused.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')}   Nothing is playing or already paused.", color=0xFF0000))
 
     @commands.command(name="resume", usage="resume", help="Resumes the paused song.")
     @blacklist_check()
@@ -1082,11 +1082,11 @@ class Music(commands.Cog):
     async def resume(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is currently playing.", color=0x000000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is currently playing.", color=0x000000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and vc.paused:
@@ -1107,7 +1107,7 @@ class Music(commands.Cog):
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc.autoplay == wavelink.AutoPlayMode.enabled:
@@ -1119,7 +1119,7 @@ class Music(commands.Cog):
             await vc.stop()
             await ctx.send(embed=discord.Embed(description=f"Skipped by {ctx.author.mention}.", color=0xFF0000))
         else:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is playing or in the queue to skip.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is playing or in the queue to skip.", color=0xFF0000))
 
     @commands.command(name="shuffle", usage="shuffle", help="Shuffles the queue.")
     @blacklist_check()
@@ -1128,11 +1128,11 @@ class Music(commands.Cog):
     async def shuffle(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️  No song is currently playing.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')}  No song is currently playing.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and vc.queue:
@@ -1149,11 +1149,11 @@ class Music(commands.Cog):
         player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
         vc = ctx.voice_client
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ No song is currently playing.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No song is currently playing.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and player:
@@ -1172,19 +1172,19 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc:
-            await ctx.send(embed=discord.Embed(description="⚠️ I'm not connected to a voice channel.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} I'm not connected to a voice channel.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc:
             if 1 <= level <= 150:
                 await vc.set_volume(level)
-                await ctx.send(embed=discord.Embed(description=f"🔇 Volume set to {level}% by {ctx.author.mention}.", color=0xFF0000))
+                await ctx.send(embed=discord.Embed(description=f"{_e('zunmute')} Volume set to {level}% by {ctx.author.mention}.", color=0xFF0000))
             else:
-                await ctx.send(embed=discord.Embed(description="⚠️ Volume must be between 1 and 150.", color=0xFF0000))
+                await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} Volume must be between 1 and 150.", color=0xFF0000))
         else:
             await ctx.send(embed=discord.Embed(description="Bot is not connected to a voice channel.", color=0xFF0000))
 
@@ -1196,11 +1196,11 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc or not vc.queue or vc.queue.is_empty:
-            await ctx.send(embed=discord.Embed(description="⚠️ The queue is currently empty.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} The queue is currently empty.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ you need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} you need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
 
@@ -1222,11 +1222,11 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc or not vc.queue or vc.queue.is_empty:
-            await ctx.send(embed=discord.Embed(description="⚠️ No Queue to clear.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} No Queue to clear.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and vc.queue:
@@ -1243,11 +1243,11 @@ class Music(commands.Cog):
         vc = ctx.voice_client
 
         if not vc or not vc.playing:
-            await ctx.send(embed=discord.Embed(description="⚠️ I'm not connected to any voice channel.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} I'm not connected to any voice channel.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc and vc.playing:
@@ -1274,11 +1274,11 @@ class Music(commands.Cog):
     async def disconnect(self, ctx: commands.Context):
         vc = ctx.voice_client
         if not vc:
-            await ctx.send(embed=discord.Embed(description="⚠️  I'm not connected to any voice channel.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')}  I'm not connected to any voice channel.", color=0xFF0000))
             return
 
         if not ctx.author.voice or ctx.author.voice.channel.id != vc.channel.id:
-            await ctx.send(embed=discord.Embed(description="⚠️ You need to be in the same voice channel as me to use this command.", color=0xFF0000))
+            await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
         if vc:
@@ -1330,7 +1330,7 @@ class Music(commands.Cog):
 
         if not all_uris_ordered:
             await ctx.send(embed=discord.Embed(
-                description="❌ No Lavalink nodes are configured. Set `LAVALINK_URL` (or `LAVALINK_URL_1`, `LAVALINK_URL_2` …) in your environment.",
+                description=f"{_e('zcross')} No Lavalink nodes are configured. Set `LAVALINK_URL` (or `LAVALINK_URL_1`, `LAVALINK_URL_2` …) in your environment.",
                 color=0xFF0000,
             ))
             return
@@ -1355,7 +1355,7 @@ class Music(commands.Cog):
         # ── Build embed ───────────────────────────────────────────────────────
         now = datetime.datetime.utcnow()
         embed = discord.Embed(
-            title="🎵 Lavalink Nodes",
+            title=f"{_e('zmusic')} Lavalink Nodes",
             description=(
                 f"**{len(all_uris_ordered)}** node(s) configured · "
                 f"nodes are tried in priority order (#1 first) when you play a track."
@@ -1375,7 +1375,7 @@ class Music(commands.Cog):
                     ws_connected = getattr(wl_node, "connected", True)
 
             ws_icon   = "🟢" if ws_connected  else "🔴"
-            rest_icon = "✅" if rest_ok        else "❌"
+            rest_icon = _e('ztick') if rest_ok else _e('zcross')
 
             lines = [
                 f"`{uri}`",
@@ -1396,7 +1396,7 @@ class Music(commands.Cog):
                         playing  = stats.playing_players
                         total_p  = stats.players
                         lines.append(
-                            f"🎵 **{playing}** playing / **{total_p}** total · "
+                            f"{_e('zmusic')} **{playing}** playing / **{total_p}** total · "
                             f"💾 **{mem_mb} MB** · 🖥️ **{cpu:.1f}%** · ⏱️ {h}h {m}m {s}s"
                         )
                 except Exception:

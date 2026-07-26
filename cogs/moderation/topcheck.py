@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 import asyncio
@@ -68,11 +69,11 @@ class TopCheck(commands.Cog):
     @commands.guild_only()
     async def topcheck_enable(self, ctx):
         if ctx.author.id != ctx.guild.owner_id:
-            return await ctx.reply("❌ Only the **Server Owner** can enable topcheck.")
+            return await ctx.reply(f"{_e('zcross')} Only the **Server Owner** can enable topcheck.")
         if await self.is_topcheck_enabled(ctx.guild.id):
-            return await ctx.reply("❌ Topcheck is already enabled for this server.")
+            return await ctx.reply(f"{_e('zcross')} Topcheck is already enabled for this server.")
         await self.enable_topcheck(ctx.guild.id)
-        await ctx.reply("✅ Topcheck has been Successfully enabled for this server.")
+        await ctx.reply(f"{_e('ztick')} Topcheck has been Successfully enabled for this server.")
 
     @topcheck.command(
         name="disable",
@@ -82,8 +83,8 @@ class TopCheck(commands.Cog):
         if ctx.author.id != ctx.guild.owner_id:
             return await ctx.reply("Only the **Server Owner** can disable topcheck.")
         if not await self.is_topcheck_enabled(ctx.guild.id):
-            return await ctx.reply("❌ Topcheck is not enabled for this server.")
+            return await ctx.reply(f"{_e('zcross')} Topcheck is not enabled for this server.")
         await self.disable_topcheck(ctx.guild.id)
-        await ctx.reply("✅ Topcheck has been Successfully disabled for this server.")
+        await ctx.reply(f"{_e('ztick')} Topcheck has been Successfully disabled for this server.")
 
  

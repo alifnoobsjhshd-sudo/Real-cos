@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 from utils.Tools import *
@@ -33,7 +34,7 @@ class Ban(commands.Cog):
             except discord.NotFound:
                 # User not found container
                 container = ui.Container()
-                container.add_item(ui.TextDisplay(f"❌ **User Not Found**\nUser with ID {user.id} not found."))
+                container.add_item(ui.TextDisplay(f"{_e('zcross')} **User Not Found**\nUser with ID {user.id} not found."))
                 view = ui.LayoutView()
                 view.add_item(container)
                 await ctx.send(view=view)
@@ -43,7 +44,7 @@ class Ban(commands.Cog):
         if any(ban_entry.user.id == user.id for ban_entry in bans):
             # Already banned container
             container = ui.Container()
-            container.add_item(ui.TextDisplay(f"⚠️ **{user.name} is Already Banned!**"))
+            container.add_item(ui.TextDisplay(f"{_e('zwarning')} **{user.name} is Already Banned!**"))
             container.add_item(ui.TextDisplay("**Requested User is already banned in this server.**"))
             container.add_item(ui.TextDisplay(f"*Requested by {ctx.author}*"))
             view = ui.LayoutView()
@@ -54,7 +55,7 @@ class Ban(commands.Cog):
         if member == ctx.guild.owner:
             # Server owner error container
             container = ui.Container()
-            container.add_item(ui.TextDisplay("❌ **Error Banning User**"))
+            container.add_item(ui.TextDisplay("{_e('zcross')} **Error Banning User**"))
             container.add_item(ui.TextDisplay("I can't ban the Server Owner!"))
             container.add_item(ui.TextDisplay(f"*Requested by {ctx.author}*"))
             view = ui.LayoutView()
@@ -64,7 +65,7 @@ class Ban(commands.Cog):
         if isinstance(member, discord.Member) and member.top_role >= ctx.guild.me.top_role:
             # Role hierarchy error container
             container = ui.Container()
-            container.add_item(ui.TextDisplay("❌ **Error Banning User**"))
+            container.add_item(ui.TextDisplay("{_e('zcross')} **Error Banning User**"))
             container.add_item(ui.TextDisplay("I can't ban a user with a higher or equal role!"))
             container.add_item(ui.TextDisplay(f"*Requested by {ctx.author}*"))
             view = ui.LayoutView()
@@ -76,7 +77,7 @@ class Ban(commands.Cog):
                 if member.top_role >= ctx.author.top_role:
                     # Author role hierarchy error container
                     container = ui.Container()
-                    container.add_item(ui.TextDisplay("❌ **Error Banning User**"))
+                    container.add_item(ui.TextDisplay("{_e('zcross')} **Error Banning User**"))
                     container.add_item(ui.TextDisplay("You can't ban a user with a higher or equal role!"))
                     container.add_item(ui.TextDisplay(f"*Requested by {ctx.author}*"))
                     view = ui.LayoutView()
@@ -85,7 +86,7 @@ class Ban(commands.Cog):
 
         # Try to DM the user
         try:
-            await user.send(f"⚠️ You have been banned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
+            await user.send(f"{_e('zwarning')} You have been banned from **{ctx.guild.name}** by **{ctx.author}**. Reason: {reason or 'No reason provided'}")
             dm_status = "Yes"
         except discord.Forbidden:
             dm_status = "No"
@@ -97,10 +98,10 @@ class Ban(commands.Cog):
 
         # Success container with Components V2
         container = ui.Container()
-        container.add_item(ui.TextDisplay(f"✅ **Successfully Banned {user.name}**"))
+        container.add_item(ui.TextDisplay(f"{_e('ztick')} **Successfully Banned {user.name}**"))
         container.add_item(ui.Separator())
         container.add_item(ui.TextDisplay(
-            f"**✅ | [{user}](https://discord.com/users/{user.id}) Has Been Banned Successfully**"
+            f"**{_e('ztick')} | [{user}](https://discord.com/users/{user.id}) Has Been Banned Successfully**"
             f"\n**Reason:** {reason or 'No reason provided'}"
             f"\n**DM Sent:** {dm_status}"
             f"\n**Moderator:** {ctx.author.mention}"

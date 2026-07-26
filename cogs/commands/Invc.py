@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 import asyncio
@@ -38,13 +39,13 @@ class Invcrole(commands.Cog):
             async with db.execute('SELECT role_id FROM vcroles WHERE guild_id = ?', (ctx.guild.id,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
-                    embed = discord.Embed(title="⚠️ Access Denied",
+                    embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                           description=f"VC role is already set in this guild with the role {ctx.guild.get_role(row[0]).mention}.\nPlease **remove** it to add another one.", color=0xFF0000)
                     await ctx.reply(embed=embed)
                     return
             await db.execute('INSERT INTO vcroles (guild_id, role_id) VALUES (?, ?)', (ctx.guild.id, role.id))
             await db.commit()
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                                   description=f"VC role {role.mention} added for this guild.", color=0xFF0000)
             await ctx.reply(embed=embed)
 
@@ -57,13 +58,13 @@ class Invcrole(commands.Cog):
             async with db.execute('SELECT role_id FROM vcroles WHERE guild_id = ? AND role_id = ?', (ctx.guild.id, role.id)) as cursor:
                 row = await cursor.fetchone()
                 if not row:
-                    embed = discord.Embed(title="❌ Error",
+                    embed = discord.Embed(title=f"{_e('zcross')} Error",
                                           description="Given role is not set in VC role.", color=0xFF0000)
                     await ctx.send(embed=embed)
                     return
             await db.execute('DELETE FROM vcroles WHERE guild_id = ? AND role_id = ?', (ctx.guild.id, role.id))
             await db.commit()
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                                   description=f"VC role {role.mention} removed for this guild.", color=0xFF0000)
             await ctx.send(embed=embed)
 
@@ -76,7 +77,7 @@ class Invcrole(commands.Cog):
             async with db.execute('SELECT role_id FROM vcroles WHERE guild_id = ?', (ctx.guild.id,)) as cursor:
                 row = await cursor.fetchone()
                 if not row:
-                    embed = discord.Embed(title="❌ Error",
+                    embed = discord.Embed(title=f"{_e('zcross')} Error",
                                           description="VC role is not set in this guild.", color=0xFF0000)
                     await ctx.send(embed=embed)
                     return

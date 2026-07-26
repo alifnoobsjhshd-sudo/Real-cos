@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 import re
@@ -124,7 +125,7 @@ class AntiEmojiSpam(commands.Cog):
                 await message.delete()
                 
                 simple_embed = discord.Embed(title="Automod Anti Emoji Spam", color=0xFF0000)
-                simple_embed.description = f"✅ | {user.mention} has been successfully **{action_taken}** for **Spamming Emojis.**"
+                simple_embed.description = f"{_e('ztick')} | {user.mention} has been successfully **{action_taken}** for **Spamming Emojis.**"
                 
                 simple_embed.set_footer(text="Use the “automod logging” command to get automod logs if it is not enabled.", icon_url=self.bot.user.display_avatar.url)
                 await channel.send(embed=simple_embed, delete_after=30)

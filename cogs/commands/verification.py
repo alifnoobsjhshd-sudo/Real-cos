@@ -1,4 +1,5 @@
-import discord 
+import discord
+from utils.emojis import e as _e 
 from discord .ext import commands 
 from discord import app_commands 
 import aiosqlite 

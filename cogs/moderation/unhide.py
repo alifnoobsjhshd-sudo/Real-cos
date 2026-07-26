@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 
 class Unhide(commands.Cog):
@@ -24,7 +25,7 @@ class Unhide(commands.Cog):
         # Check if the channel is already visible
         if channel.permissions_for(ctx.guild.default_role).read_messages:
             embed = discord.Embed(
-                description=f"**#️⃣ Channel**: {channel.mention}\n✅ **Status**: Already Visible",
+                description=f"**# Channel**: {channel.mention}\n{_e('ztick')} **Status**: Already Visible",
                 color=self.color
             )
             embed.set_author(name=f"{channel.name} is Already Visible")
@@ -38,7 +39,7 @@ class Unhide(commands.Cog):
 
         # Create the success embed
         embed = discord.Embed(
-            description=f"**✅ | {channel.mention} has been successfully unhidden.**",
+            description=f"**{_e('ztick')} | {channel.mention} has been successfully unhidden.**",
             color=self.color
         )
         embed.set_author(name="Channel Unhidden")

@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 
@@ -79,7 +80,7 @@ class Unlock(commands.Cog):
         await channel.set_permissions(ctx.guild.default_role, send_messages=True)
 
         embed = discord.Embed(
-            description=f"**✅ | Successfully {channel.mention} is now unhidden",
+            description=f"**{_e('ztick')} | Successfully {channel.mention} is now unhidden",
             color=self.color
         )
        # embed.add_field(name=" **Moderator:**", value=ctx.author.mention, inline=False)

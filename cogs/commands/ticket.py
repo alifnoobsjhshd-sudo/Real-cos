@@ -1,6 +1,7 @@
 # cogs/commands/ticket.py  —  Ticket system (rewritten)
 
 import discord
+from utils.emojis import e as _e
 from discord import app_commands
 from discord.ext import commands
 import sqlite3
@@ -274,7 +275,7 @@ class SetupLandingView(discord.ui.View):
         existing = self.cog.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (inter.guild.id,))
         if not existing or not existing["panel_channel_id"]:
             await inter.response.send_message(
-                "❌ No existing panel found. Please **Create New Panel** instead.", ephemeral=True
+                f"{_e('zcross')} No existing panel found. Please **Create New Panel** instead.", ephemeral=True
             )
             return
         await inter.response.defer()
@@ -397,7 +398,7 @@ class PanelEmbedSetupView(discord.ui.View):
                 await self.message.edit(embed=self._preview_embed())
             else:
                 try:
-                    await inter.channel.send("❌ No role mention found. Try again.", delete_after=5)
+                    await inter.channel.send(f"{_e('zcross')} No role mention found. Try again.", delete_after=5)
                 except Exception:
                     pass
 
@@ -612,7 +613,7 @@ class ButtonManagerView(discord.ui.View):
         await inter.response.defer()
         if len(self.buttons) >= MAX_BUTTONS:
             return await inter.followup.send(
-                f"❌ Maximum {MAX_BUTTONS} buttons reached.", ephemeral=True
+                f"{_e('zcross')} Maximum {MAX_BUTTONS} buttons reached.", ephemeral=True
             )
 
         name = await self._prompt(
@@ -644,7 +645,7 @@ class ButtonManagerView(discord.ui.View):
         })
         self._rebuild_components()
         await self.message.edit(embed=self._build_embed(), view=self)
-        await inter.followup.send(f"✅ Button **{name}** added!", ephemeral=True)
+        await inter.followup.send(f"{_e('ztick')} Button **{name}** added!", ephemeral=True)
 
     async def _delete_category(self, inter: discord.Interaction, idx: int):
         if idx >= len(self.buttons):
@@ -672,7 +673,7 @@ class ButtonManagerView(discord.ui.View):
     async def _send_panel(self, inter: discord.Interaction):
         if not self.buttons:
             return await inter.response.send_message(
-                "❌ Add at least one button before sending the panel.", ephemeral=True
+                f"{_e('zcross')} Add at least one button before sending the panel.", ephemeral=True
             )
         await inter.response.defer()
         for item in self.children:
@@ -686,13 +687,13 @@ class ButtonManagerView(discord.ui.View):
         config = self.cog.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (guild_id,))
         if not config:
             return await inter.followup.send(
-                "❌ Configuration lost. Please run `/ticket setup` again.", ephemeral=True
+                f"{_e('zcross')} Configuration lost. Please run `/ticket setup` again.", ephemeral=True
             )
 
         panel_ch = self.ctx.guild.get_channel(config["panel_channel_id"])
         if not panel_ch:
             return await inter.followup.send(
-                "❌ The panel channel no longer exists.", ephemeral=True
+                f"{_e('zcross')} The panel channel no longer exists.", ephemeral=True
             )
 
         # Rebuild ticket_categories in DB
@@ -712,7 +713,7 @@ class ButtonManagerView(discord.ui.View):
                     )
                 except Exception:
                     await inter.followup.send(
-                        f"❌ Couldn't create Discord category for **{btn['name']}**. "
+                        f"{_e('zcross')} Couldn't create Discord category for **{btn['name']}**. "
                         "Check my permissions and try again.",
                         ephemeral=True
                     )
@@ -756,14 +757,14 @@ class ButtonManagerView(discord.ui.View):
 
         final_view = self.cog.create_panel_view(guild_id)
         if not final_view:
-            return await inter.followup.send("❌ Failed to build panel view.", ephemeral=True)
+            return await inter.followup.send(f"{_e('zcross')} Failed to build panel view.", ephemeral=True)
 
         msg = await panel_ch.send(embed=panel_embed, view=final_view)
         self.cog.db.execute(
             "UPDATE guild_configs SET panel_message_id=? WHERE guild_id=?", (msg.id, guild_id)
         )
         await inter.followup.send(
-            f"✅ Ticket panel sent to {panel_ch.mention}!", ephemeral=True
+            f"{_e('ztick')} Ticket panel sent to {panel_ch.mention}!", ephemeral=True
         )
         self.stop()
 
@@ -856,7 +857,7 @@ class TicketEmbedConfigView(discord.ui.View):
             self.t_thumb = "" if val.lower() == "none" else val
             await inter.message.edit(embed=self._build_preview(), view=self)
 
-    @discord.ui.button(label="✅ Done", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label=f"{_e('ztick')} Done", style=discord.ButtonStyle.success, row=2)
     async def btn_done(self, inter: discord.Interaction, btn: discord.ui.Button):
         # Flush values back into the shared dict
         self.btn_data["cat_embed_title"]       = self.t_title
@@ -897,12 +898,12 @@ class TicketActionsView(discord.ui.View):
         if _is_staff(self.cog.db, inter):
             return True
         await inter.response.send_message(
-            "❌ Only staff members can manage tickets.", ephemeral=True
+            f"{_e('zcross')} Only staff members can manage tickets.", ephemeral=True
         )
         return False
 
     @discord.ui.button(
-        label="Close", emoji="🔒",
+        label="Close", emoji=_e('lock') or '🔒',
         style=discord.ButtonStyle.danger, custom_id="t_close"
     )
     async def b_close(self, inter: discord.Interaction, btn: discord.ui.Button):
@@ -912,7 +913,7 @@ class TicketActionsView(discord.ui.View):
             "SELECT * FROM open_tickets WHERE channel_id=?", (inter.channel.id,)
         )
         if not ticket:
-            return await inter.followup.send("❌ No ticket record for this channel.", ephemeral=True)
+            return await inter.followup.send(f"{_e('zcross')} No ticket record for this channel.", ephemeral=True)
 
         creator = inter.guild.get_member(ticket["creator_id"])
         if creator:
@@ -938,7 +939,7 @@ class TicketActionsView(discord.ui.View):
             pass
 
         close_embed = discord.Embed(
-            title="🔒 Ticket Closed",
+            title=f"{_e('lock')} Ticket Closed",
             description=(
                 f"This ticket was closed by {inter.user.mention}.\n"
                 f"The ticket opener can no longer send messages here.\n\n"
@@ -955,12 +956,12 @@ class TicketActionsView(discord.ui.View):
             embed=close_embed,
             view=ClosedTicketView(self.cog)
         )
-        await inter.followup.send("🔒 Ticket closed successfully.", ephemeral=True)
+        await inter.followup.send(f"{_e('lock')} Ticket closed successfully.", ephemeral=True)
 
         # DM the staff member
         try:
             await inter.user.send(
-                f"✅ You closed ticket **#{inter.channel.name}** in **{inter.guild.name}**."
+                f"{_e('ztick')} You closed ticket **#{inter.channel.name}** in **{inter.guild.name}**."
             )
         except Exception:
             pass
@@ -1015,7 +1016,7 @@ class ClosedTicketView(discord.ui.View):
         if _is_staff(self.cog.db, inter):
             return True
         await inter.response.send_message(
-            "❌ Only staff members can manage tickets.", ephemeral=True
+            f"{_e('zcross')} Only staff members can manage tickets.", ephemeral=True
         )
         return False
 
@@ -1030,7 +1031,7 @@ class ClosedTicketView(discord.ui.View):
             "SELECT * FROM open_tickets WHERE channel_id=?", (inter.channel.id,)
         )
         if not ticket:
-            return await inter.followup.send("❌ No ticket record found.", ephemeral=True)
+            return await inter.followup.send(f"{_e('zcross')} No ticket record found.", ephemeral=True)
 
         creator = inter.guild.get_member(ticket["creator_id"])
         if creator:
@@ -1169,7 +1170,7 @@ class TicketCog(commands.Cog, name="Ticket System"):
         )
         if count and count["ticket_count"] >= TICKET_LIMIT_PER_USER:
             return await inter.followup.send(
-                f"❌ You already have {TICKET_LIMIT_PER_USER} open tickets. Please resolve them first.",
+                f"{_e('zcross')} You already have {TICKET_LIMIT_PER_USER} open tickets. Please resolve them first.",
                 ephemeral=True
             )
 
@@ -1178,13 +1179,13 @@ class TicketCog(commands.Cog, name="Ticket System"):
         )
         if not cat_info:
             return await inter.followup.send(
-                "❌ This ticket category no longer exists.", ephemeral=True
+                f"{_e('zcross')} This ticket category no longer exists.", ephemeral=True
             )
 
         disc_cat = guild.get_channel(cat_info["discord_category_id"])
         if not disc_cat:
             return await inter.followup.send(
-                "❌ The Discord category for this ticket type is missing or was deleted.",
+                f"{_e('zcross')} The Discord category for this ticket type is missing or was deleted.",
                 ephemeral=True
             )
 
@@ -1217,7 +1218,7 @@ class TicketCog(commands.Cog, name="Ticket System"):
             )
         except Exception:
             return await inter.followup.send(
-                "❌ I don't have permission to create ticket channels.", ephemeral=True
+                f"{_e('zcross')} I don't have permission to create ticket channels.", ephemeral=True
             )
 
         self.db.execute(
@@ -1261,7 +1262,7 @@ class TicketCog(commands.Cog, name="Ticket System"):
             view=TicketActionsView(self)
         )
         await inter.followup.send(
-            f"✅ Your ticket has been created: {ch.mention}", ephemeral=True
+            f"{_e('ztick')} Your ticket has been created: {ch.mention}", ephemeral=True
         )
         await _log_action(
             self.db, guild, user, "Opened",

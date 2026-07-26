@@ -2,6 +2,7 @@ import discord
 import json
 import aiosqlite
 from discord.ext import commands
+from utils.emojis import e as _e
 from utils.config import serverLink
 from core import zyrox, Cog, Context
 from utils.Tools import get_ignore_data
@@ -65,7 +66,7 @@ class Errors(Cog):
       embed = discord.Embed(
           color=0xFF0000,
           description=(
-              f"❌ **You're missing something:** `{error.param.name}`\n\n"
+              f"{_e('zcross')} **You're missing something:** `{error.param.name}`\n\n"
               f"**What to do:** {hint}.\n\n"
               f"**How to use:** {usage}"
               f"{_slash_alternative_hint(ctx)}"
@@ -115,7 +116,7 @@ class Errors(Cog):
       usage += "`"
       embed = discord.Embed(
           color=0xFF0000,
-          description=f"❌ **Too many arguments.**\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
+          description=f"{_e('zcross')} **Too many arguments.**\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
       embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")
@@ -159,7 +160,7 @@ class Errors(Cog):
       usage += "`"
       embed = discord.Embed(
           color=0xFF0000,
-          description=f"❌ **Invalid argument:** {error}\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
+          description=f"{_e('zcross')} **Invalid argument:** {error}\n\n**How to use:** {usage}{_slash_alternative_hint(ctx)}",
       )
       embed.set_author(name="Wrong Usage", icon_url=ctx.bot.user.display_avatar.url)
       embed.set_footer(text=f"Tip: type {prefix}help {ctx.command.qualified_name} for full info")

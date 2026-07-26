@@ -4,19 +4,20 @@ import json
 import os
 import asyncio
 from utils.branding import DEFAULT_BRANDING
+from utils.emojis import e as _e
 
-CROSS   = "❌"
-TICK    = "✅"
-WARNING = "⚠️"
-BOOK    = "📕"
-PLAY    = "▶️"
-PAUSE   = "⏸️"
-STOP    = "🔴"
-NEXT    = "▶️"
-BACK    = "◀️"
-ARROW   = "➡️"
-PIN     = "📌"
-STAR    = "⭐"
+def CROSS():   return _e("zcross")   or "❌"
+def TICK():    return _e("ztick")    or "✅"
+def WARNING(): return _e("zwarning") or "⚠️"
+def BOOK():    return _e("zmodule")  or "📕"
+def PLAY():    return _e("zplay")    or "▶️"
+def PAUSE():   return _e("zpause")   or "⏸️"
+def STOP():    return _e("musicstop_icons") or "⏹️"
+def NEXT():    return _e("zplus")    or "➕"
+def BACK():    return _e("zback")    or "◀️"
+def ARROW():   return _e("zArrow")   or "➡️"
+def PIN():     return _e("zpin")     or "💬"
+def STAR():    return _e("starr")    or "⭐"
 
 class Counting(commands.Cog):
     def __init__(self, bot):
@@ -38,17 +39,17 @@ class Counting(commands.Cog):
 
     async def not_enabled_embed(self, ctx):
         embed = discord.Embed(
-            title=f"{BOOK} Counting Settings For {ctx.guild.name}",
+            title=f"{BOOK()} Counting Settings For {ctx.guild.name}",
             color=0xFF0000
         )
-        embed.add_field(name="Current Status", value=f"{CROSS} Disabled", inline=False)
+        embed.add_field(name="Current Status", value=f"{CROSS()} Disabled", inline=False)
         embed.add_field(name="How to Enable", value="Use `counting enable` to enable counting.", inline=False)
         embed.set_footer(text=f"Powered By {DEFAULT_BRANDING} Development™")
         await ctx.send(embed=embed)
 
     async def send_help_embed(self, ctx):
         embed = discord.Embed(
-            title=f"{BOOK} Counting Commands",
+            title=f"{BOOK()} Counting Commands",
             description="Manage and control the counting game settings.",
             color=0xFF0000
         )
@@ -76,7 +77,7 @@ class Counting(commands.Cog):
         else:
             self.counting_data[guild_id]["enabled"] = True
         self.save_data()
-        await ctx.send(f"{TICK} Counting has been Enabled!")
+        await ctx.send(f"{TICK()} Counting has been Enabled!")
 
     @counting.command(name="disable")
     @commands.has_permissions(manage_channels=True)
@@ -87,7 +88,7 @@ class Counting(commands.Cog):
             return
         self.counting_data[guild_id]["enabled"] = False
         self.save_data()
-        await ctx.send(f"{STOP} Counting has been Disabled!")
+        await ctx.send(f"{STOP()} Counting has been Disabled!")
 
     @counting.command(name="channel")
     @commands.has_permissions(manage_channels=True)
@@ -98,7 +99,7 @@ class Counting(commands.Cog):
             return
         self.counting_data[guild_id]["channel"] = channel.id
         self.save_data()
-        await ctx.send(f"{PIN} Counting channel set to {channel.mention}")
+        await ctx.send(f"{PIN()} Counting channel set to {channel.mention}")
 
     @counting.command(name="config")
     @commands.has_permissions(manage_channels=True)
@@ -109,12 +110,12 @@ class Counting(commands.Cog):
             return
         if mode.lower() in ["reset", "true", "on"]:
             self.counting_data[guild_id]["reset_on_fail"] = True
-            msg = f"{TICK} Counting will now reset on mistakes."
+            msg = f"{TICK()} Counting will now reset on mistakes."
         elif mode.lower() in ["continue", "false", "off"]:
             self.counting_data[guild_id]["reset_on_fail"] = False
-            msg = f"{TICK} Counting will now continue on mistakes."
+            msg = f"{TICK()} Counting will now continue on mistakes."
         else:
-            await ctx.send(f"{CROSS} Invalid mode! Use `reset` or `continue`.")
+            await ctx.send(f"{CROSS()} Invalid mode! Use `reset` or `continue`.")
             return
         self.save_data()
         await ctx.send(msg)
@@ -128,7 +129,7 @@ class Counting(commands.Cog):
             return
         self.counting_data[guild_id]["count"] = 0
         self.save_data()
-        await ctx.send(f"{NEXT} Counting has been reset to 0!")
+        await ctx.send(f"{NEXT()} Counting has been reset to 0!")
 
     @counting.command(name="stats")
     async def stats(self, ctx):
@@ -138,7 +139,7 @@ class Counting(commands.Cog):
             return
         data = self.counting_data[guild_id]
         channel = ctx.guild.get_channel(data["channel"]) if data["channel"] else None
-        embed = discord.Embed(title=f"{BOOK} Counting Stats", color=0xFF0000)
+        embed = discord.Embed(title=f"{BOOK()} Counting Stats", color=0xFF0000)
         embed.add_field(name="Current Count", value=str(data["count"]), inline=False)
         embed.add_field(name="Channel", value=channel.mention if channel else "Not Set", inline=False)
         embed.add_field(name="Reset on Mistake", value=str(data["reset_on_fail"]), inline=False)
@@ -164,7 +165,7 @@ class Counting(commands.Cog):
         content = message.content.strip()
 
         if not content.isdigit():
-            msg = await message.channel.send(f"{WARNING} Alphabet not allowed!")
+            msg = await message.channel.send(f"{WARNING()} Alphabet not allowed!")
             await asyncio.sleep(3)
             await msg.delete()
             await message.delete()
@@ -174,7 +175,7 @@ class Counting(commands.Cog):
         expected_number = data.get("count", 0) + 1
 
         if number != expected_number:
-            msg = await message.channel.send(f"{CROSS} Wrong number entered! Expected number is **{expected_number}**")
+            msg = await message.channel.send(f"{CROSS()} Wrong number entered! Expected number is **{expected_number}**")
             await asyncio.sleep(3)
             await msg.delete()
             await message.delete()

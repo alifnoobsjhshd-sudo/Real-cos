@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 
 class Lock(commands.Cog):
@@ -23,7 +24,7 @@ class Lock(commands.Cog):
         # Check if the channel is already locked
         if not channel.permissions_for(ctx.guild.default_role).send_messages:
             embed = discord.Embed(
-                description=f"**Channel: {channel.mention}\n✅ Status: Already Locked**",
+                description=f"**Channel: {channel.mention}\n{_e('ztick')} Status: Already Locked**",
                 color=0xFF0000
             )
             #embed.set_author(name=f"{c", icon_url="")
@@ -36,8 +37,8 @@ class Lock(commands.Cog):
 
         # Create the confirmation embed
         embed = discord.Embed(
-            title="🔒 Lockdown",
-            description=f"✅ | Successfully Locked {channel.mention}",
+            title=f"{_e('lock')} Lockdown",
+            description=f"{_e('ztick')} | Successfully Locked {channel.mention}",
             color=0xFF0000
         )
         #embed.set_author(name=f"Successfully Locked {channel.name}", icon_url="")

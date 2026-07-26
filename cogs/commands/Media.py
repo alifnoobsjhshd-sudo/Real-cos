@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 import aiosqlite
 from discord.ext import commands
 from utils.Tools import blacklist_check, ignore_check
@@ -52,7 +53,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if result:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description="A media channel is already set. Please remove it before setting a new one.",
                         color=0xFF0000
                     )
@@ -63,7 +64,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="✅ Success",
+            title=f"{_e('ztick')} Success",
             description=f"Successfully set {channel.mention} as the media-only channel.",
             color=0xFF0000
         )
@@ -81,7 +82,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description="There is no media-only channel set for this server.",
                         color=0xFF0000
                     )
@@ -92,7 +93,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="✅ Success",
+            title=f"{_e('ztick')} Success",
             description="Successfully removed the media-only channel.",
             color=0xFF0000
         )
@@ -109,7 +110,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description="There is no media-only channel set for this server.",
                         color=0xFF0000
                     )
@@ -145,7 +146,7 @@ class Media(commands.Cog):
                 count = await cursor.fetchone()
                 if count[0] >= 25:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description="The bypass list can only hold up to 25 users.",
                         color=0xFF0000
                     )
@@ -156,7 +157,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if result:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description=f"{user.mention} is already in the bypass list.",
                         color=0xFF0000
                     )
@@ -167,7 +168,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="✅ Success",
+            title=f"{_e('ztick')} Success",
             description=f"{user.mention} has been added to the bypass list.",
             color=0xFF0000
         )
@@ -184,7 +185,7 @@ class Media(commands.Cog):
                 result = await cursor.fetchone()
                 if not result:
                     embed = discord.Embed(
-                        title="❌ Error",
+                        title=f"{_e('zcross')} Error",
                         description=f"{user.mention} is not in the bypass list.",
                         color=0xFF0000
                     )
@@ -195,7 +196,7 @@ class Media(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="✅ Success",
+            title=f"{_e('ztick')} Success",
             description=f"{user.mention} has been removed from the bypass list.",
             color=0xFF0000
         )

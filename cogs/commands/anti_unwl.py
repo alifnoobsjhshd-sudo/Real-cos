@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 from utils.Tools import *
@@ -24,7 +25,7 @@ class Unwhitelist(commands.Cog):
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
                 color=0x08ff00,
-                description="❌ | Your Server Doesn't Meet My 30 Member Criteria"
+                description=f"{_e('zcross')} | Your Server Doesn't Meet My 30 Member Criteria"
             )
             return await ctx.send(embed=embed)
 
@@ -42,7 +43,7 @@ class Unwhitelist(commands.Cog):
 
         is_owner = ctx.author.id == ctx.guild.owner_id
         if not is_owner and not check:
-            embed = discord.Embed(title="❌ Access Denied",
+            embed = discord.Embed(title=f"{_e('zcross')} Access Denied",
                 color=0x08ff00,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -76,7 +77,7 @@ class Unwhitelist(commands.Cog):
             data = await cursor.fetchone()
 
         if not data:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 color=0xFF0000,
                 description=f"<@{member.id}> is not a whitelisted member."
             )
@@ -88,7 +89,7 @@ class Unwhitelist(commands.Cog):
         )
         await self.db.commit()
 
-        embed = discord.Embed(title="✅ Success",
+        embed = discord.Embed(title=f"{_e('ztick')} Success",
             color=0xFF0000,
             description=f"User <@!{member.id}> has been removed from the whitelist."
         )

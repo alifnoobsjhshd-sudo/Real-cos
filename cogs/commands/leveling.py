@@ -75,10 +75,11 @@ class PlaceholdersView (discord .ui .View ):
     def __init__ (self ):
         super ().__init__ (timeout =60 )
 
-    @discord .ui .button (label ="Show Placeholders",style =discord .ButtonStyle .secondary ,emoji ="📝")
+    @discord .ui .button (label ="Show Placeholders",style =discord .ButtonStyle .secondary ,emoji ="📋")
     async def show_placeholders (self ,interaction :discord .Interaction ,button :discord .ui .Button ):
+        from utils.emojis import e as _e
         embed =discord .Embed (
-        title ="📝 Available Placeholders",
+        title =f"{_e('zmsg')} Available Placeholders",
         description ="**You can use these placeholders in your level up message:**\n\n"
         "`{user}` - Mentions the user (@username)\n"
         "`{username}` - User's display name\n"
@@ -171,7 +172,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
                     raise ValueError ("XP per message must be between 1 and 999")
             except ValueError as ve :
                 logger .error (f"XP validation error: {ve}")
-                await interaction .followup .send ("❌ Invalid XP per message value! Must be between 1 and 999.",ephemeral =True )
+                await interaction .followup .send (f"{_e('zcross')} Invalid XP per message value! Must be between 1 and 999.",ephemeral =True )
                 return 
 
 
@@ -180,7 +181,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
                 color_value ='#'+color_value 
 
             if not validate_hex_color (color_value ):
-                await interaction .followup .send ("❌ Invalid hex color format! Use format like #FF0000",ephemeral =True )
+                await interaction .followup .send (f"{_e('zcross')} Invalid hex color format! Use format like #FF0000",ephemeral =True )
                 return 
 
             thumbnail_bool =self .thumbnail_enabled .value .lower ()in ['true','yes','1','on']
@@ -250,7 +251,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
 
 
             embed =discord .Embed (
-            title ="✅ Leveling Configuration Updated",
+            title =f"{_e('ztick')} Leveling Configuration Updated",
             description =f"**XP per Message:** {xp_value}\n"
             f"**Level Up Message:** {self.level_up_message.value[:50]}{'...' if len(self.level_up_message.value) > 50 else ''}\n"
             f"**Embed Color:** {color_value}\n"
@@ -667,7 +668,7 @@ class Leveling (commands .Cog ):
                 embed_color =hex_to_int (embed_color )
 
             embed =discord .Embed (
-            title ="🎉 Level Up!",
+            title =f"{_e('ztada')} Level Up!",
             description =level_message ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1589,10 +1590,10 @@ class Leveling (commands .Cog ):
 
             embed .add_field (
             name ="Current Configuration",
-            value =f"🔧 Status: {'✅ Enabled' if current_settings.get('enabled', False) else '❌ Disabled'}\n"
+            value =f"🔧 Status: {'enabled' if current_settings.get('enabled', False) else 'disabled'}\n"
             f"💎 XP per Message: {current_settings.get('xp_per_message', 20)}\n"
             f"🎨 Embed Color: {current_settings.get('embed_color', '#000000')}\n"
-            f"🖼️ Thumbnail: {'✅ Yes' if current_settings.get('thumbnail_enabled', True) else '❌ No'}\n"
+            f"🖼️ Thumbnail: {'yes' if current_settings.get('thumbnail_enabled', True) else 'no'}\n"
             f"📢 Level Channel: {'Set' if current_settings.get('channel_id') else 'Not set'}",
             inline =False 
             )
@@ -1609,7 +1610,7 @@ class Leveling (commands .Cog ):
             try :
                 xp_msg =await self .bot .wait_for ('message',check =check ,timeout =60 )
                 if xp_msg .content .lower ()=='cancel':
-                    await ctx .send ("❌ Setup cancelled.")
+                    await ctx .send (f"{_e('zcross')} Setup cancelled.")
                     return 
 
                 if xp_msg .content .lower ()=='skip':
@@ -1617,7 +1618,7 @@ class Leveling (commands .Cog ):
                 else :
                     xp_per_message =int (xp_msg .content )
                     if xp_per_message <1 or xp_per_message >999 :
-                        await ctx .send ("❌ XP must be between 1 and 999. Using current value.")
+                        await ctx .send (f"{_e('zcross')} XP must be between 1 and 999. Using current value.")
                         xp_per_message =current_settings .get ('xp_per_message',20 )
             except (ValueError ,asyncio .TimeoutError ):
                 await ctx .send ("⏰ Timeout or invalid input. Using current value.")
@@ -1632,7 +1633,7 @@ class Leveling (commands .Cog ):
             try :
                 msg_response =await self .bot .wait_for ('message',check =check ,timeout =120 )
                 if msg_response .content .lower ()=='cancel':
-                    await ctx .send ("❌ Setup cancelled.")
+                    await ctx .send (f"{_e('zcross')} Setup cancelled.")
                     return 
 
                 if msg_response .content .lower ()=='skip':
@@ -1640,7 +1641,7 @@ class Leveling (commands .Cog ):
                 else :
                     level_message =msg_response .content 
                     if len (level_message )>2000 :
-                        await ctx .send ("❌ Message too long (max 2000 chars). Using current value.")
+                        await ctx .send (f"{_e('zcross')} Message too long (max 2000 chars). Using current value.")
                         level_message =current_msg 
             except asyncio .TimeoutError :
                 await ctx .send ("⏰ Timeout. Using current value.")
@@ -1654,7 +1655,7 @@ class Leveling (commands .Cog ):
             try :
                 color_msg =await self .bot .wait_for ('message',check =check ,timeout =60 )
                 if color_msg .content .lower ()=='cancel':
-                    await ctx .send ("❌ Setup cancelled.")
+                    await ctx .send (f"{_e('zcross')} Setup cancelled.")
                     return 
 
                 if color_msg .content .lower ()=='skip':
@@ -1667,7 +1668,7 @@ class Leveling (commands .Cog ):
                     if validate_hex_color (color_input ):
                         embed_color =color_input 
                     else :
-                        await ctx .send ("❌ Invalid hex color. Using current value.")
+                        await ctx .send (f"{_e('zcross')} Invalid hex color. Using current value.")
                         embed_color =current_color 
             except asyncio .TimeoutError :
                 await ctx .send ("⏰ Timeout. Using current value.")
@@ -1681,7 +1682,7 @@ class Leveling (commands .Cog ):
             try :
                 image_msg =await self .bot .wait_for ('message',check =check ,timeout =60 )
                 if image_msg .content .lower ()=='cancel':
-                    await ctx .send ("❌ Setup cancelled.")
+                    await ctx .send (f"{_e('zcross')} Setup cancelled.")
                     return 
 
                 if image_msg .content .lower ()=='skip':
@@ -1689,7 +1690,7 @@ class Leveling (commands .Cog ):
                 else :
                     level_image =image_msg .content .strip ()if image_msg .content .strip ()!='none'else None 
                     if level_image and len (level_image )>500 :
-                        await ctx .send ("❌ URL too long. Using current value.")
+                        await ctx .send (f"{_e('zcross')} URL too long. Using current value.")
                         level_image =current_image 
             except asyncio .TimeoutError :
                 await ctx .send ("⏰ Timeout. Using current value.")
@@ -1703,7 +1704,7 @@ class Leveling (commands .Cog ):
             try :
                 thumb_msg =await self .bot .wait_for ('message',check =check ,timeout =60 )
                 if thumb_msg .content .lower ()=='cancel':
-                    await ctx .send ("❌ Setup cancelled.")
+                    await ctx .send (f"{_e('zcross')} Setup cancelled.")
                     return 
 
                 if thumb_msg .content .lower ()=='skip':
@@ -1764,7 +1765,7 @@ class Leveling (commands .Cog ):
 
 
             final_embed =discord .Embed (
-            title ="✅ Leveling System Configured!",
+            title =f"{_e('ztick')} Leveling System Configured!",
             description ="Your leveling system has been successfully set up with these settings:",
             color =embed_color_int ,
             timestamp =datetime .now (timezone .utc )
@@ -1803,7 +1804,7 @@ class Leveling (commands .Cog ):
         """Set XP per message amount"""
         try :
             if amount <1 or amount >999 :
-                await ctx .send ("❌ XP per message must be between 1 and 999!")
+                await ctx .send (f"{_e('zcross')} XP per message must be between 1 and 999!")
                 return 
 
             async with aiosqlite .connect (self .db_path )as db :
@@ -1818,7 +1819,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ XP Amount Updated",
+            title =f"{_e('ztick')} XP Amount Updated",
             description =f"XP per message has been set to **{amount} XP**",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -1835,7 +1836,7 @@ class Leveling (commands .Cog ):
         """Set level-up message"""
         try :
             if len (message )>2000 :
-                await ctx .send ("❌ Level-up message must be less than 2000 characters!")
+                await ctx .send (f"{_e('zcross')} Level-up message must be less than 2000 characters!")
                 return 
 
             async with aiosqlite .connect (self .db_path )as db :
@@ -1850,7 +1851,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ Level-Up Message Updated",
+            title =f"{_e('ztick')} Level-Up Message Updated",
             description =f"Level-up message has been set to:\n```{message}```",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -1871,7 +1872,7 @@ class Leveling (commands .Cog ):
                 color ='#'+color 
 
             if not validate_hex_color (color ):
-                await ctx .send ("❌ Invalid hex color format! Use format like #FF0000")
+                await ctx .send (f"{_e('zcross')} Invalid hex color format! Use format like #FF0000")
                 return 
 
             color_int =hex_to_int (color )
@@ -1906,7 +1907,7 @@ class Leveling (commands .Cog ):
         try :
             setting =setting .lower ()
             if setting not in ['on','off','true','false','yes','no','enable','disable']:
-                await ctx .send ("❌ Use: `on/off`, `true/false`, `yes/no`, or `enable/disable`")
+                await ctx .send (f"{_e('zcross')} Use: `on/off`, `true/false`, `yes/no`, or `enable/disable`")
                 return 
 
             enabled =setting in ['on','true','yes','enable']
@@ -1940,7 +1941,7 @@ class Leveling (commands .Cog ):
         """Set message cooldown"""
         try :
             if seconds <0 or seconds >3600 :
-                await ctx .send ("❌ Cooldown must be between 0 and 3600 seconds (1 hour)!")
+                await ctx .send (f"{_e('zcross')} Cooldown must be between 0 and 3600 seconds (1 hour)!")
                 return 
 
             async with aiosqlite .connect (self .db_path )as db :
@@ -3156,7 +3157,7 @@ class Leveling (commands .Cog ):
             embed.add_field(
                 name="⚙️ System",
                 value=(
-                    f"**Status:** {'✅ Enabled' if enabled else '❌ Disabled'}\n"
+                    f"**Status:** {'enabled' if enabled else 'disabled'}\n"
                     f"**XP per Message:** {xp_per_msg}\n"
                     f"**Cooldown:** {cooldown}s\n"
                     f"**Embed Color:** `{color}`"
@@ -3167,7 +3168,7 @@ class Leveling (commands .Cog ):
                 name="📢 Notifications",
                 value=(
                     f"**Level-Up Channel:** {channel.mention if channel else 'Current channel'}\n"
-                    f"**Thumbnail:** {'✅ Yes' if thumbnail else '❌ No'}\n"
+                    f"**Thumbnail:** {'yes' if thumbnail else 'no'}\n"
                     f"**Level-Up Image:** {'✅ Set' if level_img else '❌ Not set'}"
                 ),
                 inline=True
@@ -3233,10 +3234,10 @@ class Leveling (commands .Cog ):
         """Set the XP range awarded per message (random between min and max)."""
         try:
             if min_xp < 1 or max_xp < 1:
-                await ctx.send("❌ XP values must be at least 1.")
+                await ctx.send(f"{_e('zcross')} XP values must be at least 1.")
                 return
             if min_xp > max_xp:
-                await ctx.send("❌ Minimum XP must be ≤ maximum XP.")
+                await ctx.send(f"{_e('zcross')} Minimum XP must be ≤ maximum XP.")
                 return
             async with aiosqlite.connect(self.db_path) as db:
                 async with db.execute("SELECT guild_id FROM leveling_settings WHERE guild_id = ?", (ctx.guild.id,)) as cursor:
@@ -3349,7 +3350,7 @@ class Leveling (commands .Cog ):
             try:
                 await self.bot.wait_for('message', check=check, timeout=30)
             except asyncio.TimeoutError:
-                await ctx.send("❌ Reset cancelled — timed out.")
+                await ctx.send(f"{_e('zcross')} Reset cancelled — timed out.")
                 return
 
             async with aiosqlite.connect(self.db_path) as db:

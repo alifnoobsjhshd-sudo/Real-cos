@@ -312,15 +312,17 @@ class Help(Cog, name="help"):
       await asyncio.wait_for(self._build_and_send_help(interaction), timeout=10)
     except asyncio.TimeoutError:
       with suppress(discord.HTTPException):
+        from utils.emojis import e as _e
         await interaction.followup.send(
-          "❌ The help menu took too long to load. Please try again.",
+          f"{_e('zcross')} The help menu took too long to load. Please try again.",
           ephemeral=True,
         )
     except Exception as e:
       print(f"slash_help failed: {e}")
       with suppress(discord.HTTPException):
+        from utils.emojis import e as _e
         await interaction.followup.send(
-          "❌ Something went wrong while loading the help menu. Please try again.",
+          f"{_e('zcross')} Something went wrong while loading the help menu. Please try again.",
           ephemeral=True,
         )
 

@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 import sqlite3
 from datetime import datetime, timedelta
 import re
+from utils.emojis import e as _e
 
 DB_FILE = "db/jail.db"
 
@@ -100,7 +101,7 @@ class Jail(commands.Cog):
         self.conn.commit()
 
         try:
-            await member.send(f"🔓 You have been unjailed in **{guild.name}**.")
+            await member.send(f"{_e('unlock')} You have been unjailed in **{guild.name}**.")
         except:
             pass
 
@@ -108,7 +109,7 @@ class Jail(commands.Cog):
         if log_channel_id:
             log_channel = guild.get_channel(int(log_channel_id))
             if log_channel:
-                embed = discord.Embed(title="🔓 Member Unjailed", color=discord.Color.green())
+                embed = discord.Embed(title=f"{_e('unlock')} Member Unjailed", color=discord.Color.green())
                 embed.add_field(name="User", value=member.mention)
                 embed.timestamp = datetime.utcnow()
                 embed.set_footer(text=f"{guild.name}")
@@ -122,11 +123,11 @@ class Jail(commands.Cog):
         log_channel_id = self.get_setting(ctx.guild.id, "log_channel")
 
         if not jail_role_id or not jail_channel_id:
-            return await ctx.send("⚠️ Jail system not fully configured.")
+            return await ctx.send(f"{_e('zwarning')} Jail system not fully configured.")
 
         jail_role = ctx.guild.get_role(int(jail_role_id))
         if not jail_role:
-            return await ctx.send("⚠️ Jail role does not exist.")
+            return await ctx.send(f"{_e('zwarning')} Jail role does not exist.")
 
         duration_secs = self.parse_duration(duration) if duration else None
         jailed_at = datetime.utcnow().isoformat()
@@ -142,23 +143,23 @@ class Jail(commands.Cog):
         try:
             await member.edit(roles=[jail_role], reason="Jailed")
         except discord.Forbidden:
-            return await ctx.send("❌ I don't have permission to change roles.")
+            return await ctx.send(f"{_e('zcross')} I don't have permission to change roles.")
 
         jail_channel = ctx.guild.get_channel(int(jail_channel_id))
         if jail_channel:
             await jail_channel.set_permissions(member, view_channel=True, send_messages=True, read_message_history=True)
 
         try:
-            await member.send(f"🔒 You were jailed in **{ctx.guild.name}**.\n📝 Reason: {reason}\n⏰ Duration: {duration or 'Permanent'}")
+            await member.send(f"{_e('lock')} You were jailed in **{ctx.guild.name}**.\n{_e('zmsg')} Reason: {reason}\n{_e('zyrox_time')} Duration: {duration or 'Permanent'}")
         except:
             pass
 
-        await ctx.send(f"🔒 {member.mention} has been jailed {'for ' + duration if duration else 'permanently'}.")
+        await ctx.send(f"{_e('lock')} {member.mention} has been jailed {'for ' + duration if duration else 'permanently'}.")
 
         if log_channel_id:
             log_channel = ctx.guild.get_channel(int(log_channel_id))
             if log_channel:
-                embed = discord.Embed(title="🔒 Member Jailed", color=discord.Color.red())
+                embed = discord.Embed(title=f"{_e('lock')} Member Jailed", color=discord.Color.red())
                 embed.add_field(name="User", value=member.mention, inline=False)
                 embed.add_field(name="Moderator", value=ctx.author.mention, inline=False)
                 embed.add_field(name="Reason", value=reason, inline=False)
@@ -170,7 +171,7 @@ class Jail(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def unjail(self, ctx, member: discord.Member):
         await self.unjail_member(ctx.guild, member)
-        await ctx.send(f"✅ {member.mention} has been unjailed.")
+        await ctx.send(f"{_e('ztick')} {member.mention} has been unjailed.")
 
     @commands.command(name="jailhistory")
     async def jailhistory(self, ctx, member: discord.Member):
@@ -191,7 +192,7 @@ class Jail(commands.Cog):
             embed.add_field(name="Jailed By", value=mod.mention if mod else "Unknown")
             await ctx.send(embed=embed)
         else:
-            await ctx.send(f"❌ No jail record found for {member.mention}")
+            await ctx.send(f"{_e('zcross')} No jail record found for {member.mention}")
 
 async def setup(bot):
     await bot.add_cog(Jail(bot))

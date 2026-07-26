@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 
 class Hide(commands.Cog):
@@ -24,7 +25,7 @@ class Hide(commands.Cog):
         # Check if the channel is already hidden
         if not channel.permissions_for(ctx.guild.default_role).read_messages:
             embed = discord.Embed(
-                description=f"**#️⃣ Channel**: {channel.mention}\n❌ **Status**: Already Hidden",
+                description=f"**# Channel**: {channel.mention}\n{_e('zcross')} **Status**: Already Hidden",
                 color=self.color
             )
             embed.set_author(name=f"{channel.name} is Already Hidden")
@@ -39,7 +40,7 @@ class Hide(commands.Cog):
 
         # Create the success embed
         embed = discord.Embed(
-            description=f"**✅ | {channel.mention} has been successfully hidden.**",
+            description=f"**{_e('ztick')} | {channel.mention} has been successfully hidden.**",
             color=self.color
         )
         embed.set_author(name=f"Channel Hidden")

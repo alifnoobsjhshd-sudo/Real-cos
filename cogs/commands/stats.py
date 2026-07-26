@@ -10,6 +10,7 @@ from discord.ext import commands
 from discord.ui import View, Select
 from utils.Tools import *
 from utils.branding import DEFAULT_BRANDING
+from utils.emojis import e as _e
 import wavelink
 
 # Dynamically analyze codebase
@@ -35,10 +36,10 @@ class StatsDropdown(Select):
         self.embeds = embeds
 
         options = [
-            discord.SelectOption(label="System Info", emoji="⚙️", description="System usage and performance."),
-            discord.SelectOption(label="General Info", emoji="🌐", description="General Informations About Bot."),
-            discord.SelectOption(label="Team Info", emoji="💻", description="Bot creators and team."),
-            discord.SelectOption(label="Code Info", emoji="🔍", description="Stats of bot's source files."),
+            discord.SelectOption(label="System Info", emoji=_e("zsettings"), description="System usage and performance."),
+            discord.SelectOption(label="General Info", emoji=_e("zyrox_global"), description="General Informations About Bot."),
+            discord.SelectOption(label="Team Info", emoji=_e("zHuman"), description="Bot creators and team."),
+            discord.SelectOption(label="Code Info", emoji=_e("zyrox_search"), description="Stats of bot's source files."),
         ]
 
         super().__init__(placeholder="Bot Statistics.", min_values=1, max_values=1, options=options)
@@ -92,7 +93,7 @@ class Stats(commands.Cog):
     @commands.cooldown(1, 7, commands.BucketType.user)
     async def stats(self, ctx):
         
-        loading_embed = discord.Embed(title="", description="⏳ **Generating Statistics...**", color=0x00000)
+        loading_embed = discord.Embed(title="", description=f"{_e('loading')} **Generating Statistics...**", color=0x00000)
         loading_msg = await ctx.reply(embed=loading_embed)
         # Uptime & formatting
         uptime = str(datetime.timedelta(seconds=int(round(time.time() - self.start_time))))

@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from datetime import datetime
 
@@ -49,7 +50,7 @@ class Snipe(commands.Cog):
         else:
             # Send an error message if no message is stored for this channel
             embed = discord.Embed(
-                description="❌ | There are no deleted messages to snipe in this channel.",
+                description=f"{_e('zcross')} | There are no deleted messages to snipe in this channel.",
                 color=0xFF0000
             )
             await ctx.send(embed=embed)

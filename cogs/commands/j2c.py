@@ -359,8 +359,9 @@ class JoinToCreate(commands.Cog):
         }
         await self.save_guild_setup(ctx.guild.id, self.setup_data[ctx.guild.id])
 
+        from utils.emojis import e as _e
         await ctx.send(
-            f"⚙️ J2C system setup complete! Join {join_channel.mention} to create a private VC."
+            f"{_e('zsettings')} J2C system setup complete! Join {join_channel.mention} to create a private VC."
         )
 
     @commands.command(name='j2creset')
@@ -541,8 +542,9 @@ class ControlPanelView(ui.View):
         await vc.set_permissions(interaction.guild.default_role, connect=not is_locked)
         self.cog.private_channels[vc.id]["is_locked"] = is_locked
         await self.cog.save_private_channel(vc.id, interaction.guild.id, self.cog.private_channels[vc.id])
+        from utils.emojis import e as _e
         await interaction.response.send_message(
-            f"VC is now {'🔒 locked' if is_locked else '🔓 unlocked'}!", ephemeral=True
+            f"VC is now {(_e('lock') + ' locked') if is_locked else (_e('unlock') + ' unlocked')}!", ephemeral=True
         )
         await self.cog.update_vc_panel(vc, interaction.guild)
 

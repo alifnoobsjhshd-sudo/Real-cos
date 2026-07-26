@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from utils.Tools import * # Assuming these decorators exist as provided
 
@@ -52,7 +53,7 @@ class Kick(commands.Cog):
 
         embed = discord.Embed(
             description=(
-                f"**✅ | {member.mention} has been kicked successfully\nReason:{reason}**"
+                f"**{_e('ztick')} | {member.mention} has been kicked successfully\nReason:{reason}**"
             ),
             color=self.color # Uses the red color 0xFF0000
         )

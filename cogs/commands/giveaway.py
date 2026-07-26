@@ -7,6 +7,7 @@ import asyncio
 import discord, logging
 from discord.utils import get
 from utils.Tools import *
+from utils.emojis import e as _e
 import os
 import aiohttp
 
@@ -162,7 +163,7 @@ class Giveaway(commands.Cog):
         re = await self.cursor.fetchall()
 
         if winners >=  15:
-            embed = discord.Embed(title="⚠️ Access Denied",
+            embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                   description=f"Cannot exceed more than 15 winners.",
                                   color=0xFF0000)
             message = await ctx.send(embed=embed)
@@ -172,7 +173,7 @@ class Giveaway(commands.Cog):
 
         g_list = [i[0] for i in re]
         if len(g_list) >= 5:
-            embed = discord.Embed(title="⚠️ Access Denied",
+            embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                   description=f"You can only host upto 5 giveaways in this Guild.", color=0xFF0000)
             message = await ctx.send(embed=embed)
             await asyncio.sleep(5)
@@ -181,7 +182,7 @@ class Giveaway(commands.Cog):
 
         converted = self.convert(time)
         if converted / 60 >= 50400:
-            embed = discord.Embed(title="⚠️ Access Denied",
+            embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                   description=f"Time cannot exceed 31 days!", color=0xFF0000)
             message = await ctx.send(embed=embed)
             await asyncio.sleep(5)
@@ -189,14 +190,14 @@ class Giveaway(commands.Cog):
             return
 
         if converted == -1:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                                   description=f"Invalid time format", color=0xFF0000)
             message = await ctx.send(embed=embed)
             await asyncio.sleep(5)
             await message.delete()
             return
         if converted == -2:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                                   description=f"Invalid time format. Please provide the time in numbers.",
                                   color=0xFF0000)
             message = await ctx.send(embed=embed)
@@ -255,7 +256,7 @@ class Giveaway(commands.Cog):
             try:
                 int(message_id)
             except ValueError:
-                embed = discord.Embed(title="⚠️ Access Denied",
+                embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                       description="Invalid message ID provided.", color=0xFF0000)
                 message = await ctx.send(embed=embed)
                 await asyncio.sleep(5)
@@ -268,7 +269,7 @@ class Giveaway(commands.Cog):
             re = await self.cursor.fetchone()
 
             if re is None:
-                embed = discord.Embed(title="❌ Error",
+                embed = discord.Embed(title=f"{_e('zcross')} Error",
                                       description=f" The giveaway was not found.", color=0xFF0000)
                 message = await ctx.send(embed=embed)
                 await asyncio.sleep(5)
@@ -282,7 +283,7 @@ class Giveaway(commands.Cog):
             users.remove(self.bot.user.id)
 
             if len(users) < 1:
-                await ctx.send(f"✅ Successfully Ended the giveaway in <#{int(re[6])}>")
+                await ctx.send(f"{_e('ztick')} Successfully Ended the giveaway in <#{int(re[6])}>")
                 await message.reply(f"No one won the **{re[5]}** giveaway, due to Not enough participants.")
                 await self.cursor.execute("DELETE FROM Giveaway WHERE message_id = ? AND guild_id = ?", (message.id, message.guild.id))
                 return
@@ -366,7 +367,7 @@ class Giveaway(commands.Cog):
         message = await ctx.fetch_message(message_id)
 
         if ctx.message.reference.resolved.author.id != self.bot.user.id :
-            embed = discord.Embed(title="⚠️ Access Denied",
+            embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                   description=f"The giveaway was not found.", color=0xFF0000)
             message = await ctx.send(embed=embed)
             await asyncio.sleep(5)
@@ -378,7 +379,7 @@ class Giveaway(commands.Cog):
         re = await self.cursor.fetchone()
 
         if re is not None:
-            embed = discord.Embed(title="⚠️ Access Denied",
+            embed = discord.Embed(title=f"{_e('zwarning')} Access Denied",
                                   description=f"The giveaway is currently running. Please use the `gend` command instead to end the giveaway.", color=0xFF0000)
             message = await ctx.send(embed=embed)
             await asyncio.sleep(5)
