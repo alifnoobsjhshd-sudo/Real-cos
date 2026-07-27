@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 import asyncio
@@ -57,7 +56,7 @@ class Antinuke(commands.Cog):
 
     is_owner = ctx.author.id == ctx.guild.owner_id
     if not is_owner and not check:
-      embed = discord.Embed(title=f"{_e('zcross')} Access Denied",
+      embed = discord.Embed(title="❌ Access Denied",
                 color=0xFF0000,
                 description="Only Server Owner or Extra Owner can Run this Command!"
             )
@@ -75,8 +74,8 @@ class Antinuke(commands.Cog):
             "• Live monitoring of admin actions.\n"
             "• Rapid threat detection & neutralization.\n\n"
             "**Configuration Panel**\n"
-            f"{_e('ztick')} Enable Protection: `antinuke enable`\n"
-            f"{_e('zcross')} Disable Protection: `antinuke disable`",
+            "✅ Enable Protection: `antinuke enable`\n"
+            "❌ Disable Protection: `antinuke disable`",
         color=0xFF0000
       )      
       embed.set_thumbnail(url=self.bot.user.display_avatar.url)
@@ -95,14 +94,14 @@ class Antinuke(commands.Cog):
         
         setup_embed = discord.Embed(
           title="Antinuke Setup 😄",
-          description=f"{_e('ztick')} | Initializing Quick Setup!",
+          description="✅ | Initializing Quick Setup!",
           color=0xFF0000
         )
         setup_message = await ctx.send(embed=setup_embed)
 
         
         if not ctx.guild.me.guild_permissions.administrator:
-          setup_embed.description += f"\n{_e('zcross')} | **Ops! It seems I Don't Have Administrator Perm To enable antinuke**."
+          setup_embed.description += "\n❌ | **Ops! It seems I Don't Have Administrator Perm To enable antinuke**."
           await setup_message.edit(embed=setup_embed)
           return
 
@@ -118,7 +117,7 @@ class Antinuke(commands.Cog):
         except Exception:
           _bname = DEFAULT_BRANDING
 
-        setup_embed.description += f"\n{_e('ztick')} | Crafting and configuring the {_bname} Supreme role..."
+        setup_embed.description += f"\n✅ | Crafting and configuring the {_bname} Supreme role..."
         await setup_message.edit(embed=setup_embed)
         
         try:
@@ -132,16 +131,16 @@ class Antinuke(commands.Cog):
           )
           await ctx.guild.me.add_roles(role)
         except discord.Forbidden:
-          setup_embed.description += f"\n{_e('zcross')} | **Uh oh! I don't Have perms to enable antinuke**."
+          setup_embed.description += "\n❌ | **Uh oh! I don't Have perms to enable antinuke**."
           await setup_message.edit(embed=setup_embed)
           return
         except discord.HTTPException as e:
-          setup_embed.description += f"\n{_e('zcross')} | **Uh: HTTPException: {e}\nCheck Guild Audit Logs**."
+          setup_embed.description += f"\n❌ | **Uh: HTTPException: {e}\nCheck Guild Audit Logs**."
           await setup_message.edit(embed=setup_embed)
           return
 
         await asyncio.sleep(1)
-        setup_embed.description += f"\n{_e('ztick')}| Ensuring precise placement of the {_bname} Supreme™ role..."
+        setup_embed.description += f"\n✅| Ensuring precise placement of the {_bname} Supreme™ role..."
         await setup_message.edit(embed=setup_embed)
         try:
           await ctx.guild.edit_role_positions(positions={role: 1})
@@ -150,7 +149,7 @@ class Antinuke(commands.Cog):
           await setup_message.edit(embed=setup_embed)
           return
         except discord.HTTPException as e:
-          setup_embed.description += f"\n{_e('zcross')} | Setup failed: HTTPException: {e}."
+          setup_embed.description += f"\n❌ | Setup failed: HTTPException: {e}."
           await setup_message.edit(embed=setup_embed)
           return
 

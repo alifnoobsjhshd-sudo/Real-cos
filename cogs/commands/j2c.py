@@ -24,7 +24,7 @@ _CTRL_EMOJI: dict[str, tuple[str, str]] = {
     "j2c:limit":    ("ztimer",       "⏳"),
     "j2c:privacy":  ("lock",         "🔒"),
     "j2c:thread":   ("zmsg",         "💬"),
-    "j2c:untrust":  ("zcross",       f"{_e('zcross')}"),
+    "j2c:untrust":  ("zcross",       "❌"),
     "j2c:invite":   ("zplus",        "✉️"),
     "j2c:kick":     ("zban",         "👢"),
     "j2c:region":   ("zyrox_global", "🌍"),
@@ -306,7 +306,7 @@ class JoinToCreate(commands.Cog):
     def create_info_embed(self, guild: discord.Guild) -> discord.Embed:
         """Legacy fallback embed — kept for backward compatibility."""
         embed = discord.Embed(
-            title=f"{_e('zsettings')} J2C System",
+            title="⚙️ J2C System",
             description=(
                 "Join the **➕ Join to Create** voice channel to get your own private VC.\n"
                 "A control panel will appear inside your new channel."
@@ -573,7 +573,7 @@ class ControlPanelView(ui.View):
             )
         await self.cog.update_vc_panel(vc, interaction.guild)
 
-    @ui.button(label="UNTRUST", style=discord.ButtonStyle.secondary, row=1, custom_id="j2c:untrust", emoji=f"{_e('zcross')}")
+    @ui.button(label="UNTRUST", style=discord.ButtonStyle.secondary, row=1, custom_id="j2c:untrust", emoji="❌")
     async def untrust(self, interaction: discord.Interaction, button: ui.Button):
         vc = await self.get_owned_vc(interaction)
         if not vc:

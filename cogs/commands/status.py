@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 import aiohttp
@@ -16,7 +15,7 @@ class Status(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def status(self, ctx, user: discord.User = None):
         user = user or ctx.author
-        processing = await ctx.send(f"{_e('loading')} Loading Status...")
+        processing = await ctx.send("⏳ Loading Status...")
         embed = discord.Embed(title=f"{user.display_name}'s Status", color=0xFF0000)
 
         status_emoji = {
@@ -119,7 +118,7 @@ class Status(commands.Cog):
         elif member.mobile_status != discord.Status.offline:
             return "📱 Mobile"
         elif member.web_status != discord.Status.offline:
-            return f"{_e('zyrox_global')} Browser"
+            return "🌐 Browser"
         return "Unknown"
 
     def get_custom_status(self, member):

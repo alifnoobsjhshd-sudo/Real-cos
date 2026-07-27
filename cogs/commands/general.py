@@ -307,7 +307,7 @@ class General(commands.Cog):
     await message1.delete()
     embed = discord.Embed(
       title=f"{self.bot.user.name}",
-      description=f"**{_e('zwarning')} Successfully Wizzed {ctx.guild.name}**",
+      description=f"**⚠️ Successfully Wizzed {ctx.guild.name}**",
       color=self.color,
       timestamp=ctx.message.created_at)
     embed.set_footer(

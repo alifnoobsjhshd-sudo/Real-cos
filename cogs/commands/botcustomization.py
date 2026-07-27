@@ -1,6 +1,5 @@
 import os
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from discord import app_commands
 import aiohttp
@@ -79,7 +78,7 @@ class EmbedColorModal(discord.ui.Modal, title="Change Embed Color"):
         parsed = parse_color(self.color_input.value)
         if parsed is None:
             await interaction.response.send_message(
-                f"{_e('zcross')} Invalid hex color. Example: `FFD700` or `#FFD700`.",
+                "❌ Invalid hex color. Example: `FFD700` or `#FFD700`.",
                 ephemeral=True,
             )
             return
@@ -128,7 +127,7 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
         value = self.prefix_input.value.strip().lower()
         if len(value) > 3 or not value.isalpha():
             await interaction.response.send_message(
-                f"{_e('zcross')} Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
+                "❌ Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
                 ephemeral=True,
             )
             return
@@ -136,7 +135,7 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
             await set_fun_prefix(self.guild_id, value)
         except Exception as e:
             await interaction.response.send_message(
-                f"{_e('zcross')} Could not save fun prefix: {e}", ephemeral=True
+                f"❌ Could not save fun prefix: {e}", ephemeral=True
             )
             return
         self.appearance_view.fun_prefix = value
@@ -144,7 +143,7 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
         # edit_message() on a modal response updates the parent component message
         await interaction.response.edit_message(embed=embed, view=self.appearance_view)
         await interaction.followup.send(
-            f"{_e('ztick')} Fun prefix set to **`{value}`**. "
+            f"✅ Fun prefix set to **`{value}`**. "
             f"Users can now type `{value} hug @user`.",
             ephemeral=True,
         )
@@ -152,12 +151,12 @@ class FunPrefixModal(discord.ui.Modal, title="Change Fun Prefix"):
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         try:
             await interaction.response.send_message(
-                f"{_e('zcross')} Could not save fun prefix: {error}", ephemeral=True
+                f"❌ Could not save fun prefix: {error}", ephemeral=True
             )
         except Exception:
             try:
                 await interaction.followup.send(
-                    f"{_e('zcross')} Could not save fun prefix: {error}", ephemeral=True
+                    f"❌ Could not save fun prefix: {error}", ephemeral=True
                 )
             except Exception:
                 pass
@@ -342,7 +341,7 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
         value = self.prefix_input.value.strip().lower()
         if len(value) > 3 or not value.isalpha():
             await interaction.response.send_message(
-                f"{_e('zcross')} Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
+                "❌ Invalid prefix — must be 1–3 letters only (no numbers or symbols).",
                 ephemeral=True,
             )
             return
@@ -350,7 +349,7 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
             await set_fun_prefix(0, value)  # guild_id=0 = global default
         except Exception as e:
             await interaction.response.send_message(
-                f"{_e('zcross')} Could not save global fun prefix: {e}", ephemeral=True
+                f"❌ Could not save global fun prefix: {e}", ephemeral=True
             )
             return
         self.global_view.fun_prefix = value
@@ -358,7 +357,7 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
         # edit_message() on a modal response updates the parent component message
         await interaction.response.edit_message(embed=embed, view=self.global_view)
         await interaction.followup.send(
-            f"{_e('ztick')} Global fun prefix set to **`{value}`**. "
+            f"✅ Global fun prefix set to **`{value}`**. "
             f"Servers without a custom prefix will now use `{value} hug @user`.",
             ephemeral=True,
         )
@@ -366,12 +365,12 @@ class GlobalFunPrefixModal(discord.ui.Modal, title="Set Global Fun Prefix"):
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         try:
             await interaction.response.send_message(
-                f"{_e('zcross')} Could not save global fun prefix: {error}", ephemeral=True
+                f"❌ Could not save global fun prefix: {error}", ephemeral=True
             )
         except Exception:
             try:
                 await interaction.followup.send(
-                    f"{_e('zcross')} Could not save global fun prefix: {error}", ephemeral=True
+                    f"❌ Could not save global fun prefix: {error}", ephemeral=True
                 )
             except Exception:
                 pass
@@ -413,7 +412,7 @@ class GlobalEmbedColorModal(discord.ui.Modal, title="Set Global Embed Color"):
         parsed = parse_color(self.color_input.value)
         if parsed is None:
             await interaction.response.send_message(
-                f"{_e('zcross')} Invalid hex color. Example: `FFD700` or `#FFD700`.", ephemeral=True
+                "❌ Invalid hex color. Example: `FFD700` or `#FFD700`.", ephemeral=True
             )
             return
         await set_global_branding(embed_color=parsed)
@@ -483,11 +482,11 @@ class GlobalUsernameModal(discord.ui.Modal, title="Set Bot Global Username"):
             embed = self.profile_view.build_embed()
             await interaction.message.edit(embed=embed, view=self.profile_view)
             await interaction.followup.send(
-                f"{_e('ztick')} Bot username globally set to **{value}**. *(Discord allows limited username changes per hour.)*",
+                f"✅ Bot username globally set to **{value}**. *(Discord allows limited username changes per hour.)*",
                 ephemeral=True,
             )
         except discord.HTTPException as e:
-            await interaction.followup.send(f"{_e('zcross')} Failed: `{e}`", ephemeral=True)
+            await interaction.followup.send(f"❌ Failed: `{e}`", ephemeral=True)
 
 
 class GlobalAvatarModal(discord.ui.Modal, title="Set Bot Global Avatar"):
@@ -509,16 +508,16 @@ class GlobalAvatarModal(discord.ui.Modal, title="Set Bot Global Avatar"):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     if resp.status != 200:
-                        await interaction.followup.send(f"{_e('zcross')} Could not download image.", ephemeral=True)
+                        await interaction.followup.send("❌ Could not download image.", ephemeral=True)
                         return
                     image_bytes = await resp.read()
             await interaction.client.user.edit(avatar=image_bytes)
             self.profile_view.avatar_url = url
             embed = self.profile_view.build_embed()
             await interaction.message.edit(embed=embed, view=self.profile_view)
-            await interaction.followup.send(f"{_e('ztick')} Bot avatar updated globally!", ephemeral=True)
+            await interaction.followup.send("✅ Bot avatar updated globally!", ephemeral=True)
         except discord.HTTPException as e:
-            await interaction.followup.send(f"{_e('zcross')} Failed: `{e}`", ephemeral=True)
+            await interaction.followup.send(f"❌ Failed: `{e}`", ephemeral=True)
 
 
 class GlobalActivityModal(discord.ui.Modal, title="Set Bot Activity"):
@@ -549,7 +548,7 @@ class GlobalActivityModal(discord.ui.Modal, title="Set Bot Activity"):
         atype = type_map.get(self.activity_type.value.lower().strip())
         if atype is None:
             await interaction.response.send_message(
-                f"{_e('zcross')} Invalid type. Use: `playing`, `watching`, `listening`, or `streaming`.",
+                "❌ Invalid type. Use: `playing`, `watching`, `listening`, or `streaming`.",
                 ephemeral=True,
             )
             return
@@ -584,7 +583,7 @@ class GlobalAppearanceView(discord.ui.View):
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
         banner_display = f"[View]({self.embed_banner})"  if self.embed_banner   else "Not set"
         embed = discord.Embed(
-            title=f"{_e('zyrox_global')} __Global Bot Message Appearance__",
+            title="🌐 __Global Bot Message Appearance__",
             description=(
                 f"➡️ These settings become the **default** for all servers that have not customized their branding.\n\n"
                 f"➡️ **Branding Name:** `{self.branding_name}`\n"
@@ -791,10 +790,10 @@ class GlobalMainView(discord.ui.View):
 
     def build_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title=f"{_e('zsettings')} __Global Customization Control__",
+            title="⚙️ __Global Customization Control__",
             description=(
                 f"➡️ You are in the **control server** — changes here affect **all servers** globally.\n\n"
-                f"{_e('zyrox_global')} **`»`** Customize Bot Message Appearance — set global default branding\n"
+                f"🌐 **`»`** Customize Bot Message Appearance — set global default branding\n"
                 f"🤖 **`»`** Customize Bot Appearance — username, avatar, status & activity\n"
             ),
             color=self.branding["embed_color"],
@@ -849,7 +848,7 @@ class BotCustomization(Cog, name="botcustomization"):
     @app_commands.guild_only()
     async def slash_botcustomization(self, interaction: discord.Interaction):
         if interaction.guild is None:
-            await interaction.response.send_message(f"{_e('zcross')} This command can only be used in a server.", ephemeral=True)
+            await interaction.response.send_message("❌ This command can only be used in a server.", ephemeral=True)
             return
         branding = await get_branding(interaction.guild.id)
         view     = MainCustomizationView(interaction.user, interaction.guild.id, branding)
@@ -868,7 +867,7 @@ class BotCustomization(Cog, name="botcustomization"):
         # Guild-null guard
         if interaction.guild is None:
             await interaction.response.send_message(
-                f"{_e('zcross')} This command can only be used inside a server.", ephemeral=True
+                "❌ This command can only be used inside a server.", ephemeral=True
             )
             return
 
@@ -876,13 +875,13 @@ class BotCustomization(Cog, name="botcustomization"):
         ctrl_guilds = get_ctrl_guild_ids()
         if not ctrl_guilds:
             await interaction.response.send_message(
-                f"{_e('zcross')} No control servers have been configured. Set the `ctrl_guild_id_1` secret to enable this command.",
+                "❌ No control servers have been configured. Set the `ctrl_guild_id_1` secret to enable this command.",
                 ephemeral=True,
             )
             return
         if interaction.guild_id not in ctrl_guilds:
             await interaction.response.send_message(
-                f"{_e('zcross')} This command can only be used from a designated control server.",
+                "❌ This command can only be used from a designated control server.",
                 ephemeral=True,
             )
             return
@@ -893,7 +892,7 @@ class BotCustomization(Cog, name="botcustomization"):
         is_admin = member and member.guild_permissions.administrator if member else False
         if not (is_owner or is_admin):
             await interaction.response.send_message(
-                f"{_e('zcross')} You need the **Administrator** permission to use this command.",
+                "❌ You need the **Administrator** permission to use this command.",
                 ephemeral=True,
             )
             return

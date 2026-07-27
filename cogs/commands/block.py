@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 from utils import Paginator, DescriptionEmbedPaginator
@@ -58,7 +57,7 @@ class Block(commands.Cog):
         await db.execute('INSERT INTO user_blacklist (user_id) VALUES (?)', (user.id,))
         await db.commit()
         embed = discord.Embed(
-          title=f"{_e('ztick')} User Blacklisted",
+          title="✅ User Blacklisted",
           description=f"{user.mention} has been added to the blacklist.",
           color=0xFF0000
         )
@@ -71,7 +70,7 @@ class Block(commands.Cog):
       cursor = await db.execute('SELECT user_id FROM user_blacklist WHERE user_id = ?', (user.id,))
       if not await cursor.fetchone():
         embed = discord.Embed(
-          title=f"{_e('zcross')} User Not Blacklisted",
+          title="❌ User Not Blacklisted",
           description=f"{user.mention} is not in the blacklist.",
           color=0xFF0000
         )
@@ -80,7 +79,7 @@ class Block(commands.Cog):
         await db.execute('DELETE FROM user_blacklist WHERE user_id = ?', (user.id,))
         await db.commit()
         embed = discord.Embed(
-          title=f"{_e('ztick')} User Unblacklisted",
+          title="✅ User Unblacklisted",
           description=f"{user.mention} has been removed from the blacklist.",
           color=0xFF0000
         )
@@ -94,7 +93,7 @@ class Block(commands.Cog):
       rows = await cursor.fetchall()
       if not rows:
         embed = discord.Embed(
-          title=f"{_e('zcross')} No Blacklisted Users",
+          title="❌ No Blacklisted Users",
           description="There are no users in the blacklist.",
           color=0xFF0000
         )
@@ -138,7 +137,7 @@ class Block(commands.Cog):
       cursor = await db.execute('SELECT guild_id FROM guild_blacklist WHERE guild_id = ?', (guild_id,))
       if await cursor.fetchone():
         embed = discord.Embed(
-          title=f"{_e('zcross')} Guild Already Blacklisted",
+          title="❌ Guild Already Blacklisted",
           description=f"Guild with ID `{guild_id}` is already blacklisted.",
           color=0xFF0000
         )
@@ -147,7 +146,7 @@ class Block(commands.Cog):
         await db.execute('INSERT INTO guild_blacklist (guild_id) VALUES (?)', (guild_id,))
         await db.commit()
         embed = discord.Embed(
-          title=f"{_e('ztick')} Guild Blacklisted",
+          title="✅ Guild Blacklisted",
           description=f"Guild with ID `{guild_id}` has been added to the blacklist.",
           color=0xFF0000
         )
@@ -160,7 +159,7 @@ class Block(commands.Cog):
       cursor = await db.execute('SELECT guild_id FROM guild_blacklist WHERE guild_id = ?', (guild_id,))
       if not await cursor.fetchone():
         embed = discord.Embed(
-          title=f"{_e('zcross')} Guild Not Blacklisted",
+          title="❌ Guild Not Blacklisted",
           description=f"Guild with ID `{guild_id}` is not in the blacklist.",
           color=0xFF0000
         )
@@ -169,7 +168,7 @@ class Block(commands.Cog):
         await db.execute('DELETE FROM guild_blacklist WHERE guild_id = ?', (guild_id,))
         await db.commit()
         embed = discord.Embed(
-          title=f"{_e('ztick')} Guild Unblacklisted",
+          title="✅ Guild Unblacklisted",
           description=f"Guild with ID `{guild_id}` has been removed from the blacklist.",
           color=0xFF0000
         )
@@ -184,7 +183,7 @@ class Block(commands.Cog):
       rows = await cursor.fetchall()
       if not rows:
         embed = discord.Embed(
-          title=f"{_e('zcross')} No Blacklisted Guilds",
+          title="❌ No Blacklisted Guilds",
           description="There are no guilds in the blacklist.",
           color=0xFF0000
         )

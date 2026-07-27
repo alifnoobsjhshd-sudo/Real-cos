@@ -399,7 +399,7 @@ class Whitelist(commands.Cog):
 
         await self.db.execute("DELETE FROM whitelisted_users WHERE guild_id = ?", (ctx.guild.id,))
         await self.db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success",
+        embed = discord.Embed(title="✅> Success",
             color=0xFF0000,
             description=f"Removed all whitelisted members from {ctx.guild.name}"
         )

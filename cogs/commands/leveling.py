@@ -268,7 +268,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
         except Exception as e :
             logger .error (f"Critical error in LevelConfigModal: {e}")
             await interaction .followup .send (
-            f"{_e('zcross')} An unexpected error occurred: {str(e)}",
+            f"❌ An unexpected error occurred: {str(e)}",
             ephemeral =True 
             )
 
@@ -1889,7 +1889,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title =f"{_e('ztick')} Embed Color Updated",
+            title ="✅ Embed Color Updated",
             description =f"Embed color has been set to **{color}**",
             color =color_int ,
             timestamp =datetime .now (timezone .utc )
@@ -1924,7 +1924,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title =f"{_e('ztick')} Thumbnail Setting Updated",
+            title ="✅ Thumbnail Setting Updated",
             description =f"User thumbnails in level-up messages: **{'Enabled' if enabled else 'Disabled'}**",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -1956,7 +1956,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title =f"{_e('ztick')} Cooldown Updated",
+            title ="✅ Cooldown Updated",
             description =f"Message cooldown has been set to **{seconds} seconds**",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -2901,7 +2901,7 @@ class Leveling (commands .Cog ):
 
                 if result :
                     if result [0 ]==1 :
-                        await ctx .send (f"{_e('zwarning')} Leveling system is already enabled!")
+                        await ctx .send ("⚠️ Leveling system is already enabled!")
                         return 
 
                     await db .execute ("UPDATE leveling_settings SET enabled = 1 WHERE guild_id = ?",(ctx .guild .id ,))
@@ -2912,7 +2912,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title =f"{_e('ztick')} Leveling System Enabled",
+            title ="✅ Leveling System Enabled",
             description ="The leveling system has been successfully enabled for this server!\n\n"
             "**Next Steps:**\n"
             f"• Use `{ctx.prefix}level settings` to configure XP rates and messages\n"
@@ -2937,18 +2937,18 @@ class Leveling (commands .Cog ):
                     result =await cursor .fetchone ()
 
                 if not result :
-                    await ctx .send (f"{_e('zwarning')} Leveling system is not configured for this server!")
+                    await ctx .send ("⚠️ Leveling system is not configured for this server!")
                     return 
 
                 if result [0 ]==0 :
-                    await ctx .send (f"{_e('zwarning')} Leveling system is already disabled!")
+                    await ctx .send ("⚠️ Leveling system is already disabled!")
                     return 
 
                 await db .execute ("UPDATE leveling_settings SET enabled = 0 WHERE guild_id = ?",(ctx .guild .id ,))
                 await db .commit ()
 
             embed =discord .Embed (
-            title =f"{_e('zcross')} Leveling System Disabled",
+            title ="❌ Leveling System Disabled",
             description ="The leveling system has been disabled for this server.\n\n"
             "**What this means:**\n"
             "• Users will no longer gain XP from messages\n"
@@ -3199,7 +3199,7 @@ class Leveling (commands .Cog ):
                     await db.execute("INSERT INTO leveling_settings (guild_id, level_image) VALUES (?, ?)", (ctx.guild.id, url))
                 await db.commit()
             embed = discord.Embed(
-                title=f"{_e('ztick')} Level-Up Image Set",
+                title="✅ Level-Up Image Set",
                 description=f"Level-up embeds will now show: [View Image]({url})",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3217,7 +3217,7 @@ class Leveling (commands .Cog ):
                 await db.execute("UPDATE leveling_settings SET level_image = NULL WHERE guild_id = ?", (ctx.guild.id,))
                 await db.commit()
             embed = discord.Embed(
-                title=f"{_e('ztick')} Level-Up Image Cleared",
+                title="✅ Level-Up Image Cleared",
                 description="The custom level-up image has been removed.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3254,7 +3254,7 @@ class Leveling (commands .Cog ):
                     )
                 await db.commit()
             embed = discord.Embed(
-                title=f"{_e('ztick')} XP Range Updated",
+                title="✅ XP Range Updated",
                 description=f"Users will now earn between **{min_xp}** and **{max_xp}** XP per message.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3281,7 +3281,7 @@ class Leveling (commands .Cog ):
                 embed_color = hex_to_int(embed_color)
 
             embed = discord.Embed(
-                title=f"{_e('ztada')} Level Up! *(Preview)*",
+                title="🎉 Level Up! *(Preview)*",
                 description=level_message,
                 color=embed_color,
                 timestamp=datetime.now(timezone.utc)
@@ -3320,7 +3320,7 @@ class Leveling (commands .Cog ):
                 )
                 await db.commit()
             embed = discord.Embed(
-                title=f"{_e('ztick')} User XP Reset",
+                title="✅ User XP Reset",
                 description=f"Successfully reset all XP and level data for {member.mention}.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3335,7 +3335,7 @@ class Leveling (commands .Cog ):
         """Reset every user's XP in this server. This cannot be undone."""
         try:
             confirm_embed = discord.Embed(
-                title=f"{_e('zwarning')} Confirm Reset",
+                title="⚠️ Confirm Reset",
                 description=(
                     "Are you sure you want to **reset ALL users' XP** in this server?\n\n"
                     "This **cannot be undone**. Reply with `confirm` within 30 seconds to proceed."
@@ -3359,7 +3359,7 @@ class Leveling (commands .Cog ):
                 await db.commit()
 
             embed = discord.Embed(
-                title=f"{_e('ztick')} All XP Reset",
+                title="✅ All XP Reset",
                 description="All user XP and level data for this server has been cleared.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3388,7 +3388,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, channel.id)
                 )
                 await db.commit()
-            await ctx.send(f"{_e('ztick')} {channel.mention} has been removed from the leveling blacklist.")
+            await ctx.send(f"✅ {channel.mention} has been removed from the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error unblacklisting channel: {e}")
 
@@ -3403,7 +3403,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, role.id)
                 )
                 await db.commit()
-            await ctx.send(f"{_e('ztick')} {role.mention} has been removed from the leveling blacklist.")
+            await ctx.send(f"✅ {role.mention} has been removed from the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error unblacklisting role: {e}")
 
@@ -3420,7 +3420,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, channel.id)
                 )
                 await db.commit()
-            await ctx.send(f"{_e('ztick')} {channel.mention} has been added to the leveling blacklist.")
+            await ctx.send(f"✅ {channel.mention} has been added to the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error blacklisting channel: {e}")
 
@@ -3435,7 +3435,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, role.id)
                 )
                 await db.commit()
-            await ctx.send(f"{_e('ztick')} {role.mention} has been added to the leveling blacklist.")
+            await ctx.send(f"✅ {role.mention} has been added to the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error blacklisting role: {e}")
 

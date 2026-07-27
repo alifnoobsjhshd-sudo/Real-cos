@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from discord.ui import Button, View
 from discord import Member
@@ -545,10 +544,10 @@ class Global(commands.Cog):
             self.client.frozen_nicknames = {}
 
         if user.id not in self.client.frozen_nicknames:
-            return await ctx.send(f"{_e('zcross')} | {user.name}'s nickname is not being frozen.")
+            return await ctx.send(f"❌ | {user.name}'s nickname is not being frozen.")
 
         del self.client.frozen_nicknames[user.id]
-        await ctx.send(f"{_e('ztick')} | Nickname freezing stopped for {user.name}.")
+        await ctx.send(f"✅ | Nickname freezing stopped for {user.name}.")
 
 
     @commands.command(name="freezenick", help="Freezes a member's nickname in the current server.")
@@ -593,8 +592,8 @@ class Global(commands.Cog):
             self.local_frozen_nicks[guild_id].pop(member.id, None)
             if not self.local_frozen_nicks[guild_id]:
                 del self.local_frozen_nicks[guild_id]
-            await ctx.send(f"{_e('ztick')} | Stopped freezing {member.mention}'s nickname.")
+            await ctx.send(f"✅ | Stopped freezing {member.mention}'s nickname.")
         else:
-            await ctx.send(f"{_e('zcross')} | {member.mention}'s nickname is not currently being frozen.")
+            await ctx.send(f"❌ | {member.mention}'s nickname is not currently being frozen.")
 
 

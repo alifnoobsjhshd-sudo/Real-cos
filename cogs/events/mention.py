@@ -1,6 +1,5 @@
 from utils import getConfig
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from utils.Tools import get_ignore_data
 import aiosqlite
@@ -60,7 +59,7 @@ def build_serverinfo_embed(guild: discord.Guild, user: discord.Member) -> discor
     )
     if guild.features:
         features = "\n".join(
-            [f"{_e('ztick')}: {f[:1].upper() + f[1:].lower().replace('_', ' ')}"
+            [f"✅: {f[:1].upper() + f[1:].lower().replace('_', ' ')}"
              for f in guild.features]
         )
         embed.add_field(

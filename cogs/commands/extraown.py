@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from discord.ui import View, Button
 import aiosqlite
@@ -31,7 +30,7 @@ class Extraowner(commands.Cog):
 
         if ctx.guild.member_count < 2:
             embed = discord.Embed(
-                description=f"{_e('zcross')} | Your Server Doesn't Meet My 30 Member Criteria",
+                description="❌ | Your Server Doesn't Meet My 30 Member Criteria",
                 color=0xFF0000
             )
             await ctx.send(embed=embed)
@@ -85,13 +84,13 @@ class Extraowner(commands.Cog):
             elif view.value:
                 await self.db.execute('INSERT OR REPLACE INTO extraowners (guild_id, owner_id) VALUES (?, ?)', (guild_id, user.id))
                 await self.db.commit()
-                embed = discord.Embed(title=f"{_e('ztick')} Success",
+                embed = discord.Embed(title="✅ Success",
                     description=f"Added {user.mention} As Extraowner",
                     color=0xFF0000
                 )
                 await message.edit(embed=embed, view=None)
             else:
-                await message.edit(content=f"{_e('zcross')} Action cancelled.", embed=None, view=None)
+                await message.edit(content="❌ Action cancelled.", embed=None, view=None)
 
         
         elif option.lower() == 'reset':
@@ -99,7 +98,7 @@ class Extraowner(commands.Cog):
                 row = await cursor.fetchone()
 
             if not row:
-                embed = discord.Embed(title=f"{_e('zcross')} Error",
+                embed = discord.Embed(title="❌ Error",
                     description="No extra owner has been designated for this guild.",
                     color=0xFF0000
                 )
@@ -120,20 +119,20 @@ class Extraowner(commands.Cog):
                 elif view.value:
                     await self.db.execute('DELETE FROM extraowners WHERE guild_id = ?', (guild_id,))
                     await self.db.commit()
-                    embed = discord.Embed(title=f"{_e('ztick')} Success",
+                    embed = discord.Embed(title="✅ Success",
                         description="Disabled Extraowner Configuration!",
                         color=0xFF0000
                     )
                     await message.edit(embed=embed, view=None)
                 else:
-                    await message.edit(content=f"{_e('ztick')} Action canceled.", embed=None, view=None)
+                    await message.edit(content="✅ Action canceled.", embed=None, view=None)
 
         elif option.lower() == 'view':
             async with self.db.execute('SELECT owner_id FROM extraowners WHERE guild_id = ?', (guild_id,)) as cursor:
                 row = await cursor.fetchone()
 
             if not row:
-                embed = discord.Embed(title=f"{_e('zcross')} Error",
+                embed = discord.Embed(title="❌ Error",
                     description="No extra owner is currently assigned.",
                     color=0xFF0000
                 )

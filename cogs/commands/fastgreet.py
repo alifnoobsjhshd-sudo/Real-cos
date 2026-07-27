@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 import sqlite3
 import asyncio
@@ -31,7 +30,7 @@ class FastGreet(commands.Cog):
                 INSERT OR IGNORE INTO greet_channels (guild_id, channel_id)
                 VALUES (?, ?)
             """, (ctx.guild.id, channel.id))
-        await ctx.send(f"{_e('ztick')} {channel.mention} added as a greet channel.")
+        await ctx.send(f"✅ {channel.mention} added as a greet channel.")
 
     @commands.command(name="fastgreet_remove")
     @commands.has_permissions(administrator=True)
@@ -40,7 +39,7 @@ class FastGreet(commands.Cog):
             conn.execute("""
                 DELETE FROM greet_channels WHERE guild_id = ? AND channel_id = ?
             """, (ctx.guild.id, channel.id))
-        await ctx.send(f"{_e('zcross')} {channel.mention} removed from greet channels.")
+        await ctx.send(f"❌ {channel.mention} removed from greet channels.")
 
     @commands.command(name="fastgreet_list")
     async def list_greet_channels(self, ctx):
@@ -51,7 +50,7 @@ class FastGreet(commands.Cog):
             rows = cursor.fetchall()
 
         if not rows:
-            await ctx.send(f"{_e('zwarning')} No greet channels configured.")
+            await ctx.send("⚠️ No greet channels configured.")
             return
 
         channels = [f"<#{cid[0]}>" for cid in rows]

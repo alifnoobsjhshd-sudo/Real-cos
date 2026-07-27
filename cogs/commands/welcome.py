@@ -184,7 +184,7 @@ class Welcomer(commands.Cog):
                 return
             if message_content:
                 await self._save_welcome_data(ctx.guild.id, "simple", message_content[0])
-                await interaction.response.send_message(f"{_e('ztick')}> Welcome message setup completed!")
+                await interaction.response.send_message("✅> Welcome message setup completed!")
                 for item in setup_view.children:
                     item.disabled = True
                 await preview_message.edit(view=setup_view)
@@ -384,7 +384,7 @@ class Welcomer(commands.Cog):
                 return
 
             await self._save_welcome_data(ctx.guild.id, "embed", embed_data["message"] or "", embed_data)
-            await interaction.response.send_message(f"{_e('ztick')}> Embed welcome message setup completed!")
+            await interaction.response.send_message("✅> Embed welcome message setup completed!")
 
             for item in setup_view.children:
                 item.disabled = True
@@ -445,7 +445,7 @@ class Welcomer(commands.Cog):
                 await db.commit()
 
             embed.color = discord.Color(0xFF0000)
-            embed.title = f"{_e('ztick')}> Success"
+            embed.title = "✅> Success"
             embed.description = "Welcome message configuration has been successfully reset."
             await interaction.message.edit(embed=embed, view=None)
 
@@ -516,7 +516,7 @@ class Welcomer(commands.Cog):
 
                 embed.description = f"Current Welcome Channel: {selected_channel.mention}"
                 await interaction.response.edit_message(embed=embed, view=None)
-                await ctx.send(f"{_e('ztick')}> Welcome channel has been set to {selected_channel.mention}")
+                await ctx.send(f"✅> Welcome channel has been set to {selected_channel.mention}")
 
             select_menu.callback = select_callback
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 from core import *
 from utils.Tools import *
@@ -53,7 +52,7 @@ class Ignore(commands.Cog):
       command_name_normalized = command_name.strip().lower()
       command = self.bot.get_command(command_name_normalized)
       if not command:
-          embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"`{command_name}` is not a valid command.", color=self.color)
+          embed = discord.Embed(title="❌ Error", description=f"`{command_name}` is not a valid command.", color=self.color)
           await ctx.reply(embed=embed, mention_author=False)
           return
       async with aiosqlite.connect(self.db_path) as db:
@@ -71,7 +70,7 @@ class Ignore(commands.Cog):
           else:
               await db.execute("INSERT INTO ignored_commands (guild_id, command_name) VALUES (?, ?)", (ctx.guild.id, command_name_normalized))
               await db.commit()
-              embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully added `{command_name}` to the ignore commands list.", color=self.color)
+              embed = discord.Embed(title="✅ Success", description=f"Successfully added `{command_name}` to the ignore commands list.", color=self.color)
               await ctx.reply(embed=embed)
 
   @_command.command(name="remove", help="Removes a command from the ignore list.")
@@ -83,12 +82,12 @@ class Ignore(commands.Cog):
           cursor = await db.execute("SELECT command_name FROM ignored_commands WHERE guild_id = ? AND command_name = ?", (ctx.guild.id, command_name_normalized))
           result = await cursor.fetchone()
           if not result:
-              embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"`{command_name}` is not in the ignore commands list.", color=self.color)
+              embed = discord.Embed(title="❌ Error", description=f"`{command_name}` is not in the ignore commands list.", color=self.color)
               await ctx.reply(embed=embed)
           else:
               await db.execute("DELETE FROM ignored_commands WHERE guild_id = ? AND command_name = ?", (ctx.guild.id, command_name_normalized))
               await db.commit()
-              embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully removed `{command_name}` from the ignore commands list.", color=self.color)
+              embed = discord.Embed(title="✅ Success", description=f"Successfully removed `{command_name}` from the ignore commands list.", color=self.color)
               await ctx.reply(embed=embed)
 
   @_command.command(name="show", help="Displays the list of ignored commands.")
@@ -130,7 +129,7 @@ class Ignore(commands.Cog):
       count = await cursor.fetchone()
 
       if count[0] >= 30:
-        embed = discord.Embed(title=f"{_e('zwarning')} Access Denied", description="You can only add up to 30 channels to the ignore list.", color=self.color)
+        embed = discord.Embed(title="⚠️ Access Denied", description="You can only add up to 30 channels to the ignore list.", color=self.color)
         await ctx.reply(embed=embed)
         return
 
@@ -138,12 +137,12 @@ class Ignore(commands.Cog):
       result = await cursor.fetchone()
 
       if result:
-        embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"{channel.mention} is already in the ignore channels list.", color=self.color)
+        embed = discord.Embed(title="❌ Error", description=f"{channel.mention} is already in the ignore channels list.", color=self.color)
         await ctx.reply(embed=embed, mention_author=False)
       else:
         await db.execute("INSERT INTO ignored_channels (guild_id, channel_id) VALUES (?, ?)", (ctx.guild.id, channel.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully added {channel.mention} to the ignore channels list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully added {channel.mention} to the ignore channels list.", color=self.color)
         await ctx.reply(embed=embed)
 
   @_channel.command(name="remove", help="Removes a channel from the ignore list.")
@@ -156,12 +155,12 @@ class Ignore(commands.Cog):
       result = await cursor.fetchone()
 
       if not result:
-        embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"{channel.mention} is not in the ignore channels list.", color=self.color)
+        embed = discord.Embed(title="❌ Error", description=f"{channel.mention} is not in the ignore channels list.", color=self.color)
         await ctx.reply(embed=embed)
       else:
         await db.execute("DELETE FROM ignored_channels WHERE guild_id = ? AND channel_id = ?", (ctx.guild.id, channel.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully removed {channel.mention} from the ignore channels list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully removed {channel.mention} from the ignore channels list.", color=self.color)
         await ctx.reply(embed=embed)
 
   @_channel.command(name="show", help="Displays the list of ignored channels.")
@@ -204,7 +203,7 @@ class Ignore(commands.Cog):
       count = await cursor.fetchone()
 
       if count[0] >= 30:
-        embed = discord.Embed(title=f"{_e('zwarning')} Access Denied", description="You can only add up to 30 users to the ignore list.", color=self.color)
+        embed = discord.Embed(title="⚠️ Access Denied", description="You can only add up to 30 users to the ignore list.", color=self.color)
         await ctx.reply(embed=embed)
         return
 
@@ -212,12 +211,12 @@ class Ignore(commands.Cog):
       result = await cursor.fetchone()
 
       if result:
-        embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"{user.mention} is already in the ignore users list.", color=self.color)
+        embed = discord.Embed(title="❌ Error", description=f"{user.mention} is already in the ignore users list.", color=self.color)
         await ctx.reply(embed=embed, mention_author=False)
       else:
         await db.execute("INSERT INTO ignored_users (guild_id, user_id) VALUES (?, ?)", (ctx.guild.id, user.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully added {user.mention} to the ignore users list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully added {user.mention} to the ignore users list.", color=self.color)
         await ctx.reply(embed=embed)
 
   @_user.command(name="remove", help="Removes a user from the ignore list.")
@@ -230,12 +229,12 @@ class Ignore(commands.Cog):
       result = await cursor.fetchone()
 
       if not result:
-        embed = discord.Embed(title=f"{_e('zcross')} Error", description=f"{user.mention} is not in the ignore users list.", color=self.color)
+        embed = discord.Embed(title="❌ Error", description=f"{user.mention} is not in the ignore users list.", color=self.color)
         await ctx.reply(embed=embed)
       else:
         await db.execute("DELETE FROM ignored_users WHERE guild_id = ? AND user_id = ?", (ctx.guild.id, user.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully removed {user.mention} from the ignore users list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully removed {user.mention} from the ignore users list.", color=self.color)
         await ctx.send(embed=embed)
 
   @_user.command(name="show", help="Displays the list of ignored users.")
@@ -285,12 +284,12 @@ class Ignore(commands.Cog):
       result = await cursor.fetchone()
 
       if result:
-        embed = discord.Embed(title=f"{_e('zcross')}Error", description=f"{user.mention} is already in the bypass users list.", color=self.color)
+        embed = discord.Embed(title="❌Error", description=f"{user.mention} is already in the bypass users list.", color=self.color)
         await ctx.reply(embed=embed, mention_author=False)
       else:
         await db.execute("INSERT INTO bypassed_users (guild_id, user_id) VALUES (?, ?)", (ctx.guild.id, user.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully added {user.mention} to the bypass users list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully added {user.mention} to the bypass users list.", color=self.color)
         await ctx.reply(embed=embed)
 
   @_bypass.command(name="remove", help="Removes a user from the bypass list.")
@@ -308,7 +307,7 @@ class Ignore(commands.Cog):
       else:
         await db.execute("DELETE FROM bypassed_users WHERE guild_id = ? AND user_id = ?", (ctx.guild.id, user.id))
         await db.commit()
-        embed = discord.Embed(title=f"{_e('ztick')} Success", description=f"Successfully removed {user.mention} from the bypass users list.", color=self.color)
+        embed = discord.Embed(title="✅ Success", description=f"Successfully removed {user.mention} from the bypass users list.", color=self.color)
         await ctx.reply(embed=embed)
 
   @_bypass.command(name="show", aliases=["list"], help="Displays the list of bypassed users.")

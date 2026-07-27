@@ -19,7 +19,6 @@ Blocked keywords (respond with 'I can't show that'): sex, fuck
 """
 
 import discord
-from utils.emojis import e as _e
 from discord import app_commands
 from discord.ext import commands
 import aiohttp
@@ -446,7 +445,7 @@ class Fun(commands.Cog):
         # Validate action (autocomplete filters, but manual entry is possible)
         if action not in KEYWORDS:
             await interaction.response.send_message(
-                f"{_e('zcross')} Unknown action **{discord.utils.escape_markdown(action)}**. "
+                f"❌ Unknown action **{discord.utils.escape_markdown(action)}**. "
                 "Start typing in the `action` field to see all options.",
                 ephemeral=True,
             )
@@ -454,13 +453,13 @@ class Fun(commands.Cog):
 
         if user.bot:
             await interaction.response.send_message(
-                f"{_e('zcross')} {action} a real human dude!", ephemeral=True
+                f"❌ {action} a real human dude!", ephemeral=True
             )
             return
 
         if user.id == interaction.user.id:
             await interaction.response.send_message(
-                f"{_e('zcross')} lol you can't {action} yourself!", ephemeral=True
+                f"❌ lol you can't {action} yourself!", ephemeral=True
             )
             return
 
@@ -474,7 +473,7 @@ class Fun(commands.Cog):
             logger.error("[Fun] Error sending slash reaction: %s", exc, exc_info=True)
             try:
                 await interaction.followup.send(
-                    f"{_e('zcross')} Something went wrong sending the reaction.", ephemeral=True
+                    "❌ Something went wrong sending the reaction.", ephemeral=True
                 )
             except Exception:
                 pass
@@ -543,13 +542,13 @@ class Fun(commands.Cog):
                 if game_name not in AVAILABLE_GAMES:
                     games_list = ", ".join(f"`{g}`" for g in AVAILABLE_GAMES)
                     await message.channel.send(
-                        f"{_e('zcross')} No game called `{game_name}`.\n"
+                        f"❌ No game called `{game_name}`.\n"
                         f"🎮 **Available:** {games_list}"
                     )
                     return
                 game_cmd = self.bot.get_command(game_name)
                 if game_cmd is None:
-                    await message.channel.send(f"{_e('zcross')} Game `{game_name}` is not available right now.")
+                    await message.channel.send(f"❌ Game `{game_name}` is not available right now.")
                     return
                 ctx = await self.bot.get_context(message)
                 mentions = [m for m in message.mentions if not m.bot and m.id != message.author.id]
@@ -562,7 +561,7 @@ class Fun(commands.Cog):
                     else:
                         await ctx.invoke(game_cmd)
                 except Exception as exc:
-                    await message.channel.send(f"{_e('zcross')} Could not start `{game_name}`: {exc}")
+                    await message.channel.send(f"❌ Could not start `{game_name}`: {exc}")
                 return
 
             # Blocked keywords — reply and stop

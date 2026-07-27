@@ -282,7 +282,7 @@ class Media(commands.Cog):
                     embed = discord.Embed(
                         title="You Have Been Blacklisted",
                         description=(
-                            f"{_e('zwarning')} You are blacklisted from using my commands due to spamming in the media channel. "
+                            "⚠️ You are blacklisted from using my commands due to spamming in the media channel. "
                             "If you believe this is a mistake, please reach out to the support server with proof."
                         ),
                         color=0xFF0000

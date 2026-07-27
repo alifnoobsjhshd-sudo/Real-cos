@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from core import zyrox, Cog
 from discord.ext import commands
 import aiosqlite
@@ -27,7 +26,7 @@ class AutoBlacklist(Cog):
                     ''', (guild_id, timestamp))
                     if channel:
                         embed = discord.Embed(
-                            title=f"{_e('zwarning')} Guild Blacklisted",
+                            title="⚠️ Guild Blacklisted",
                             description=(
                                 f"This guild has been blacklisted due to spamming or automation. "
                                 f"If you believe this is a mistake, please contact a server administrator with any proof if possible."
@@ -85,7 +84,7 @@ class AutoBlacklist(Cog):
                 
                 await self.add_to_blacklist(guild_id=guild_id, channel=message.channel)
                 embed = discord.Embed(
-                    title=f"{_e('zwarning')} Guild Blacklisted",
+                    title="⚠️ Guild Blacklisted",
                     description=(
                         f"The guild has been blacklisted for excessive command usage. "
                         f"If you believe this is a mistake, please contact a server administrator."
@@ -108,7 +107,7 @@ class AutoBlacklist(Cog):
                 if message.content in (f'<@{self.bot_user_id}>', f'<@!{self.bot_user_id}>'):
                     await self.add_to_blacklist(user_id=message.author.id)
                     embed = discord.Embed(
-                        title=f"{_e('zwarning')} User Blacklisted",
+                        title="⚠️ User Blacklisted",
                         description=f"**{message.author.mention} has been blacklisted for repeatedly mentioning me. If you believe this is a mistake, please contact a server administrator.**",
                         color=0xFF0000
                     )
@@ -140,7 +139,7 @@ class AutoBlacklist(Cog):
 
                 await self.add_to_blacklist(user_id=ctx.author.id)
                 embed = discord.Embed(
-                    title=f"{_e('zwarning')} User Blacklisted",
+                    title="⚠️ User Blacklisted",
                     description=f"**{ctx.author.mention} has been blacklisted for spamming commands. If you believe this is a mistake, please contact a server administrator.**",
                     color=0xFF0000
                 )

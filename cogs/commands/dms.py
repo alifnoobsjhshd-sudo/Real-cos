@@ -1,5 +1,4 @@
 import discord
-from utils.emojis import e as _e
 from discord.ext import commands
 
 # --- AUTHORIZED STAFF IDs ---
@@ -23,7 +22,7 @@ class StaffDMCog(commands.Cog):
 
         # Step 1: Check if the command author is an authorized staff member
         if ctx.author.id not in authorized_staff_ids:
-            await ctx.reply(f"{_e('zcross')} You do not have permission to use this command.")
+            await ctx.reply("❌ You do not have permission to use this command.")
             return
 
         # Step 2: Create an embed to send to the target user
@@ -39,11 +38,11 @@ class StaffDMCog(commands.Cog):
             await member.send(embed=embed)
             
             # Step 3: Send a confirmation message back to the staff member
-            await ctx.reply(f"{_e('ztick')} Your message has been successfully sent to **{member.name}**.")
+            await ctx.reply(f"✅ Your message has been successfully sent to **{member.name}**.")
 
         except discord.Forbidden:
             # This error occurs if the user has DMs disabled or has blocked the bot
-            await ctx.reply(f"{_e('zcross')} Could not send the message. **{member.name}** may have their DMs disabled.")
+            await ctx.reply(f"❌ Could not send the message. **{member.name}** may have their DMs disabled.")
         except Exception as e:
             # Handle any other potential errors
             await ctx.reply(f"🤔 Something went wrong. Error: {e}")
