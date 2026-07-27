@@ -1,6 +1,7 @@
 from discord.ext import commands
 from core import zyrox, Cog
 import discord
+from utils.emojis import e as _e
 import logging
 from discord.ui import View, Button, Select
 

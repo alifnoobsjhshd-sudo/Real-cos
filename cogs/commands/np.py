@@ -1,6 +1,7 @@
 from discord.ext import commands, tasks
 from discord import *
 import discord
+from utils.emojis import e as _e
 import aiosqlite
 from typing import Optional
 from datetime import datetime, timedelta
@@ -204,7 +205,7 @@ class NoPrefix(commands.Cog):
                         
                                     
                         embed = discord.Embed(
-                            description=f"⚠️ Your No Prefix status has **Expired**. You will now require the prefix to use commands.",
+                            description=f"{_e('zwarning')} Your No Prefix status has **Expired**. You will now require the prefix to use commands.",
                             color=0xFF0000
                         )
                         embed.set_author(name="No Prefix Expired", icon_url=user.avatar.url if user.avatar else user.default_avatar.url)
@@ -502,7 +503,7 @@ class NoPrefix(commands.Cog):
             await db.execute("DELETE FROM np WHERE id = ?", (user.id,))
             await db.commit()
             
-        embed= discord.Embed(title="⚠️ Global No Prefix Expired",
+        embed= discord.Embed(title=f"{_e('zwarning')} Global No Prefix Expired",
                         description=f"Hey {user.mention}, your global no prefix has expired!\n\n__**Reason:**__ Unboosting our partnered Server.\nIf you think this is a mistake then please reach out [Support Server](https://discord.gg/codexdev).",
                         color=0xFF0000)
             
@@ -570,7 +571,7 @@ class NoPrefix(commands.Cog):
             
             # Send success message
             success_embed = discord.Embed(
-                title="✅ No-Prefix Reset Complete",
+                title=f"{_e('ztick')} No-Prefix Reset Complete",
                 description=f"Successfully removed {count} users from the no-prefix list.",
                 color=0xFF0000
             )

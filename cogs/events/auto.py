@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.utils import *
 from core import zyrox, Cog
 from utils.Tools import *

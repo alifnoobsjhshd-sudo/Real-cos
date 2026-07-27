@@ -1,5 +1,6 @@
 import os 
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import datetime
 import sys
@@ -198,7 +199,7 @@ class Extra(commands.Cog):
       uptime_duration_string = f"{uptime_timedelta.days} days, {uptime_timedelta.seconds // 3600} hours, {(uptime_timedelta.seconds // 60) % 60} minutes, {uptime_timedelta.seconds % 60} seconds"
 
       embed = discord.Embed(title=f"Zyrox Manager Uptime", color=self.color)
-      embed.add_field(name="__UTC__", value=f"⚠️ {uptime_string}\n\n", inline=False)
+      embed.add_field(name="__UTC__", value=f"{_e('zwarning')} {uptime_string}\n\n", inline=False)
       embed.add_field(name="__Online Duration__", value=f"⏱️ {uptime_duration_string}", inline=False)
       embed.set_footer(text=f"Requested by {ctx.author}", icon_url=pfp)
 
@@ -1072,7 +1073,7 @@ class Extra(commands.Cog):
     embed.add_field(name="Server", value=ctx.guild.name, inline=False)
     embed.add_field(name="Channel", value=ctx.channel.name, inline=False)
     await channel.send(embed=embed)
-    confirm_embed = discord.Embed(title="✅ Bug Reported",
+    confirm_embed = discord.Embed(title=f"{_e('ztick')} Bug Reported",
       description="Thank you for reporting the bug. We will look into it.",
       color=0xFF0000)
     await ctx.reply(embed=confirm_embed)

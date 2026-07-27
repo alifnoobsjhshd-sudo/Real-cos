@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 
 class QR(commands.Cog):
@@ -25,11 +26,11 @@ class QR(commands.Cog):
     @qr.error
     async def qr_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.reply("❌ You must be an **administrator** to use this command.")
+            await ctx.reply(f"{_e('zcross')} You must be an **administrator** to use this command.")
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.reply(f"⏳ You're on cooldown. Try again in `{round(error.retry_after, 1)}s`.")
+            await ctx.reply(f"{_e('loading')} You're on cooldown. Try again in `{round(error.retry_after, 1)}s`.")
         else:
-            await ctx.reply(f"⚠️ An error occurred: `{str(error)}`")
+            await ctx.reply(f"{_e('zwarning')} An error occurred: `{str(error)}`")
 
 # Required for bot.load_extension()
 async def setup(bot):

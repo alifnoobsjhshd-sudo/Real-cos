@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import json
 
@@ -27,34 +28,34 @@ class joindm(commands.Cog):
         # Display the current join DM message
         guild_id = str(ctx.guild.id)
         if guild_id in self.joindm_messages:
-            await ctx.send(f"**✅ | The current join DM message is: `{self.joindm_messages[guild_id]}`")
+            await ctx.send(f"**{_e('ztick')} | The current join DM message is: `{self.joindm_messages[guild_id]}`")
         else:
-            await ctx.send("**❌ | No custom join DM message has been set for this server. **")
+            await ctx.send("**{_e('zcross')} | No custom join DM message has been set for this server. **")
 
     @joindm.command()
     @commands.has_permissions(administrator=True)
     async def message(self, ctx, *, message=None):
         # Set the custom join DM message
         if message is None:
-            await ctx.send("** ❌ | Please provide a custom join DM message.**")
+            await ctx.send(f"** {_e('zcross')} | Please provide a custom join DM message.**")
         else:
             self.joindm_messages[str(ctx.guild.id)] = message
             self.save_joindm_messages()
-            await ctx.send("** ✅ | Custom join DM message set successfully.**")
+            await ctx.send(f"** {_e('ztick')} | Custom join DM message set successfully.**")
 
     @joindm.command()
     @commands.has_permissions(administrator=True)
     async def enable(self, ctx):
         # Enable the join DM module
         self.bot.add_listener(self.on_member_join, 'on_member_join')
-        await ctx.send("**✅ | Join DM module enabled. Custom DM will be sent to new members.**")
+        await ctx.send(f"**{_e('ztick')} | Join DM module enabled. Custom DM will be sent to new members.**")
 
     @joindm.command()
     @commands.has_permissions(administrator=True)
     async def disable(self, ctx):
         # Disable the join DM module
         self.bot.remove_listener(self.on_member_join)
-        await ctx.send("**✅ | Join DM module disabled. Custom DM will not be sent to new members.**")
+        await ctx.send("**{_e('ztick')} | Join DM module disabled. Custom DM will not be sent to new members.**")
 
     @joindm.command()
     async def test(self, ctx):
@@ -68,7 +69,7 @@ class joindm(commands.Cog):
             await ctx.message.add_reaction("🎉")
             await ctx.author.send(join_dm_message)
         else:
-            await ctx.send("**❌ | No custom join DM message has been set for this server.**")
+            await ctx.send("**{_e('zcross')} | No custom join DM message has been set for this server.**")
 
     async def on_member_join(self, member):
         

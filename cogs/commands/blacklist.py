@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord.ext import menus
 import aiosqlite
@@ -212,7 +213,7 @@ class Blacklist(commands.Cog):
             await ctx.reply("The blacklist is full. Maximum 30 words allowed.")
             return
         if await self.is_word_blacklisted(guild_id, word.lower()):
-            embed = discord.Embed(title="✅ Access Denied",
+            embed = discord.Embed(title=f"{_e('ztick')} Access Denied",
                 description=f"`{word}` is already in the blacklist.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -220,7 +221,7 @@ class Blacklist(commands.Cog):
             return
 
         await self.add_word_to_blacklist(guild_id, word.lower())
-        embed = discord.Embed(title=" ✅ Success",
+        embed = discord.Embed(title=f"{_e('ztick')} Success",
             description=f"Added `{word}` to the blacklist.",
             color=discord.Color.from_rgb(255, 0, 0)
         )
@@ -234,7 +235,7 @@ class Blacklist(commands.Cog):
     async def remove(self, ctx, word: str):
         guild_id = str(ctx.guild.id)
         if not await self.is_word_blacklisted(guild_id, word.lower()):
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 description=f"`{word}` is not in the blacklist.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -242,7 +243,7 @@ class Blacklist(commands.Cog):
             return
 
         await self.remove_word_from_blacklist(guild_id, word.lower())
-        embed = discord.Embed(title=" ✅ Success",
+        embed = discord.Embed(title=f"{_e('ztick')} Success",
             description=f"Removed `{word}` from the blacklist.",
             color=discord.Color.from_rgb(255, 0, 0)
         )
@@ -258,7 +259,7 @@ class Blacklist(commands.Cog):
         words = await self.get_blacklisted_words(guild_id)
 
         if not words:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 description="No words are currently blacklisted.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -267,7 +268,7 @@ class Blacklist(commands.Cog):
 
         await self.remove_all_words_from_blacklist(guild_id)
 
-        embed = discord.Embed(title="✅ Success",
+        embed = discord.Embed(title=f"{_e('ztick')} Success",
             description="Cleared all blacklisted words.",
             color=discord.Color.from_rgb(255, 0, 0)
         )
@@ -283,7 +284,7 @@ class Blacklist(commands.Cog):
         guild_id = str(ctx.guild.id)
         words = await self.get_blacklisted_words(guild_id)
         if not words:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 description="No words are currently blacklisted.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -328,13 +329,13 @@ class Blacklist(commands.Cog):
                 return
             if await self.is_user_bypassed(guild_id, target.id):
                 embed = discord.Embed(
-                    description=f"❌ | `{target}` is already bypassed.",
+                    description=f"{_e('zcross')} | `{target}` is already bypassed.",
                     color=discord.Color.from_rgb(255, 0, 0)
                 )
                 await ctx.reply(embed=embed)
                 return
             await self.add_user_to_bypass(guild_id, target.id)
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                 description=f"Added `{target}` to the bypass list.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -345,14 +346,14 @@ class Blacklist(commands.Cog):
                 await ctx.reply("The bypass list for roles is full. Maximum 30 roles allowed.")
                 return
             if await self.is_role_bypassed(guild_id, target.id):
-                embed = discord.Embed(title="❌ Error",
+                embed = discord.Embed(title=f"{_e('zcross')} Error",
                     description=f"`{target}` is already bypassed.",
                     color=discord.Color.from_rgb(255, 0, 0)
                 )
                 await ctx.reply(embed=embed)
                 return
             await self.add_role_to_bypass(guild_id, target.id)
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                 description=f"Added `{target}` to the bypass list.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -369,14 +370,14 @@ class Blacklist(commands.Cog):
         guild_id = str(ctx.guild.id)
         if isinstance(target, discord.Member):
             if not await self.is_user_bypassed(guild_id, target.id):
-                embed = discord.Embed(title="❌ Error",
+                embed = discord.Embed(title=f"{_e('zcross')} Error",
                     description=f"`{target}` is not bypassed.",
                     color=discord.Color.from_rgb(255, 0, 0)
                 )
                 await ctx.reply(embed=embed)
                 return
             await self.remove_user_from_bypass(guild_id, target.id)
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                 description=f"Removed `{target}` from the bypass list.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -384,14 +385,14 @@ class Blacklist(commands.Cog):
 
         elif isinstance(target, discord.Role):
             if not await self.is_role_bypassed(guild_id, target.id):
-                embed = discord.Embed(title="❌ Error",
+                embed = discord.Embed(title=f"{_e('zcross')} Error",
                     description=f"`{target}` is not bypassed.",
                     color=discord.Color.from_rgb(255, 0, 0)
                 )
                 await ctx.reply(embed=embed)
                 return
             await self.remove_role_from_bypass(guild_id, target.id)
-            embed = discord.Embed(title="✅ Success",
+            embed = discord.Embed(title=f"{_e('ztick')} Success",
                 description=f"Removed `{target}` from the bypass list.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -408,7 +409,7 @@ class Blacklist(commands.Cog):
         roles = await self.get_bypassed_roles(guild_id)
 
         if not users and not roles:
-            embed = discord.Embed(title="❌ Error",
+            embed = discord.Embed(title=f"{_e('zcross')} Error",
                 description="No users or roles are currently bypassed.",
                 color=discord.Color.from_rgb(255, 0, 0)
             )
@@ -441,7 +442,7 @@ class Blacklist(commands.Cog):
         if isinstance(error, commands.CommandError):
             if not isinstance(error, commands.CommandOnCooldown):
                 embed = discord.Embed(
-                    description="❌ | An error occurred while processing the command. Make sure you have **Administrator** permission.",
+                    description=f"{_e('zcross')} | An error occurred while processing the command. Make sure you have **Administrator** permission.",
                     color=discord.Color.from_rgb(255, 0, 0)
                 )
                 await ctx.reply(embed=embed)

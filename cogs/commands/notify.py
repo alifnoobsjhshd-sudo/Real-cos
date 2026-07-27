@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 from utils.Tools import *
@@ -33,12 +34,12 @@ class NotifCommands(commands.Cog):
             async with db.execute('SELECT * FROM notifications WHERE type = ?', ('twitch',)) as existing:
                 row = await existing.fetchone()
                 if row:
-                    await ctx.reply(embed=discord.Embed(title="⚠️Access Denied", description="Twitch notification already set. Remove it first.", color=0xFF0000))
+                    await ctx.reply(embed=discord.Embed(title=f"{_e('zwarning')}Access Denied", description="Twitch notification already set. Remove it first.", color=0xFF0000))
                     return
 
             await db.execute('INSERT INTO notifications (type, role_id, channel_id) VALUES (?, ?, ?)', ('twitch', role.id, channel.id))
             await db.commit()
-            await ctx.reply(embed=discord.Embed(title="✅ Success", description=f"Twitch notifications set for {role.mention} in {channel.mention}.", color=0xFF0000))
+            await ctx.reply(embed=discord.Embed(title=f"{_e('ztick')} Success", description=f"Twitch notifications set for {role.mention} in {channel.mention}.", color=0xFF0000))
 
     @setnotif.command()
     @blacklist_check()
@@ -49,12 +50,12 @@ class NotifCommands(commands.Cog):
             async with db.execute('SELECT * FROM notifications WHERE type = ?', ('youtube',)) as existing:
                 row = await existing.fetchone()
                 if row:
-                    await ctx.reply(embed=discord.Embed(title="⚠️ Access Denied", description="YouTube notification already set. Remove it first.", color=0xFF0000))
+                    await ctx.reply(embed=discord.Embed(title=f"{_e('zwarning')} Access Denied", description="YouTube notification already set. Remove it first.", color=0xFF0000))
                     return
 
             await db.execute('INSERT INTO notifications (type, role_id, channel_id) VALUES (?, ?, ?)', ('youtube', role.id, channel.id))
             await db.commit()
-            await ctx.reply(embed=discord.Embed(title="✅ Success", description=f"YouTube notifications set for {role.mention} in {channel.mention}.", color=0xFF0000))
+            await ctx.reply(embed=discord.Embed(title=f"{_e('ztick')} Success", description=f"YouTube notifications set for {role.mention} in {channel.mention}.", color=0xFF0000))
 
     @setnotif.command()
     async def list(self, ctx):
@@ -82,7 +83,7 @@ class NotifCommands(commands.Cog):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute('DELETE FROM notifications WHERE type IN (?, ?)', ('twitch', 'youtube'))
             await db.commit()
-            await ctx.send(embed=discord.Embed(title="✅ Success", description="Twitch and YouTube notifications have been reset.", color=0x00FF00))
+            await ctx.send(embed=discord.Embed(title=f"{_e('ztick')} Success", description="Twitch and YouTube notifications have been reset.", color=0x00FF00))
 
 
     @commands.Cog.listener()

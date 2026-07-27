@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands, tasks
 import aiosqlite
 import aiohttp
@@ -52,7 +53,7 @@ class VanityRoles(commands.Cog):
             """, (ctx.guild.id, vanity.lower(), role.id, channel.id))
             await db.commit()
         embed = discord.Embed(
-            title="✅ Vanity Role Setup",
+            title=f"{_e('ztick')} Vanity Role Setup",
             description=f"Vanity: `{vanity}`\nRole: {role.mention}\nLog Channel: {channel.mention}",
             color=discord.Color.green()
         )
@@ -67,7 +68,7 @@ class VanityRoles(commands.Cog):
                 rows = await cursor.fetchall()
 
         if not rows:
-            return await ctx.send("❌ No vanity role setups found.")
+            return await ctx.send(f"{_e('zcross')} No vanity role setups found.")
 
         embed = discord.Embed(title="🔧 Vanity Role Settings", color=discord.Color.blue())
         for vanity, role_id, log_channel_id in rows:
@@ -87,7 +88,7 @@ class VanityRoles(commands.Cog):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM vanity_roles WHERE guild_id = ?", (ctx.guild.id,))
             await db.commit()
-        await ctx.send("✅ All vanity role configurations have been reset.")
+        await ctx.send(f"{_e('ztick')} All vanity role configurations have been reset.")
 
     @tasks.loop(seconds=15)
     async def vanity_checker(self):
@@ -108,7 +109,7 @@ class VanityRoles(commands.Cog):
                     async with session.get(f"https://discord.com/api/v10/invites/{vanity}") as response:
                         is_active = response.status == 200
             except Exception as e:
-                print(f"⚠️ Error checking vanity {vanity}: {e}")
+                print(f"{_e('zwarning')} Error checking vanity {vanity}: {e}")
                 continue
 
             # Vanity is ACTIVE
@@ -121,9 +122,9 @@ class VanityRoles(commands.Cog):
                             await member.add_roles(role, reason="Vanity active")
                             assigned += 1
                         except Exception as e:
-                            print(f"❌ Could not add role to {member}: {e}")
+                            print(f"{_e('zcross')} Could not add role to {member}: {e}")
                 if log_channel:
-                    await log_channel.send(f"✅ Vanity `{vanity}` is now **active**. Role assigned to {assigned} members.")
+                    await log_channel.send(f"{_e('ztick')} Vanity `{vanity}` is now **active**. Role assigned to {assigned} members.")
 
             # Vanity is INACTIVE
             elif not is_active and current_status == "active":
@@ -135,9 +136,9 @@ class VanityRoles(commands.Cog):
                             await member.remove_roles(role, reason="Vanity inactive")
                             removed += 1
                         except Exception as e:
-                            print(f"❌ Could not remove role from {member}: {e}")
+                            print(f"{_e('zcross')} Could not remove role from {member}: {e}")
                 if log_channel:
-                    await log_channel.send(f"❌ Vanity `{vanity}` is now **inactive**. Role removed from {removed} members.")
+                    await log_channel.send(f"{_e('zcross')} Vanity `{vanity}` is now **inactive**. Role removed from {removed} members.")
 
     async def update_status(self, guild_id, vanity, new_status):
         async with aiosqlite.connect(DB_PATH) as db:

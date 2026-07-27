@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands
 from discord import ui
 import aiosqlite
@@ -134,7 +135,7 @@ class afk(commands.Cog):
             # Send the welcome back embed.
             embed = discord.Embed(
                 title=f"{message.author.display_name} Is Back!",
-                description=f"✅ **AFK Removed**\n📣 **Mentions:** {mentions}\n🕒 **AFK Time:** {elapsed_time}",
+                description=f"{_e('ztick')} **AFK Removed**\n📣 **Mentions:** {mentions}\n🕒 **AFK Time:** {elapsed_time}",
                 color=self.theme_color
             )
             embed.set_footer(text=FOOTER_TEXT, icon_url=self.bot.user.display_avatar.url)
@@ -189,7 +190,7 @@ class afk(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def afk(self, ctx: commands.Context, *, reason: str = "I am AFK"):
         if any(w in reason.lower() for w in ("discord.gg", "gg/")):
-            return await ctx.send(embed=discord.Embed(description="⚠️ Advertising is not allowed in AFK reasons.", color=self.theme_color), ephemeral=True)
+            return await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} Advertising is not allowed in AFK reasons.", color=self.theme_color), ephemeral=True)
 
         type_view = AfkTypeView(ctx.author)
         embed = discord.Embed(description="Select your preferred AFK type from the buttons below.", color=self.theme_color)
@@ -206,7 +207,7 @@ class afk(commands.Cog):
         await self.set_afk(ctx.author, type_view.value, reason, ctx.guild)
         
         confirm_embed = discord.Embed(
-            title="✅ AFK Activated",
+            title=f"{_e('ztick')} AFK Activated",
             description=f"**📣 You are now marked as {type_view.value.capitalize()} AFK.**\n🌱 **Reason:** {reason}",
             color=self.theme_color
         )

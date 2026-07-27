@@ -1,4 +1,5 @@
 import discord
+from utils.emojis import e as _e
 from discord.ext import commands, tasks
 import asyncio
 import datetime
@@ -54,7 +55,7 @@ async def do_removal(ctx, limit, predicate, *, before=None, after=None):
 
   spammers = Counter(m.author.display_name for m in deleted)
   deleted = len(deleted)
-  messages = [f'✅ | {deleted} message{" was" if deleted == 1 else "s were"} removed.']
+  messages = ["{} | {} message{} removed.".format(_e('ztick'), deleted, " was" if deleted == 1 else "s were")]
   if deleted:
       messages.append("")
       spammers = sorted(spammers.items(), key=lambda t: t[1], reverse=True)
@@ -63,7 +64,7 @@ async def do_removal(ctx, limit, predicate, *, before=None, after=None):
   to_send = "\n".join(messages)
 
   if len(to_send) > 2000:
-      await ctx.send(f"✅ | Successfully removed {deleted} messages.", delete_after=7)
+      await ctx.send(f"{_e('ztick')} | Successfully removed {deleted} messages.", delete_after=7)
   else:
       await ctx.send(to_send, delete_after=7)
     
@@ -213,7 +214,7 @@ class Message(commands.Cog):
                 total_reactions += sum(r.count for r in message.reactions)
                 await message.clear_reactions()
 
-        await ctx.success(f"✅ | Successfully removed {total_reactions} reactions.")
+        await ctx.success(f"{_e('ztick')} | Successfully removed {total_reactions} reactions.")
             
 
 

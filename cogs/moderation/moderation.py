@@ -633,13 +633,13 @@ class Moderation(commands.Cog):
     except discord.Forbidden:
         error = discord.Embed(
             color=self.color,
-            description="⚠️ | I don't have permission to manage this user's nickname!"
+            description=f"{_e('zwarning')} | I don't have permission to manage this user's nickname!"
         )
         await ctx.send(embed=error)
     except Exception as e:
         error = discord.Embed(
             color=self.color,
-            description=f"⚠️ | An error occurred while trying to change the nickname: {str(e)}"
+            description=f"{_e('zwarning')} | An error occurred while trying to change the nickname: {str(e)}"
         )
         await ctx.send(embed=error)
         
@@ -774,7 +774,7 @@ class Moderation(commands.Cog):
             for i in msg.stickers:
                 name = i.name
                 await ctx.guild.delete_sticker(i)
-            await ctx.reply(f"✅> Sucessfully deleted sticker named `{name}`")
+            await ctx.reply(f"{_e('ztick')} Sucessfully deleted sticker named `{name}`")
         except:
             await ctx.reply("Failed to delete the sticker")
 
@@ -971,7 +971,7 @@ class Moderation(commands.Cog):
               reason="Unbanall Command Executed By: {}".format(ctx.author))
             a += 1
           await interaction.channel.send(
-            content=f"✅> Successfully Unbanned {a} Members")
+            content=f"{_e('ztick')}> Successfully Unbanned {a} Members")
         else:
           await interaction.response.edit_message(
             content=
