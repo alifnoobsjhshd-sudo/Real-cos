@@ -225,34 +225,39 @@ class VolumeModal(discord.ui.Modal, title="Set Volume"):
 
 class MusicControlView(View):
     """
-    Music control panel — emoji-only buttons, no labels.
+    Unified Now Playing controls — single message, emoji-only buttons.
 
-    Row 0  (Playback):  Previous | Pause/Resume | Next | Stop
-    Row 1  (Controls):  Replay   | Shuffle      | Loop | Volume
+    Row 0 (Playback):  Previous | Pause/Resume | Next
+    Row 1 (Stop):      Stop
+    Row 2 (Music):     Queue    | Playlist     | Shuffle
+    Row 3 (Settings):  Volume   | Loop
 
     Toggle buttons (Shuffle, Loop) turn green when enabled.
     """
 
     def __init__(self, player, ctx):
         super().__init__(timeout=None)
-        self.player            = player
-        self.ctx               = ctx
-        self._shuffle_on       = False
-        self._loop_on          = False
+        self.player              = player
+        self.ctx                 = ctx
+        self._shuffle_on         = False
+        self._loop_on            = False
         self._pre_shuffle_queue: list = []
 
-        # Assign custom emojis in button definition order:
-        # Row 0: previous(0), pause(1), next(2), stop(3)
-        # Row 1: replay(4),   shuffle(5), loop(6), volume(7)
+        # Button order matches decorator order below:
+        # Row 0: previous(0), pause(1), next(2)
+        # Row 1: stop(3)
+        # Row 2: queue(4), playlist(5), shuffle(6)
+        # Row 3: volume(7), loop(8)
         _emap = [
-            _pe("zback"),           # 0 previous
-            _pe("zpause"),          # 1 pause / resume toggle
-            _pe("skip"),            # 2 next / skip
-            _pe("musicstop_icons"), # 3 stop
-            _pe("rewind1"),         # 4 replay from start
-            _pe("shuffle"),         # 5 shuffle
-            _pe("zloop"),           # 6 loop
-            _pe("zunmute"),         # 7 volume
+            _pe("zback"),            # 0 previous
+            _pe("zpause"),           # 1 pause / resume
+            _pe("skip"),             # 2 next
+            _pe("musicstop_icons"),  # 3 stop
+            _pe("zqueue"),           # 4 show queue
+            _pe("zmusic"),           # 5 playlist browser
+            _pe("shuffle"),          # 6 shuffle
+            _pe("zunmute"),          # 7 volume
+            _pe("zloop"),            # 8 loop
         ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
         for btn, emo in zip(buttons, _emap):
@@ -260,13 +265,14 @@ class MusicControlView(View):
                 btn.emoji = emo
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if not self.ctx.voice_client or not self.player.playing:
+        vc = interaction.guild.voice_client
+        if not vc or not self.player.playing:
             await interaction.response.send_message(
-                embed=discord.Embed(description="I'm not playing anything right now.", color=0xFF0000),
+                embed=discord.Embed(description="Nothing is playing right now.", color=0xFF0000),
                 ephemeral=True,
             )
             return False
-        if interaction.user in self.ctx.voice_client.channel.members:
+        if interaction.user in vc.channel.members:
             return True
         await interaction.response.send_message(
             embed=discord.Embed(
@@ -329,7 +335,9 @@ class MusicControlView(View):
         else:
             await _confirm(interaction, "No next track queued.")
 
-    @discord.ui.button(emoji="⏹", style=discord.ButtonStyle.danger, row=0)
+    # ── Row 1: Stop ───────────────────────────────────────────────────────────
+
+    @discord.ui.button(emoji="⏹", style=discord.ButtonStyle.danger, row=1)
     async def btn_stop(self, interaction: discord.Interaction, button: Button):
         if self.player:
             if self.player.channel:
@@ -342,17 +350,55 @@ class MusicControlView(View):
         else:
             await _confirm(interaction, "Not connected.")
 
-    # ── Row 1: Controls ───────────────────────────────────────────────────────
+    # ── Row 2: Music ──────────────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="🔄", style=discord.ButtonStyle.secondary, row=1)
-    async def btn_replay(self, interaction: discord.Interaction, button: Button):
-        if self.player.playing:
-            await self.player.seek(0)
-            await _confirm(interaction, f"{_e('rewind1') or '🔄'} Replaying from the start.")
-        else:
-            await _confirm(interaction, "No track is currently playing.")
+    @discord.ui.button(emoji="📋", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_queue(self, interaction: discord.Interaction, button: Button):
+        """Show the current queue as an ephemeral message."""
+        vc = interaction.guild.voice_client
+        if not vc or not isinstance(vc, wavelink.Player):
+            await _confirm(interaction, "Not connected.")
+            return
+        queue = list(vc.queue)
+        if not queue:
+            await _confirm(interaction, "The queue is empty.")
+            return
+        lines = [
+            f"`{i+1}.` {t.title}"
+            for i, t in enumerate(queue[:20])
+        ]
+        if len(queue) > 20:
+            lines.append(f"*…and {len(queue) - 20} more*")
+        em = discord.Embed(
+            title=f"{_e('zqueue') or '📋'}  Queue  ({len(queue)} track{'s' if len(queue) != 1 else ''})",
+            description="\n".join(lines),
+            color=COLOR_CONTROL,
+        )
+        await interaction.response.send_message(embed=em, ephemeral=True)
 
-    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_playlist(self, interaction: discord.Interaction, button: Button):
+        """Open the Playlist browser."""
+        await interaction.response.defer(ephemeral=True)
+        try:
+            from cogs.commands.playlist import _db, PlaylistBrowserView
+            playlists = await _db.get_all_playlists()
+        except Exception:
+            playlists = []
+        if not playlists:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    description="No playlists found. Create one with `/playlist create`.",
+                    color=COLOR_CONTROL,
+                ),
+                ephemeral=True,
+            )
+            return
+        view  = PlaylistBrowserView(playlists)
+        embed = view.build_embed()
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=2)
     async def btn_shuffle(self, interaction: discord.Interaction, button: Button):
         if not self._shuffle_on:
             if not self.player.queue:
@@ -376,7 +422,13 @@ class MusicControlView(View):
             button.style = discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=1)
+    # ── Row 3: Settings ───────────────────────────────────────────────────────
+
+    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=3)
+    async def btn_volume(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(VolumeModal(self.player))
+
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=3)
     async def btn_loop(self, interaction: discord.Interaction, button: Button):
         self._loop_on = not self._loop_on
         self.player.queue.mode = (
@@ -384,51 +436,6 @@ class MusicControlView(View):
         )
         button.style = discord.ButtonStyle.success if self._loop_on else discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
-
-    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=1)
-    async def btn_volume(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(VolumeModal(self.player))
-
-
-# ── Now Playing View ──────────────────────────────────────────────────────────
-
-class NowPlayingView(View):
-    """
-    Attached to the Now Playing embed.
-    Single emoji-only button that opens the Playlist browser.
-    """
-
-    def __init__(self, player, ctx):
-        super().__init__(timeout=None)
-        self.player = player
-        self.ctx    = ctx
-        # Assign custom playlist emoji
-        for child in self.children:
-            if isinstance(child, discord.ui.Button):
-                emo = _pe("zmusic")
-                if emo:
-                    child.emoji = emo
-
-    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=0)
-    async def open_playlist(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            from cogs.commands.playlist import _db, PlaylistBrowserView
-            playlists = await _db.get_all_playlists()
-        except Exception:
-            playlists = []
-        if not playlists:
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    description=f"No playlists found. Create one with `/playlist create`.",
-                    color=COLOR_CONTROL,
-                ),
-                ephemeral=True,
-            )
-            return
-        view  = PlaylistBrowserView(playlists)
-        embed = view.build_embed()
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 
@@ -737,52 +744,63 @@ class Music(commands.Cog):
         playlist_mode: bool = False,
     ) -> discord.Message:
         """
-        Send the Now Playing embed.
-        Normal mode:   NP embed + NowPlayingView (playlist btn) → then control panel embed + MusicControlView
-        Playlist mode: NP embed only (no view) — PlaylistControlView stays persistent above it
-        Returns the NP message for callers that need to track it (e.g. playlist per-song cleanup).
+        Send the Now Playing embed (single message).
+
+        Normal mode:   embed + MusicControlView (all controls in one message).
+        Playlist mode: embed only — PlaylistControlView (sent earlier) owns controls.
+
+        Returns the sent message so callers can track/delete it later.
         """
         sec      = track.length // 1000
         duration = f"{sec // 60:02d}:{sec % 60:02d}"
 
-        embed = discord.Embed(title="Now Playing", color=COLOR_NOW_PLAYING)
-        embed.description = f"**[{track.title}]({track.uri})**"
-        embed.add_field(name="Artist",   value=f"`{track.author}`",  inline=True)
-        embed.add_field(name="Duration", value=f"`{duration}`",       inline=True)
+        # ── Build description ────────────────────────────────────────────────
+        requester_label = (
+            ctx.author.mention if not autoplay
+            else f"{ctx.author.mention} *(Autoplay)*"
+        )
+
+        # VC info: channel name + member count (excluding the bot itself)
+        vc_line = ""
+        try:
+            vc = player.channel
+            if vc:
+                human_members = [m for m in vc.members if not m.bot]
+                vc_line = f"\n📍 **{vc.name}** · {len(human_members)} member{'s' if len(human_members) != 1 else ''}"
+        except Exception:
+            pass
+
+        # Queue info
+        q_len = len(player.queue) if (not playlist_mode and not autoplay and player.queue) else 0
+        queue_line = f"\n📋 **{q_len}** track{'s' if q_len != 1 else ''} in queue" if q_len > 0 else ""
+
+        description = (
+            f"**[{track.title}]({track.uri})**\n\n"
+            f"➕ {requester_label}"
+            f"{vc_line}"
+            f"{queue_line}\n\n"
+            f"`0:00 / {duration}`"
+        )
+
+        embed = discord.Embed(
+            title="Now playing",
+            description=description,
+            color=COLOR_NOW_PLAYING,
+        )
 
         if track.artwork:
             embed.set_thumbnail(url=track.artwork)
 
-        requester = (
-            ctx.author.display_name if not autoplay
-            else f"{ctx.author.display_name} (Autoplay)"
-        )
-        icon_url = (
-            ctx.author.display_avatar.url
-            if ctx.author.avatar
-            else ctx.author.default_avatar.url
-        )
-        embed.set_footer(text=f"Requested by {requester}", icon_url=icon_url)
-
-        if not playlist_mode and not autoplay:
-            q_len = len(player.queue) if player.queue else 0
-            if q_len > 0:
-                embed.add_field(name="Up Next", value=f"`{q_len}` track(s) in queue", inline=True)
-
+        # ── Send ─────────────────────────────────────────────────────────────
         if playlist_mode:
-            # During playlist playback the NP embed has no interactive buttons —
-            # the persistent PlaylistControlView (above it) owns all controls.
+            # Playlist mode: no interactive buttons on per-song embed —
+            # the persistent PlaylistControlView owns all controls.
             np_msg = await ctx.send(embed=embed)
         else:
-            # Row 0: Playlist button attached to the NP embed
-            np_view = NowPlayingView(player, ctx)
-            np_msg  = await ctx.send(embed=embed, view=np_view)
-
-            # Separate control-panel message immediately below
-            ctrl_embed = discord.Embed(color=COLOR_CONTROL)
-            ctrl_embed.add_field(name="Playback", value="\u200b", inline=True)
-            ctrl_embed.add_field(name="Controls", value="\u200b", inline=True)
-            await ctx.send(embed=ctrl_embed, view=MusicControlView(player, ctx))
+            np_msg = await ctx.send(
+                embed=embed,
+                view=MusicControlView(player, ctx),
+            )
 
         return np_msg
 
