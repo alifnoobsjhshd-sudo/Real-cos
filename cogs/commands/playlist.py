@@ -282,13 +282,12 @@ async def _queue_playlist_and_play(
     songs: list,
     start_index: int = 0,
     loop_all: bool = False,
-    panel_view: Optional["PlaylistControlView"] = None,
-) -> tuple[Optional[wavelink.Player], Optional[wavelink.Playable]]:
+) -> Optional[wavelink.Player]:
     """
-    Join the user's VC, send the Playlist Control Panel, queue songs starting
-    from start_index, and begin playback.
+    Join the user's VC, queue songs starting from start_index, and begin playback.
+    The caller is responsible for updating the track-list message with PlaylistActiveView.
     on_wavelink_track_start (in music.py) sends the per-song NP embed automatically.
-    Returns (player, first_track) or (None, None) on error.
+    Returns the player on success, or None on error.
     """
     if not interaction.user.voice:
         await interaction.followup.send(
@@ -298,7 +297,7 @@ async def _queue_playlist_and_play(
             ),
             ephemeral=True,
         )
-        return None, None
+        return None
 
     songs_to_play = songs[start_index:]
     if not songs_to_play:
@@ -309,7 +308,7 @@ async def _queue_playlist_and_play(
             ),
             ephemeral=True,
         )
-        return None, None
+        return None
 
     vc: wavelink.Player = interaction.guild.voice_client  # type: ignore
     if vc is None:
@@ -322,7 +321,7 @@ async def _queue_playlist_and_play(
             ),
             ephemeral=True,
         )
-        return None, None
+        return None
 
     vc.autoplay = wavelink.AutoPlayMode.disabled
 
@@ -354,22 +353,6 @@ async def _queue_playlist_and_play(
     vc._playlist_channel = _channel
     vc._playlist_np_msg  = None
 
-    # ── Send Playlist Control Panel ───────────────────────────────────────────
-    total = len(songs)
-    pl_embed = discord.Embed(
-        title=f"{_e('zmusic') or '🎵'}  {pl['name']}",
-        color=COLOR_CONTROL,
-    )
-    pl_embed.add_field(name="Total Songs", value=f"`{total}`",                     inline=True)
-    pl_embed.add_field(name="Playing",     value=f"`{len(songs_to_play)}` tracks",  inline=True)
-    pl_embed.set_footer(
-        text=f"Started by {interaction.user.display_name}",
-        icon_url=interaction.user.display_avatar.url,
-    )
-
-    ctrl_view = panel_view or PlaylistControlView(vc, _channel)
-    await interaction.followup.send(embed=pl_embed, view=ctrl_view)
-
     # ── Load & queue songs ────────────────────────────────────────────────────
     first_track      = None
     started_playback = False
@@ -399,7 +382,7 @@ async def _queue_playlist_and_play(
             )
         )
 
-    return vc, first_track
+    return vc
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -454,7 +437,8 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
         required=True,
     )
 
-    def __init__(self, playlist: dict, view: "PlaylistDetailView"):
+    def __init__(self, playlist: dict, view):
+        """parent view may be PlaylistDetailView, PlaylistActiveView, or None."""
         super().__init__()
         self.playlist    = playlist
         self.parent_view = view
@@ -481,9 +465,18 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
         track = results.tracks[0] if isinstance(results, wavelink.Playlist) else results[0]
         await _db.add_song(self.playlist["id"], track.title, track.uri)
 
-        # Refresh song list on the parent view
-        self.parent_view.songs = await _db.get_songs(self.playlist["id"])
-        self.parent_view._rebuild_song_select()
+        # Refresh song list and update the main track-list message
+        if self.parent_view is not None:
+            self.parent_view.songs = await _db.get_songs(self.playlist["id"])
+            self.parent_view._rebuild_song_select()
+            if getattr(self.parent_view, 'message', None):
+                try:
+                    await self.parent_view.message.edit(
+                        embed=self.parent_view._build_embed(),
+                        view=self.parent_view,
+                    )
+                except Exception:
+                    pass
 
         await interaction.followup.send(
             embed=discord.Embed(
@@ -505,6 +498,436 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
 # ════════════════════════════════════════════════════════════════════════════════
 # VIEWS
 # ════════════════════════════════════════════════════════════════════════════════
+
+
+# ── PlaylistEditView ─────────────────────────────────────────────────────────
+class PlaylistEditView(discord.ui.View):
+    """
+    Private (ephemeral) view shown to the playlist owner when they click 'Edit Playlist'.
+    Allows adding and removing songs. After changes the parent track-list message refreshes.
+
+    Row 0: Add Song | Remove Song
+    """
+
+    def __init__(self, playlist: dict, parent_view):
+        """parent_view is PlaylistDetailView or PlaylistActiveView (has .songs / .message)."""
+        super().__init__(timeout=180)
+        self.playlist    = playlist
+        self.parent_view = parent_view
+
+        _emap = {"pev_add": _pe("zplus") or None, "pev_remove": _pe("delete") or None}
+        for child in self.children:
+            if isinstance(child, discord.ui.Button):
+                cid = getattr(child, "custom_id", "")
+                for key, emo in _emap.items():
+                    if key in cid and emo:
+                        child.emoji = emo
+
+    @discord.ui.button(label="Add Song", style=discord.ButtonStyle.success,
+                       row=0, custom_id="pev_add")
+    async def btn_add(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(AddSongModal(self.playlist, self.parent_view))
+
+    @discord.ui.button(label="Remove Song", style=discord.ButtonStyle.danger,
+                       row=0, custom_id="pev_remove")
+    async def btn_remove(self, interaction: discord.Interaction, button: discord.ui.Button):
+        songs = await _db.get_songs(self.playlist["id"])
+        if not songs:
+            await _confirm(interaction, "No songs in this playlist.")
+            return
+
+        options = [
+            discord.SelectOption(
+                label=f"{i + 1}. {s['song_name'][:80]}",
+                value=str(s["id"]),
+            )
+            for i, s in enumerate(songs[:25])
+        ]
+
+        _outer_playlist   = self.playlist
+        _outer_parent     = self.parent_view
+
+        class RemoveSelect(discord.ui.View):
+            def __init__(rs_self):
+                super().__init__(timeout=10)
+                sel = discord.ui.Select(placeholder="Select song to remove…", options=options)
+
+                async def _on_remove(sel_inter: discord.Interaction):
+                    song_id = int(sel_inter.data["values"][0])
+                    removed = await _db.remove_song(_outer_playlist["id"], song_id)
+                    if removed and _outer_parent is not None:
+                        _outer_parent.songs = await _db.get_songs(_outer_playlist["id"])
+                        _outer_parent._rebuild_song_select()
+                        if getattr(_outer_parent, 'message', None):
+                            try:
+                                await _outer_parent.message.edit(
+                                    embed=_outer_parent._build_embed(),
+                                    view=_outer_parent,
+                                )
+                            except Exception:
+                                pass
+                    await sel_inter.response.send_message(
+                        embed=discord.Embed(
+                            description=f"{_e('ztick') or '✅'} Song removed.",
+                            color=COLOR_NOW_PLAYING,
+                        ),
+                        ephemeral=True,
+                    )
+                    async def _del():
+                        await asyncio.sleep(CONFIRM_DELAY)
+                        try:
+                            await sel_inter.delete_original_response()
+                        except Exception:
+                            pass
+                    asyncio.create_task(_del())
+
+                sel.callback = _on_remove
+                rs_self.add_item(sel)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(description="Select a song to remove:", color=COLOR_CONTROL),
+            view=RemoveSelect(),
+            ephemeral=True,
+        )
+        async def _del_panel():
+            await asyncio.sleep(5)
+            try:
+                await interaction.delete_original_response()
+            except Exception:
+                pass
+        asyncio.create_task(_del_panel())
+
+
+# ── PlaylistActiveView ────────────────────────────────────────────────────────
+class PlaylistActiveView(discord.ui.View):
+    """
+    Replaces PlaylistDetailView's message when a playlist is actively playing.
+    Merges the track list (with pagination) and all playback controls into one message.
+
+    Row 0: Song select dropdown (jump to / restart from that song)
+    Row 1: ⏮ Previous | ⏸ Pause/Resume | ⏭ Next | ⏹ Stop
+    Row 2: 🔄 Replay   | 🔀 Shuffle     | 🔁 Loop | 🔊 Volume
+    Row 3: ◀ Prev Page | ▶ Next Page | ✏️ Edit Playlist (owner only)
+    """
+
+    PER_PAGE = 20
+
+    def __init__(
+        self,
+        player: wavelink.Player,
+        channel,
+        playlist: dict,
+        songs: list,
+        viewer_id: int,
+        page: int = 0,
+        owner_name: str = "",
+    ):
+        super().__init__(timeout=None)
+        self.player       = player
+        self.channel      = channel
+        self.playlist     = playlist
+        self.songs        = songs
+        self.page         = page
+        self._owner_name  = owner_name
+        self._is_owner    = str(viewer_id) == str(playlist.get("user_id", ""))
+        self._viewer_id   = viewer_id
+        self._loop_on     = False
+        self._shuffle_on  = False
+        self._pre_shuffle: list = []
+        self.message      = None  # set by caller after editing the message
+
+        # Assign emojis to the playback/control buttons only (skip nav/edit)
+        _nav_ids = {"pav_prev", "pav_next", "pav_edit"}
+        _emap = [
+            _pe("zback"),            # 0 previous
+            _pe("zpause"),           # 1 pause/resume
+            _pe("skip"),             # 2 next
+            _pe("musicstop_icons"),  # 3 stop
+            _pe("rewind1"),          # 4 replay
+            _pe("shuffle"),          # 5 shuffle
+            _pe("zloop"),            # 6 loop
+            _pe("zunmute"),          # 7 volume
+        ]
+        ctrl_buttons = [
+            c for c in self.children
+            if isinstance(c, discord.ui.Button)
+            and (getattr(c, "custom_id", "") or "") not in _nav_ids
+        ]
+        for btn, emo in zip(ctrl_buttons, _emap):
+            if emo:
+                btn.emoji = emo
+
+        # Hide edit button for non-owners
+        if not self._is_owner:
+            for child in list(self.children):
+                if (getattr(child, "custom_id", "") or "") == "pav_edit":
+                    self.remove_item(child)
+
+        self._rebuild_song_select()
+        self._update_nav()
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _rebuild_song_select(self):
+        for item in list(self.children):
+            if isinstance(item, discord.ui.Select) and getattr(item, '_is_song_select', False):
+                self.remove_item(item)
+        total = len(self.songs)
+        if total == 0:
+            return
+        start   = self.page * self.PER_PAGE
+        options = [
+            discord.SelectOption(
+                label=f"{i + 1}. {self.songs[i]['song_name'][:80]}",
+                value=str(i),
+                description="Restart playlist from this song",
+            )
+            for i in range(start, min(start + self.PER_PAGE, total, start + 25))
+        ]
+        if not options:
+            return
+        sel = discord.ui.Select(placeholder="Jump to a song…", options=options, row=0)
+        sel._is_song_select = True
+        sel.callback = self._on_song_select
+        self.add_item(sel)
+
+    def _update_nav(self):
+        total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                cid = getattr(item, "custom_id", "") or ""
+                if cid == "pav_prev":
+                    item.disabled = (self.page == 0)
+                elif cid == "pav_next":
+                    item.disabled = (self.page >= total_pages - 1)
+
+    def _build_embed(self) -> discord.Embed:
+        return _build_playlist_embed(
+            self.playlist, self.songs, self.page, self.PER_PAGE, self._owner_name
+        )
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        cid = (interaction.data or {}).get("custom_id", "") or ""
+        # Pagination and edit don't require VC membership
+        if cid in ("pav_prev", "pav_next", "pav_edit"):
+            return True
+        vc = interaction.guild.voice_client
+        if not vc or not isinstance(vc, wavelink.Player):
+            await interaction.response.send_message(
+                embed=discord.Embed(description="No active player.", color=0xFF0000),
+                ephemeral=True,
+            )
+            return False
+        if interaction.user in vc.channel.members:
+            return True
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description="You need to be in the same voice channel to control playback.",
+                color=0xFF0000,
+            ),
+            ephemeral=True,
+        )
+        return False
+
+    # ── Song selector ─────────────────────────────────────────────────────────
+
+    async def _on_song_select(self, interaction: discord.Interaction):
+        idx = int(interaction.data["values"][0])
+        await interaction.response.defer()
+        existing_vc = interaction.guild.voice_client
+        if existing_vc and isinstance(existing_vc, wavelink.Player):
+            existing_vc.queue.clear()
+            if existing_vc.playing:
+                existing_vc._playlist_restarting = True
+                await existing_vc.stop()
+                await asyncio.sleep(0.3)
+                existing_vc._playlist_restarting = False
+        player = await _queue_playlist_and_play(
+            interaction, self.playlist, self.songs,
+            start_index=idx, loop_all=self._loop_on,
+        )
+        if player:
+            self.player = player
+
+    # ── Row 1: Playback ───────────────────────────────────────────────────────
+
+    @discord.ui.button(emoji="⏮", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from cogs.commands.music import track_histories
+        guild_id = interaction.guild.id
+        vc = interaction.guild.voice_client
+        if guild_id in track_histories and len(track_histories[guild_id]) > 1:
+            track_histories[guild_id].pop()
+            prev = track_histories[guild_id][-1]
+            q = list(vc.queue)
+            vc.queue.clear()
+            await vc.queue.put_wait(prev)
+            for t in q:
+                await vc.queue.put_wait(t)
+            if vc.playing:
+                await vc.stop()
+            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
+        else:
+            await _confirm(interaction, "No previous track in history.")
+
+    @discord.ui.button(emoji="⏸", style=discord.ButtonStyle.success, row=1)
+    async def btn_pause(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player):
+            if vc.paused:
+                await vc.pause(False)
+                try:
+                    await vc.channel.edit(status=f"🎵 Playing: {vc.current.title}")
+                except Exception:
+                    pass
+                button.emoji = _pe("zpause") or discord.PartialEmoji.from_str("⏸")
+                button.style = discord.ButtonStyle.success
+            elif vc.playing:
+                await vc.pause(True)
+                try:
+                    await vc.channel.edit(status=f"⏸️ Paused: {vc.current.title}")
+                except Exception:
+                    pass
+                button.emoji = _pe("zplay") or discord.PartialEmoji.from_str("▶")
+                button.style = discord.ButtonStyle.secondary
+            await interaction.response.edit_message(view=self)
+        else:
+            await _confirm(interaction, "Nothing is playing.")
+
+    @discord.ui.button(emoji="⏭", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            if not vc.queue.is_empty:
+                np_msg = getattr(vc, '_playlist_np_msg', None)
+                if np_msg:
+                    try:
+                        await np_msg.delete()
+                    except Exception:
+                        pass
+                    vc._playlist_np_msg = None
+                await vc.stop()
+                await _confirm(interaction, f"{_e('skip') or '⏭'} Skipped.")
+            else:
+                await _confirm(interaction, "No next track queued.")
+        else:
+            await _confirm(interaction, "Nothing is playing.")
+
+    @discord.ui.button(emoji="⏹", style=discord.ButtonStyle.danger, row=1)
+    async def btn_stop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player):
+            if vc.channel:
+                try:
+                    await vc.channel.edit(status=None)
+                except Exception:
+                    pass
+            await vc.disconnect()
+            await _confirm(interaction, f"{_e('musicstop_icons') or '⏹'} Stopped.")
+        else:
+            await _confirm(interaction, "Not connected.")
+
+    # ── Row 2: Controls ───────────────────────────────────────────────────────
+
+    @discord.ui.button(emoji="🔄", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_replay(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player) and vc.playing:
+            await vc.seek(0)
+            await _confirm(interaction, f"{_e('rewind1') or '🔄'} Replaying from the start.")
+        else:
+            await _confirm(interaction, "Nothing is playing.")
+
+    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_shuffle(self, interaction: discord.Interaction, button: discord.ui.Button):
+        import random as _random
+        vc = interaction.guild.voice_client
+        if not vc or not isinstance(vc, wavelink.Player):
+            await _confirm(interaction, "No active player.")
+            return
+        if not self._shuffle_on:
+            if not vc.queue:
+                await _confirm(interaction, "Queue is empty — nothing to shuffle.")
+                return
+            self._pre_shuffle = list(vc.queue)
+            vc.queue.clear()
+            shuffled = list(self._pre_shuffle)
+            _random.shuffle(shuffled)
+            for t in shuffled:
+                await vc.queue.put_wait(t)
+            self._shuffle_on = True
+            button.style = discord.ButtonStyle.success
+        else:
+            if self._pre_shuffle:
+                vc.queue.clear()
+                for t in self._pre_shuffle:
+                    await vc.queue.put_wait(t)
+            self._pre_shuffle = []
+            self._shuffle_on  = False
+            button.style = discord.ButtonStyle.secondary
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_loop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self._loop_on = not self._loop_on
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player):
+            vc.queue.mode = (
+                wavelink.QueueMode.loop_all if self._loop_on else wavelink.QueueMode.normal
+            )
+        button.style = discord.ButtonStyle.success if self._loop_on else discord.ButtonStyle.secondary
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=2)
+    async def btn_volume(self, interaction: discord.Interaction, button: discord.ui.Button):
+        vc = interaction.guild.voice_client
+        if vc and isinstance(vc, wavelink.Player):
+            await interaction.response.send_modal(VolumeModal(vc))
+        else:
+            await _confirm(interaction, "Not connected to a voice channel.")
+
+    # ── Row 3: Pagination + Edit ─────────────────────────────────────────────
+
+    @discord.ui.button(emoji="◀", style=discord.ButtonStyle.secondary,
+                       row=3, custom_id="pav_prev", disabled=True)
+    async def btn_prev_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.page > 0:
+            self.page -= 1
+            self._rebuild_song_select()
+            self._update_nav()
+            await interaction.response.edit_message(embed=self._build_embed(), view=self)
+        else:
+            await interaction.response.defer()
+
+    @discord.ui.button(emoji="▶", style=discord.ButtonStyle.secondary,
+                       row=3, custom_id="pav_next")
+    async def btn_next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
+        if self.page < total_pages - 1:
+            self.page += 1
+            self._rebuild_song_select()
+            self._update_nav()
+            await interaction.response.edit_message(embed=self._build_embed(), view=self)
+        else:
+            await interaction.response.defer()
+
+    @discord.ui.button(label="Edit Playlist", emoji="✏️", style=discord.ButtonStyle.secondary,
+                       row=3, custom_id="pav_edit")
+    async def btn_edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if str(interaction.user.id) != str(self.playlist.get("user_id", "")):
+            await _confirm(interaction, "Only the playlist owner can edit this playlist.")
+            return
+        edit_view = PlaylistEditView(self.playlist, self)
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title=f"✏️  Edit: {self.playlist['name']}",
+                description="Use the buttons below to manage songs in your playlist.",
+                color=COLOR_NOW_PLAYING,
+            ),
+            view=edit_view,
+            ephemeral=True,
+        )
+
 
 class PlaylistControlView(discord.ui.View):
     """
@@ -700,19 +1123,15 @@ class PlaylistControlView(discord.ui.View):
 
 class PlaylistDetailView(discord.ui.View):
     """
-    Shown after a user selects a playlist from the browser.
+    Public message shown after selecting a playlist from the browser.
 
-    Layout (owner):
-      Row 0 — Song Selector dropdown (play immediately from chosen song)
-      Row 1 — Play Playlist (emoji) | Add Song (emoji) | Remove Song (emoji)
-      Row 2 — Prev Page | Next Page
+    Layout (all users):
+      Row 0 — Song Selector dropdown (start playback from chosen song)
+      Row 1 — ▶ Play Playlist  |  ✏️ Edit Playlist (owner only — opens private edit panel)
+      Row 2 — ◀ Prev Page | ▶ Next Page
 
-    Layout (other users):
-      Row 0 — Song Selector dropdown
-      Row 1 — Play Playlist (emoji)
-      Row 2 — Prev Page | Next Page
-
-    All control buttons are emoji-only, no text labels.
+    When play starts the message is updated in-place to PlaylistActiveView
+    (which contains the full playback control panel).
     """
 
     PER_PAGE = 20
@@ -726,34 +1145,31 @@ class PlaylistDetailView(discord.ui.View):
         owner_name: str = "",
     ):
         super().__init__(timeout=300)
-        self.playlist        = playlist
-        self.songs           = songs
-        self._original_songs = list(songs)
-        self.page            = page
-        self._loop_on        = False
-        self._start_index    = 0
-        self._owner_name     = owner_name
-        self._is_owner       = str(viewer_id) == str(playlist.get("user_id", ""))
+        self.playlist     = playlist
+        self.songs        = songs
+        self.page         = page
+        self._loop_on     = False
+        self._owner_name  = owner_name
+        self._viewer_id   = viewer_id
+        self._is_owner    = str(viewer_id) == str(playlist.get("user_id", ""))
+        self.message      = None  # set after sending
 
-        # ── Static buttons (defined below as decorators) ──────────────────────
-        # Assign custom emojis after super().__init__ completes
+        # Assign custom emojis
         _emap = {
-            "play_btn":   _pe("zplay")   or None,
-            "add_btn":    _pe("zplus")   or None,
-            "remove_btn": _pe("delete")  or None,
+            "pdv_play_btn": _pe("zplay") or None,
+            "pdv_edit_btn": _pe("ztools") or None,
         }
         for child in self.children:
             if isinstance(child, discord.ui.Button):
-                cid = getattr(child, "custom_id", "")
+                cid = getattr(child, "custom_id", "") or ""
                 for key, emo in _emap.items():
                     if key in cid and emo:
                         child.emoji = emo
 
-        # Hide owner-only buttons if viewer is not the owner
+        # Hide edit button for non-owners
         if not self._is_owner:
             for child in list(self.children):
-                cid = getattr(child, "custom_id", "")
-                if "add_btn" in cid or "remove_btn" in cid:
+                if (getattr(child, "custom_id", "") or "") == "pdv_edit_btn":
                     self.remove_item(child)
 
         self._rebuild_song_select()
@@ -762,32 +1178,24 @@ class PlaylistDetailView(discord.ui.View):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _rebuild_song_select(self):
-        """Rebuild the song-jump select menu for the current page."""
         for item in list(self.children):
             if isinstance(item, discord.ui.Select) and getattr(item, '_is_song_select', False):
                 self.remove_item(item)
-
         total = len(self.songs)
         if total == 0:
             return
-
         start = self.page * self.PER_PAGE
         options = [
             discord.SelectOption(
                 label=f"{i + 1}. {self.songs[i]['song_name'][:80]}",
                 value=str(i),
-                description="Play immediately from this song",
+                description="Start playlist from this song",
             )
             for i in range(start, min(start + self.PER_PAGE, total, start + 25))
         ]
         if not options:
             return
-
-        sel = discord.ui.Select(
-            placeholder="Choose a song to play…",
-            options=options,
-            row=0,
-        )
+        sel = discord.ui.Select(placeholder="Choose a song to play…", options=options, row=0)
         sel._is_song_select = True
         sel.callback = self._on_song_select
         self.add_item(sel)
@@ -796,10 +1204,10 @@ class PlaylistDetailView(discord.ui.View):
         total_pages = max(1, (len(self.songs) - 1) // self.PER_PAGE + 1) if self.songs else 1
         for item in self.children:
             if isinstance(item, discord.ui.Button):
-                cid = getattr(item, "custom_id", "")
-                if "pdv_prev" in cid:
+                cid = getattr(item, "custom_id", "") or ""
+                if cid == "pdv_prev":
                     item.disabled = (self.page == 0)
-                elif "pdv_next" in cid:
+                elif cid == "pdv_next":
                     item.disabled = (self.page >= total_pages - 1)
 
     def _build_embed(self) -> discord.Embed:
@@ -807,127 +1215,76 @@ class PlaylistDetailView(discord.ui.View):
             self.playlist, self.songs, self.page, self.PER_PAGE, self._owner_name
         )
 
+    async def _start_playback(
+        self, interaction: discord.Interaction, start_index: int = 0
+    ):
+        """
+        Internal: queue & play the playlist, then transition this message
+        in-place to PlaylistActiveView (track list + controls in one message).
+        """
+        existing_vc = interaction.guild.voice_client
+        if existing_vc and isinstance(existing_vc, wavelink.Player):
+            existing_vc.queue.clear()
+            if existing_vc.playing:
+                existing_vc._playlist_restarting = True
+                await existing_vc.stop()
+                await asyncio.sleep(0.3)
+                existing_vc._playlist_restarting = False
+
+        player = await _queue_playlist_and_play(
+            interaction, self.playlist, self.songs,
+            start_index=start_index, loop_all=self._loop_on,
+        )
+
+        if player and self.message:
+            active_view = PlaylistActiveView(
+                player=player,
+                channel=interaction.channel,
+                playlist=self.playlist,
+                songs=self.songs,
+                viewer_id=self._viewer_id,
+                page=self.page,
+                owner_name=self._owner_name,
+            )
+            active_view._loop_on = self._loop_on
+            try:
+                await self.message.edit(embed=self._build_embed(), view=active_view)
+                active_view.message = self.message
+            except Exception:
+                pass
+
     # ── Song selector callback ────────────────────────────────────────────────
 
     async def _on_song_select(self, interaction: discord.Interaction):
         idx = int(interaction.data["values"][0])
         await interaction.response.defer()
-        # Stop existing playback cleanly
-        existing_vc = interaction.guild.voice_client
-        if existing_vc and isinstance(existing_vc, wavelink.Player):
-            existing_vc.queue.clear()
-            if existing_vc.playing:
-                existing_vc._playlist_restarting = True
-                await existing_vc.stop()
-                await asyncio.sleep(0.3)
-                existing_vc._playlist_restarting = False
-        await _queue_playlist_and_play(
-            interaction,
-            self.playlist,
-            self.songs,
-            start_index=idx,
-            loop_all=self._loop_on,
-        )
+        await self._start_playback(interaction, start_index=idx)
 
-    # ── Row 1: Play | Add (owner) | Remove (owner) ───────────────────────────
+    # ── Row 1: Play | Edit (owner) ────────────────────────────────────────────
 
     @discord.ui.button(emoji="▶", style=discord.ButtonStyle.success,
                        row=1, custom_id="pdv_play_btn")
     async def btn_play(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        existing_vc = interaction.guild.voice_client
-        if existing_vc and isinstance(existing_vc, wavelink.Player):
-            existing_vc.queue.clear()
-            if existing_vc.playing:
-                existing_vc._playlist_restarting = True
-                await existing_vc.stop()
-                await asyncio.sleep(0.3)
-                existing_vc._playlist_restarting = False
-        await _queue_playlist_and_play(
-            interaction,
-            self.playlist,
-            self.songs,
-            start_index=0,
-            loop_all=self._loop_on,
-        )
+        await self._start_playback(interaction, start_index=0)
 
-    @discord.ui.button(emoji="➕", style=discord.ButtonStyle.secondary,
-                       row=1, custom_id="pdv_add_btn")
-    async def btn_add(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Owner only: opens modal to add a song."""
+    @discord.ui.button(label="Edit Playlist", emoji="✏️", style=discord.ButtonStyle.secondary,
+                       row=1, custom_id="pdv_edit_btn")
+    async def btn_edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Owner only: opens private edit panel."""
         if str(interaction.user.id) != str(self.playlist.get("user_id", "")):
-            await _confirm(interaction, "Only the playlist owner can add songs.")
+            await _confirm(interaction, "Only the playlist owner can edit this playlist.")
             return
-        await interaction.response.send_modal(AddSongModal(self.playlist, self))
-
-    @discord.ui.button(emoji="🗑", style=discord.ButtonStyle.danger,
-                       row=1, custom_id="pdv_remove_btn")
-    async def btn_remove(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Owner only: shows ephemeral select to remove a song (auto-deletes after 5 s)."""
-        if str(interaction.user.id) != str(self.playlist.get("user_id", "")):
-            await _confirm(interaction, "Only the playlist owner can remove songs.")
-            return
-
-        if not self.songs:
-            await _confirm(interaction, "No songs in this playlist.")
-            return
-
-        options = [
-            discord.SelectOption(
-                label=f"{i + 1}. {s['song_name'][:80]}",
-                value=str(s["id"]),
-            )
-            for i, s in enumerate(self.songs[:25])
-        ]
-
-        # Capture outer `self` for inner class usage
-        _outer = self
-
-        class RemoveSelect(discord.ui.View):
-            def __init__(rs_self):
-                super().__init__(timeout=10)
-                sel = discord.ui.Select(placeholder="Select song to remove…", options=options)
-
-                async def _on_remove(sel_inter: discord.Interaction):
-                    song_id = int(sel_inter.data["values"][0])
-                    removed  = await _db.remove_song(_outer.playlist["id"], song_id)
-                    if removed:
-                        _outer.songs = await _db.get_songs(_outer.playlist["id"])
-                        _outer._rebuild_song_select()
-                    await sel_inter.response.send_message(
-                        embed=discord.Embed(
-                            description=f"{_e('ztick') or '✅'} Song removed.",
-                            color=COLOR_NOW_PLAYING,
-                        ),
-                        ephemeral=True,
-                    )
-                    async def _del():
-                        await asyncio.sleep(CONFIRM_DELAY)
-                        try:
-                            await sel_inter.delete_original_response()
-                        except Exception:
-                            pass
-                    asyncio.create_task(_del())
-
-                sel.callback = _on_remove
-                rs_self.add_item(sel)
-
+        edit_view = PlaylistEditView(self.playlist, self)
         await interaction.response.send_message(
             embed=discord.Embed(
-                description="Select a song to remove:",
-                color=COLOR_CONTROL,
+                title=f"✏️  Edit: {self.playlist['name']}",
+                description="Use the buttons below to manage songs in your playlist.",
+                color=COLOR_NOW_PLAYING,
             ),
-            view=RemoveSelect(),
+            view=edit_view,
             ephemeral=True,
         )
-        # Auto-delete the remove panel after 5 s
-        async def _del_panel():
-            await asyncio.sleep(5)
-            try:
-                await interaction.delete_original_response()
-            except Exception:
-                pass
-        asyncio.create_task(_del_panel())
 
     # ── Row 2: Pagination ─────────────────────────────────────────────────────
 
@@ -1045,7 +1402,13 @@ class PlaylistBrowserView(discord.ui.View):
 
         view  = PlaylistDetailView(pl, songs, viewer_id=interaction.user.id, owner_name=owner_name)
         embed = _build_playlist_embed(pl, songs, owner_name=owner_name)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        # Public message — visible to everyone in the channel
+        await interaction.response.send_message(embed=embed, view=view)
+        # Store the message so PlaylistDetailView can edit it in-place when play starts
+        try:
+            view.message = await interaction.original_response()
+        except Exception:
+            pass
 
     @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary,
                        row=1, custom_id="pbv_prev", disabled=True)
