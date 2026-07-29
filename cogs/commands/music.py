@@ -246,18 +246,18 @@ class MusicControlView(View):
         # Button order matches decorator order below:
         # Row 0: previous(0), pause(1), next(2)
         # Row 1: stop(3)
-        # Row 2: queue(4), playlist(5), shuffle(6)
-        # Row 3: volume(7), loop(8)
+        # Row 2: queue(4), shuffle(5)
+        # Row 3: volume(6), loop(7), playlist(8) — playlist is last
         _emap = [
-            _pe("zback"),            # 0 previous
+            _pe("rewind1"),          # 0 previous  (◀◀| backward symbol)
             _pe("zpause"),           # 1 pause / resume
             _pe("skip"),             # 2 next
             _pe("musicstop_icons"),  # 3 stop
             _pe("zqueue"),           # 4 show queue
-            _pe("zmusic"),           # 5 playlist browser
-            _pe("shuffle"),          # 6 shuffle
-            _pe("zunmute"),          # 7 volume
-            _pe("zloop"),            # 8 loop
+            _pe("shuffle"),          # 5 shuffle
+            _pe("zunmute"),          # 6 volume
+            _pe("zloop"),            # 7 loop
+            _pe("zmusic"),           # 8 playlist browser (last)
         ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
         for btn, emo in zip(buttons, _emap):
@@ -376,28 +376,6 @@ class MusicControlView(View):
         )
         await interaction.response.send_message(embed=em, ephemeral=True)
 
-    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=2)
-    async def btn_playlist(self, interaction: discord.Interaction, button: Button):
-        """Open the Playlist browser."""
-        await interaction.response.defer(ephemeral=True)
-        try:
-            from cogs.commands.playlist import _db, PlaylistBrowserView
-            playlists = await _db.get_all_playlists()
-        except Exception:
-            playlists = []
-        if not playlists:
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    description="No playlists found. Create one with `/playlist create`.",
-                    color=COLOR_CONTROL,
-                ),
-                ephemeral=True,
-            )
-            return
-        view  = PlaylistBrowserView(playlists)
-        embed = view.build_embed()
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-
     @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=2)
     async def btn_shuffle(self, interaction: discord.Interaction, button: Button):
         if not self._shuffle_on:
@@ -436,6 +414,28 @@ class MusicControlView(View):
         )
         button.style = discord.ButtonStyle.success if self._loop_on else discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=3)
+    async def btn_playlist(self, interaction: discord.Interaction, button: Button):
+        """Open the Playlist browser — last button in row 3."""
+        await interaction.response.defer(ephemeral=True)
+        try:
+            from cogs.commands.playlist import _db, PlaylistBrowserView
+            playlists = await _db.get_all_playlists()
+        except Exception:
+            playlists = []
+        if not playlists:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    description="No playlists found. Create one with `/playlist create`.",
+                    color=COLOR_CONTROL,
+                ),
+                ephemeral=True,
+            )
+            return
+        view  = PlaylistBrowserView(playlists)
+        embed = view.build_embed()
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 
@@ -760,26 +760,25 @@ class Music(commands.Cog):
             else f"{ctx.author.mention} *(Autoplay)*"
         )
 
-        # VC info: channel name + member count (excluding the bot itself)
+        # VC info: channel mention
         vc_line = ""
         try:
             vc = player.channel
             if vc:
-                human_members = [m for m in vc.members if not m.bot]
-                vc_line = f"\n📍 **{vc.name}** · {len(human_members)} member{'s' if len(human_members) != 1 else ''}"
+                vc_line = f"\n{_e('channel')} {vc.mention}"
         except Exception:
             pass
 
         # Queue info
         q_len = len(player.queue) if (not playlist_mode and not autoplay and player.queue) else 0
-        queue_line = f"\n📋 **{q_len}** track{'s' if q_len != 1 else ''} in queue" if q_len > 0 else ""
+        queue_line = f"\n{_e('zmsg')} **{q_len}** track{'s' if q_len != 1 else ''} in queue" if q_len > 0 else ""
 
         description = (
-            f"**[{track.title}]({track.uri})**\n\n"
-            f"➕ {requester_label}"
+            f"[**{track.title} — {track.author}**]({track.uri})\n\n"
+            f"{_e('zplus')} {requester_label}"
             f"{vc_line}"
             f"{queue_line}\n\n"
-            f"`0:00 / {duration}`"
+            f"`{duration}`"
         )
 
         embed = discord.Embed(

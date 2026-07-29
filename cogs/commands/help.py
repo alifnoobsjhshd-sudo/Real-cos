@@ -265,7 +265,7 @@ class HelpCommand(commands.HelpCommand):
 
     branding = await get_branding(ctx.guild.id)
     entries = [(
-      f"> `{self.context.prefix}{cmd.qualified_name}`",
+      f"`{self.context.prefix}{cmd.qualified_name}`",
       f"-# Description : {cmd.short_doc if cmd.short_doc else ''}"
       f"\n\u200b",
     ) for cmd in cog.get_commands()]
