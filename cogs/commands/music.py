@@ -415,10 +415,10 @@ class MusicControlView(View):
         button.style = discord.ButtonStyle.success if self._loop_on else discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(emoji="🎵", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(label="Playlist", emoji="🎵", style=discord.ButtonStyle.primary, row=3)
     async def btn_playlist(self, interaction: discord.Interaction, button: Button):
-        """Open the Playlist browser — last button in row 3."""
-        await interaction.response.defer(ephemeral=True)
+        """Open the Playlist browser — last button in row 3, public."""
+        await interaction.response.defer()
         try:
             from cogs.commands.playlist import _db, PlaylistBrowserView
             playlists = await _db.get_all_playlists()
@@ -430,12 +430,11 @@ class MusicControlView(View):
                     description="No playlists found. Create one with `/playlist create`.",
                     color=COLOR_CONTROL,
                 ),
-                ephemeral=True,
             )
             return
         view  = PlaylistBrowserView(playlists)
         embed = view.build_embed()
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view)
 
 
 
