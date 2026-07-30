@@ -299,7 +299,7 @@ class MusicControlView(View):
                 await vc.queue.put_wait(_t)
             if self.player.playing:
                 await self.player.stop()
-            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('rewind1') or '⏮'} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
@@ -781,7 +781,7 @@ class Music(commands.Cog):
         )
 
         embed = discord.Embed(
-            title="Now playing",
+            title=f"{_e('music')} Now playing",
             description=description,
             color=COLOR_NOW_PLAYING,
         )
@@ -853,10 +853,11 @@ class Music(commands.Cog):
 
             sec      = track.length // 1000
             duration = f"{sec // 60:02d}:{sec % 60:02d}"
-            np_embed = discord.Embed(title="Now Playing", color=COLOR_NOW_PLAYING)
-            np_embed.description = f"**[{track.title}]({track.uri})**"
-            np_embed.add_field(name="Artist",   value=f"`{track.author}`",  inline=True)
-            np_embed.add_field(name="Duration", value=f"`{duration}`",       inline=True)
+            np_embed = discord.Embed(title=f"{_e('music')} Now Playing", color=COLOR_NOW_PLAYING)
+            np_embed.description = (
+                f"[**{track.title} — {track.author}**]({track.uri})\n\n"
+                f"{_e('ztimer')} `{duration}`"
+            )
             if track.artwork:
                 np_embed.set_thumbnail(url=track.artwork)
             if requester_name:
