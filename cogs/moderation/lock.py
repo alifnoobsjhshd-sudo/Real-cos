@@ -32,8 +32,15 @@ class Lock(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Lock the channel by updating permissions for the @everyone role
-        await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+        # Lock the channel — deny sending, reactions, and thread creation so
+        # members also can't react or start threads in announcement-style channels.
+        await channel.set_permissions(
+            ctx.guild.default_role,
+            send_messages=False,
+            add_reactions=False,
+            create_public_threads=False,
+            create_private_threads=False,
+        )
 
         # Create the confirmation embed
         embed = discord.Embed(

@@ -23,11 +23,12 @@ _DB_GLOBS = [
     "db/*.db",
     "j2c_data.db",
     "rr.db",
+    "branding.db",
     "data/emoji_store.json",
 ]
 
 # How often to auto-save (seconds)
-SYNC_INTERVAL = 300  # 5 minutes
+SYNC_INTERVAL = 60  # 1 minute — short enough that a crash loses very little data
 
 # ── Internal helpers ────────────────────────────────────────────────────────────
 

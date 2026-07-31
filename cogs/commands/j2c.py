@@ -344,6 +344,9 @@ class JoinToCreate(commands.Cog):
             await interface_channel.set_permissions(
                 ctx.guild.default_role,
                 send_messages=False,
+                add_reactions=False,
+                create_public_threads=False,
+                create_private_threads=False,
                 reason="J2C interface is read-only"
             )
         except Exception:

@@ -74,7 +74,7 @@ if _DATA_DIR:
 
         _migrate_dir("db",   os.path.join(_DATA_DIR, "db"))
         _migrate_dir("data", os.path.join(_DATA_DIR, "data"))
-        for _dbf in ["j2c_data.db", "rr.db"]:
+        for _dbf in ["j2c_data.db", "rr.db", "branding.db"]:
             _migrate_file(_dbf, os.path.join(_DATA_DIR, _dbf))
 
         print(f"[DATA_DIR] Persistent storage linked → {_DATA_DIR}")
@@ -372,6 +372,16 @@ async def main():
 
     await asyncio.sleep(5)
     await restore_from_neon()
+
+    # ── Save any new/changed local DBs to Neon immediately after restore ───────
+    # This ensures fresh databases created on a new deploy are backed up right
+    # away rather than waiting for the first periodic sync tick.
+    try:
+        from db_sync import save_to_neon as _initial_save
+        await _initial_save()
+        print("[startup] Initial Neon snapshot saved.")
+    except Exception as _sn_err:
+        print(f"[startup] Initial Neon save skipped: {_sn_err}")
 
     # ── Re-apply DB schema migrations after Neon restore ──────────────────────
     # restore_from_neon() may overwrite db/branding.db with an older Neon

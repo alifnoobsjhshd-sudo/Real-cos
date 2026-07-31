@@ -77,7 +77,15 @@ class Unlock(commands.Cog):
            # view.message = message
             return
 
-        await channel.set_permissions(ctx.guild.default_role, send_messages=True)
+        # Restore send_messages, reactions, and thread creation together so the
+        # unlock mirrors exactly what the lock command denies.
+        await channel.set_permissions(
+            ctx.guild.default_role,
+            send_messages=True,
+            add_reactions=True,
+            create_public_threads=True,
+            create_private_threads=True,
+        )
 
         embed = discord.Embed(
             description=f"**{_e('ztick')} | Successfully {channel.mention} is now unhidden",

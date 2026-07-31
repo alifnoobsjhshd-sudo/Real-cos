@@ -700,25 +700,48 @@ class ButtonManagerView(discord.ui.View):
         self.cog.db.execute("DELETE FROM ticket_categories WHERE guild_id=?", (guild_id,))
         staff_role_id = config["staff_role_id"]
 
-        for btn in self.buttons:
-            disc_cat_id = btn.get("discord_category_id")
-            disc_cat = self.ctx.guild.get_channel(disc_cat_id) if disc_cat_id else None
-            if not disc_cat:
-                try:
-                    disc_cat = await self.ctx.guild.create_category(
-                        f"{btn['name']} Tickets",
-                        overwrites={
-                            self.ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)
-                        }
-                    )
-                except Exception:
-                    await inter.followup.send(
-                        f"{_e('zcross')} Couldn't create Discord category for **{btn['name']}**. "
-                        "Check my permissions and try again.",
-                        ephemeral=True
-                    )
-                    return
+        # ── Shared "Tickets" category — one category at the top for all ticket types ──
+        # Look for an existing category already stored in any row for this guild,
+        # or fall back to any Discord category literally named "Tickets".
+        shared_cat = None
 
+        existing_cat_id = self.cog.db.fetchone(
+            "SELECT discord_category_id FROM ticket_categories WHERE guild_id=? LIMIT 1",
+            (guild_id,)
+        )
+        if existing_cat_id and existing_cat_id["discord_category_id"]:
+            shared_cat = self.ctx.guild.get_channel(existing_cat_id["discord_category_id"])
+
+        if not shared_cat:
+            # Try to find an existing "Tickets" category in Discord
+            shared_cat = discord.utils.find(
+                lambda c: isinstance(c, discord.CategoryChannel) and c.name.lower() == "tickets",
+                self.ctx.guild.channels
+            )
+
+        if not shared_cat:
+            try:
+                shared_cat = await self.ctx.guild.create_category(
+                    "Tickets",
+                    overwrites={
+                        self.ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)
+                    }
+                )
+            except Exception:
+                await inter.followup.send(
+                    f"{_e('zcross')} Couldn't create the **Tickets** category. "
+                    "Check my permissions and try again.",
+                    ephemeral=True
+                )
+                return
+
+        # Move the Tickets category to position 0 (top of all channels)
+        try:
+            await shared_cat.edit(position=0)
+        except Exception:
+            pass  # Non-fatal — category still works even if repositioning fails
+
+        for btn in self.buttons:
             self.cog.db.execute(
                 "INSERT INTO ticket_categories "
                 "(guild_id, name, emoji, notified_roles, button_style, discord_category_id, "
@@ -728,7 +751,7 @@ class ButtonManagerView(discord.ui.View):
                     guild_id, btn["name"], btn["emoji"],
                     str(staff_role_id) if staff_role_id else None,
                     discord.ButtonStyle.secondary.value,
-                    disc_cat.id,
+                    shared_cat.id,
                     btn.get("cat_embed_title"),
                     btn.get("cat_embed_description"),
                     btn.get("cat_embed_banner"),

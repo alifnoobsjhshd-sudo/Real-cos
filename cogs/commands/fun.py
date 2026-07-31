@@ -321,7 +321,13 @@ class Fun(commands.Cog):
         }
 
         def _valid(url: str) -> bool:
-            return isinstance(url, str) and url.startswith(("http://", "https://"))
+            # Exclude video files — Discord embed image fields only show still
+            # images or GIFs, not .mp4 files (nekos.best v2 returns .mp4).
+            return (
+                isinstance(url, str)
+                and url.startswith(("http://", "https://"))
+                and not url.lower().endswith((".mp4", ".webm", ".mov"))
+            )
 
         async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
             # ── Primary: otakugifs.xyz (most reliable from Replit/Render) ─────
