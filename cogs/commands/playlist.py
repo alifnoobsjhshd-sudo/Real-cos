@@ -639,11 +639,11 @@ class PlaylistActiveView(discord.ui.View):
         # Assign emojis to the playback/control buttons only (skip nav/edit)
         _nav_ids = {"pav_prev", "pav_next", "pav_edit"}
         _emap = [
-            _pe("rewind1"),          # 0 previous  (◀◀| backward symbol)
+            _pe("zback"),            # 0 previous
             _pe("zpause"),           # 1 pause/resume
             _pe("skip"),             # 2 next
             _pe("musicstop_icons"),  # 3 stop
-            _pe("zback"),            # 4 replay     (← restart current song)
+            _pe("rewind1"),          # 4 replay
             _pe("shuffle"),          # 5 shuffle
             _pe("zloop"),            # 6 loop
             _pe("zunmute"),          # 7 volume
@@ -656,23 +656,6 @@ class PlaylistActiveView(discord.ui.View):
         for btn, emo in zip(ctrl_buttons, _emap):
             if emo:
                 btn.emoji = emo
-
-        # Set nav/edit button emojis with custom bot emojis
-        for child in self.children:
-            if isinstance(child, discord.ui.Button):
-                cid = getattr(child, "custom_id", "") or ""
-                if cid == "pav_prev":
-                    emo = _pe("zback")
-                    if emo:
-                        child.emoji = emo
-                elif cid == "pav_next":
-                    emo = _pe("forward")
-                    if emo:
-                        child.emoji = emo
-                elif cid == "pav_edit":
-                    emo = _pe("zsettings")
-                    if emo:
-                        child.emoji = emo
 
         # Hide edit button for non-owners
         if not self._is_owner:
@@ -783,7 +766,7 @@ class PlaylistActiveView(discord.ui.View):
                 await vc.queue.put_wait(t)
             if vc.playing:
                 await vc.stop()
-            await _confirm(interaction, f"{_e('rewind1') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
@@ -928,7 +911,7 @@ class PlaylistActiveView(discord.ui.View):
         else:
             await interaction.response.defer()
 
-    @discord.ui.button(label="Edit Playlist", emoji="⚙️", style=discord.ButtonStyle.secondary,
+    @discord.ui.button(label="Edit Playlist", emoji="✏️", style=discord.ButtonStyle.secondary,
                        row=3, custom_id="pav_edit")
     async def btn_edit(self, interaction: discord.Interaction, button: discord.ui.Button):
         if str(interaction.user.id) != str(self.playlist.get("user_id", "")):
@@ -937,7 +920,7 @@ class PlaylistActiveView(discord.ui.View):
         edit_view = PlaylistEditView(self.playlist, self)
         await interaction.response.send_message(
             embed=discord.Embed(
-                title=f"{_e('zsettings')}  Edit: {self.playlist['name']}",
+                title=f"✏️  Edit: {self.playlist['name']}",
                 description="Use the buttons below to manage songs in your playlist.",
                 color=COLOR_NOW_PLAYING,
             ),
@@ -965,11 +948,11 @@ class PlaylistControlView(discord.ui.View):
         self._pre_shuffle: list = []
 
         _emap = [
-            _pe("rewind1"),         # 0 previous  (◀◀| backward symbol)
+            _pe("zback"),           # 0 previous
             _pe("zpause"),          # 1 pause/resume
             _pe("skip"),            # 2 next
             _pe("musicstop_icons"), # 3 stop
-            _pe("zback"),           # 4 replay     (← restart current song)
+            _pe("rewind1"),         # 4 replay
             _pe("shuffle"),         # 5 shuffle
             _pe("zloop"),           # 6 loop (loop_all)
             _pe("zunmute"),         # 7 volume
@@ -1015,7 +998,7 @@ class PlaylistControlView(discord.ui.View):
                 await vc.queue.put_wait(t)
             if vc.playing:
                 await vc.stop()
-            await _confirm(interaction, f"{_e('rewind1') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
@@ -1171,19 +1154,17 @@ class PlaylistDetailView(discord.ui.View):
         self._is_owner    = str(viewer_id) == str(playlist.get("user_id", ""))
         self.message      = None  # set after sending
 
-        # Assign custom emojis to all buttons
-        _btn_emap = {
-            "pdv_play_btn": _pe("zplay"),
-            "pdv_edit_btn": _pe("zsettings"),
-            "pdv_prev":     _pe("zback"),
-            "pdv_next":     _pe("forward"),
+        # Assign custom emojis
+        _emap = {
+            "pdv_play_btn": _pe("zplay") or None,
+            "pdv_edit_btn": _pe("ztools") or None,
         }
         for child in self.children:
             if isinstance(child, discord.ui.Button):
                 cid = getattr(child, "custom_id", "") or ""
-                emo = _btn_emap.get(cid)
-                if emo:
-                    child.emoji = emo
+                for key, emo in _emap.items():
+                    if key in cid and emo:
+                        child.emoji = emo
 
         # Hide edit button for non-owners
         if not self._is_owner:
@@ -1287,7 +1268,7 @@ class PlaylistDetailView(discord.ui.View):
         await interaction.response.defer()
         await self._start_playback(interaction, start_index=0)
 
-    @discord.ui.button(label="Edit Playlist", emoji="⚙️", style=discord.ButtonStyle.secondary,
+    @discord.ui.button(label="Edit Playlist", emoji="✏️", style=discord.ButtonStyle.secondary,
                        row=1, custom_id="pdv_edit_btn")
     async def btn_edit(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Owner only: opens private edit panel."""
@@ -1297,7 +1278,7 @@ class PlaylistDetailView(discord.ui.View):
         edit_view = PlaylistEditView(self.playlist, self)
         await interaction.response.send_message(
             embed=discord.Embed(
-                title=f"{_e('zsettings')}  Edit: {self.playlist['name']}",
+                title=f"✏️  Edit: {self.playlist['name']}",
                 description="Use the buttons below to manage songs in your playlist.",
                 color=COLOR_NOW_PLAYING,
             ),
