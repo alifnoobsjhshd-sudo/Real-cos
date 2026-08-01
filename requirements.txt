@@ -1,4 +1,5 @@
 asyncpg
+supabase
 discord.py
 jishaku
 pytz

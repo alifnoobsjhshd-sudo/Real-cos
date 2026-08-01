@@ -109,6 +109,38 @@ LAVALINK_PASSWORDS=pass1|pass2|pass3
 
 Hosting your own Lavalink server on Render's free tier (512 MB RAM) is possible only for very light usage (1–2 concurrent streams). For a reliable bot, run Lavalink on a VPS with at least 1 GB RAM, or combine your own node with a public fallback using the multi-node format above.
 
+## Supabase integration
+
+The bot has a ready-to-use Supabase client at `utils/supabase_client.py`.
+
+### Setup (one-time)
+
+1. Go to [supabase.com](https://supabase.com) → your project → **Settings → API**.
+2. Copy your **Project URL** and **anon / public key** (or service-role key for admin ops).
+3. Add them to **Replit Secrets** (padlock icon in the sidebar):
+   - `SUPABASE_URL` = `https://yourproject.supabase.co`
+   - `SUPABASE_KEY` = your anon or service-role key
+4. On Render, add the same two variables under **Environment**.
+
+### Using it in a cog
+
+```python
+from utils.supabase_client import get_supabase, sb_select, sb_upsert, sb_delete
+
+# Raw client — full Supabase Python SDK
+sb = get_supabase()
+result = sb.table("my_table").select("*").execute()
+
+# Convenience helpers (async-friendly wrappers)
+rows  = await sb_select("guilds", {"guild_id": str(ctx.guild.id)})
+await sb_upsert("guilds", {"id": str(ctx.guild.id), "prefix": ">"}, on_conflict="id")
+await sb_delete("warns", {"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
+```
+
+The existing SQLite databases are **unchanged** — Supabase is additive.
+
+---
+
 ## User preferences
 
 - Keep the existing project structure and stack.
