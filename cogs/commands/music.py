@@ -223,13 +223,66 @@ class VolumeModal(discord.ui.Modal, title="Set Volume"):
         asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
 
 
+class NowPlayingActionsView(View):
+    """
+    Minimal action row attached to the NP embed message (row 0 only).
+    Contains: Playlist browser | 💾 Save
+    These are the user-facing "what do I want to do with this song?" buttons.
+    The separator message below carries MusicControlView with all playback controls.
+    """
+
+    def __init__(self, player, ctx):
+        super().__init__(timeout=None)
+        self.player = player
+        self.ctx    = ctx
+
+        # Assign custom emojis
+        buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
+        _emap = [_pe("zmusic"), _pe("zplus")]
+        for btn, emo in zip(buttons, _emap):
+            if emo:
+                btn.emoji = emo
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Both buttons are open to any user in the guild — no VC check needed
+        return True
+
+    @discord.ui.button(label="Playlist", style=discord.ButtonStyle.primary, row=0)
+    async def btn_playlist(self, interaction: discord.Interaction, button: Button):
+        """Open the playlist browser."""
+        await interaction.response.defer(ephemeral=False)
+        try:
+            from cogs.commands.playlist import _db, PlaylistBrowserView
+            playlists = await _db.get_all_playlists(viewer_id=interaction.user.id)
+        except Exception:
+            playlists = []
+        if not playlists:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    description="No playlists found. Create one with `/playlist create`.",
+                    color=COLOR_CONTROL,
+                ),
+            )
+            return
+        from cogs.commands.playlist import PlaylistBrowserView
+        view  = PlaylistBrowserView(playlists, viewer_id=interaction.user.id)
+        embed = view.build_embed()
+        await interaction.followup.send(embed=embed, view=view)
+
+    @discord.ui.button(label="Save", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_save(self, interaction: discord.Interaction, button: Button):
+        """Save current track to a playlist."""
+        from cogs.commands.playlist import _handle_save_button
+        await _handle_save_button(interaction)
+
+
 class MusicControlView(View):
     """
-    Unified Now Playing controls — single message, emoji-only buttons.
+    Playback controls — shown on the separator message below the NP embed.
 
     Row 0 (Playback):  Previous | Pause/Resume | Next
     Row 1 (Stop):      Stop
-    Row 2 (Music):     Queue    | Playlist     | Shuffle
+    Row 2 (Music):     Queue    | Shuffle
     Row 3 (Settings):  Volume   | Loop
 
     Toggle buttons (Shuffle, Loop) turn green when enabled.
@@ -247,9 +300,9 @@ class MusicControlView(View):
         # Row 0: previous(0), pause(1), next(2)
         # Row 1: stop(3)
         # Row 2: queue(4), shuffle(5)
-        # Row 3: volume(6), loop(7), playlist(8) — playlist is last
+        # Row 3: volume(6), loop(7)
         _emap = [
-            _pe("rewind1"),          # 0 previous  (◀◀| backward symbol)
+            _pe("rewind1"),          # 0 previous
             _pe("zpause"),           # 1 pause / resume
             _pe("skip"),             # 2 next
             _pe("musicstop_icons"),  # 3 stop
@@ -257,7 +310,6 @@ class MusicControlView(View):
             _pe("shuffle"),          # 5 shuffle
             _pe("zunmute"),          # 6 volume
             _pe("zloop"),            # 7 loop
-            _pe("zmusic"),           # 8 playlist browser (last)
         ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
         for btn, emo in zip(buttons, _emap):
@@ -414,27 +466,6 @@ class MusicControlView(View):
         )
         button.style = discord.ButtonStyle.success if self._loop_on else discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
-
-    @discord.ui.button(label="Playlist", emoji="🎵", style=discord.ButtonStyle.primary, row=3)
-    async def btn_playlist(self, interaction: discord.Interaction, button: Button):
-        """Open the Playlist browser — last button in row 3, public."""
-        await interaction.response.defer()
-        try:
-            from cogs.commands.playlist import _db, PlaylistBrowserView
-            playlists = await _db.get_all_playlists()
-        except Exception:
-            playlists = []
-        if not playlists:
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    description="No playlists found. Create one with `/playlist create`.",
-                    color=COLOR_CONTROL,
-                ),
-            )
-            return
-        view  = PlaylistBrowserView(playlists)
-        embed = view.build_embed()
-        await interaction.followup.send(embed=embed, view=view)
 
 
 
@@ -743,12 +774,14 @@ class Music(commands.Cog):
         playlist_mode: bool = False,
     ) -> discord.Message:
         """
-        Send the Now Playing embed (single message).
+        Send the Now Playing embed as two messages:
+          1. NP embed  +  NowPlayingActionsView  (Playlist | Save)
+          2. Separator  +  MusicControlView       (all playback controls)
 
-        Normal mode:   embed + MusicControlView (all controls in one message).
-        Playlist mode: embed only — PlaylistControlView (sent earlier) owns controls.
+        Playlist mode: embed + NowPlayingActionsView only — the
+        PlaylistControlView owns playback controls.
 
-        Returns the sent message so callers can track/delete it later.
+        Returns the first (embed) message so callers can track/delete it.
         """
         sec      = track.length // 1000
         duration = f"{sec // 60:02d}:{sec % 60:02d}"
@@ -759,7 +792,6 @@ class Music(commands.Cog):
             else f"{ctx.author.mention} *(Autoplay)*"
         )
 
-        # VC info: channel mention
         vc_line = ""
         try:
             vc = player.channel
@@ -768,7 +800,6 @@ class Music(commands.Cog):
         except Exception:
             pass
 
-        # Queue info
         q_len = len(player.queue) if (not playlist_mode and not autoplay and player.queue) else 0
         queue_line = f"\n{_e('zmsg')} **{q_len}** track{'s' if q_len != 1 else ''} in queue" if q_len > 0 else ""
 
@@ -789,16 +820,21 @@ class Music(commands.Cog):
         if track.artwork:
             embed.set_thumbnail(url=track.artwork)
 
-        # ── Send ─────────────────────────────────────────────────────────────
-        if playlist_mode:
-            # Playlist mode: no interactive buttons on per-song embed —
-            # the persistent PlaylistControlView owns all controls.
-            np_msg = await ctx.send(embed=embed)
-        else:
-            np_msg = await ctx.send(
-                embed=embed,
-                view=MusicControlView(player, ctx),
-            )
+        # ── Message 1: embed + action buttons ────────────────────────────────
+        np_msg = await ctx.send(
+            embed=embed,
+            view=NowPlayingActionsView(player, ctx),
+        )
+
+        # ── Message 2: separator + playback controls (normal mode only) ──────
+        if not playlist_mode:
+            try:
+                await ctx.send(
+                    content="─────────────────────",
+                    view=MusicControlView(player, ctx),
+                )
+            except Exception:
+                pass
 
         return np_msg
 
@@ -863,7 +899,10 @@ class Music(commands.Cog):
                 np_embed.set_footer(text=f"Requested by {requester_name}", icon_url=icon_url_)
 
             try:
-                np_msg = await ch.send(embed=np_embed)
+                np_msg = await ch.send(
+                    embed=np_embed,
+                    view=NowPlayingActionsView(player, ctx),
+                )
                 player._playlist_np_msg = np_msg
             except Exception:
                 pass

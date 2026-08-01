@@ -67,9 +67,15 @@ class PlaylistDB:
                     user_id    TEXT    NOT NULL,
                     name       TEXT    NOT NULL,
                     created_at TEXT    NOT NULL,
+                    visibility TEXT    NOT NULL DEFAULT 'public',
                     UNIQUE(user_id, name)
                 )
             """)
+            # Migrate older databases that lack the visibility column
+            try:
+                await db.execute("ALTER TABLE playlists ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'")
+            except Exception:
+                pass
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS playlist_songs (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,13 +89,14 @@ class PlaylistDB:
             """)
             await db.commit()
 
-    async def create_playlist(self, user_id: int, name: str) -> bool:
+    async def create_playlist(self, user_id: int, name: str, visibility: str = "public") -> bool:
+        vis = visibility if visibility in ("public", "private") else "public"
         try:
             async with self._conn() as db:
                 await self._setup(db)
                 await db.execute(
-                    "INSERT INTO playlists (user_id, name, created_at) VALUES (?, ?, ?)",
-                    (str(user_id), name, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+                    "INSERT INTO playlists (user_id, name, created_at, visibility) VALUES (?, ?, ?, ?)",
+                    (str(user_id), name, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), vis)
                 )
                 await db.commit()
             return True
@@ -117,24 +124,32 @@ class PlaylistDB:
             await self._setup(db)
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                "SELECT id, name, created_at FROM playlists WHERE user_id = ? ORDER BY name COLLATE NOCASE",
+                "SELECT p.id, p.name, p.created_at, p.visibility, COUNT(s.id) AS song_count "
+                "FROM playlists p LEFT JOIN playlist_songs s ON s.playlist_id = p.id "
+                "WHERE p.user_id = ? GROUP BY p.id ORDER BY p.name COLLATE NOCASE",
                 (str(user_id),)
             ) as cur:
                 return [dict(r) for r in await cur.fetchall()]
 
-    async def get_all_playlists(self, search: str = None) -> list:
+    async def get_all_playlists(self, search: str = None, viewer_id: int = None) -> list:
+        """Return playlists visible to viewer_id: all public + viewer's own private."""
         async with self._conn() as db:
             await self._setup(db)
             db.row_factory = aiosqlite.Row
             query = (
-                "SELECT p.id, p.user_id, p.name, p.created_at, COUNT(s.id) AS song_count "
+                "SELECT p.id, p.user_id, p.name, p.created_at, p.visibility, COUNT(s.id) AS song_count "
                 "FROM playlists p LEFT JOIN playlist_songs s ON s.playlist_id = p.id "
             )
+            conditions: list[str] = []
+            args: list = []
+            if viewer_id is not None:
+                conditions.append("(p.visibility = 'public' OR p.user_id = ?)")
+                args.append(str(viewer_id))
             if search:
-                query += "WHERE LOWER(p.name) LIKE ? "
-                args   = (f"%{search.lower()}%",)
-            else:
-                args   = ()
+                conditions.append("LOWER(p.name) LIKE ?")
+                args.append(f"%{search.lower()}%")
+            if conditions:
+                query += "WHERE " + " AND ".join(conditions) + " "
             query += "GROUP BY p.id ORDER BY p.name COLLATE NOCASE"
             async with db.execute(query, args) as cur:
                 return [dict(r) for r in await cur.fetchall()]
@@ -155,7 +170,7 @@ class PlaylistDB:
             await self._setup(db)
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                "SELECT p.id, p.user_id, p.name, p.created_at, COUNT(s.id) AS song_count "
+                "SELECT p.id, p.user_id, p.name, p.created_at, p.visibility, COUNT(s.id) AS song_count "
                 "FROM playlists p LEFT JOIN playlist_songs s ON s.playlist_id = p.id "
                 "WHERE p.id = ? GROUP BY p.id",
                 (playlist_id,)
@@ -169,10 +184,73 @@ class PlaylistDB:
             db.row_factory = aiosqlite.Row
             async with db.execute(
                 "SELECT id, song_name, song_uri, position, added_at "
-                "FROM playlist_songs WHERE playlist_id = ? ORDER BY id DESC",
+                "FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC, id ASC",
                 (playlist_id,)
             ) as cur:
                 return [dict(r) for r in await cur.fetchall()]
+
+    async def rename_playlist(self, user_id: int, playlist_id: int, new_name: str) -> bool:
+        new_name = new_name.strip()[:50]
+        if not new_name:
+            return False
+        try:
+            async with self._conn() as db:
+                await self._setup(db)
+                cur = await db.execute(
+                    "UPDATE playlists SET name = ? WHERE id = ? AND user_id = ?",
+                    (new_name, playlist_id, str(user_id))
+                )
+                await db.commit()
+                return cur.rowcount > 0
+        except aiosqlite.IntegrityError:
+            return False
+
+    async def set_visibility(self, user_id: int, playlist_id: int, visibility: str) -> bool:
+        vis = visibility if visibility in ("public", "private") else "public"
+        async with self._conn() as db:
+            await self._setup(db)
+            cur = await db.execute(
+                "UPDATE playlists SET visibility = ? WHERE id = ? AND user_id = ?",
+                (vis, playlist_id, str(user_id))
+            )
+            await db.commit()
+            return cur.rowcount > 0
+
+    async def get_playlist_ids_containing_uri(self, user_id: int, song_uri: str) -> set:
+        """Return set of playlist IDs (owned by user_id) that already contain song_uri."""
+        async with self._conn() as db:
+            await self._setup(db)
+            async with db.execute(
+                "SELECT ps.playlist_id FROM playlist_songs ps "
+                "JOIN playlists p ON p.id = ps.playlist_id "
+                "WHERE p.user_id = ? AND ps.song_uri = ?",
+                (str(user_id), song_uri)
+            ) as cur:
+                return {row[0] for row in await cur.fetchall()}
+
+    async def move_song(self, playlist_id: int, song_id: int, direction: str) -> bool:
+        """Swap the position of song_id with the adjacent song (direction='up'/'down')."""
+        async with self._conn() as db:
+            await self._setup(db)
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT id, position FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC, id ASC",
+                (playlist_id,)
+            ) as cur:
+                rows = [dict(r) for r in await cur.fetchall()]
+
+            idx = next((i for i, r in enumerate(rows) if r["id"] == song_id), None)
+            if idx is None:
+                return False
+            swap_idx = idx - 1 if direction == "up" else idx + 1
+            if swap_idx < 0 or swap_idx >= len(rows):
+                return False
+
+            a, b = rows[idx], rows[swap_idx]
+            await db.execute("UPDATE playlist_songs SET position = ? WHERE id = ?", (b["position"], a["id"]))
+            await db.execute("UPDATE playlist_songs SET position = ? WHERE id = ?", (a["position"], b["id"]))
+            await db.commit()
+            return True
 
     async def add_song(self, playlist_id: int, song_name: str, song_uri: str) -> bool:
         async with self._conn() as db:
@@ -240,8 +318,9 @@ def _build_playlist_embed(
     owner_name: str = "",
 ) -> discord.Embed:
     """Build the embed showing a playlist's details and song list."""
+    vis_icon = "🔒" if pl.get("visibility") == "private" else "🌐"
     em = discord.Embed(
-        title=f"{_e('zmusic') or '🎵'}  {pl['name']}",
+        title=f"{_e('zmusic') or '🎵'}  {pl['name']}  {vis_icon}",
         color=COLOR_CONTROL,
     )
     total      = len(songs)
@@ -253,6 +332,7 @@ def _build_playlist_embed(
     if owner_name:
         info_lines.append(f"**Owner:** {owner_name}")
     info_lines.append(f"**Songs:** {total}")
+    info_lines.append(f"**Visibility:** {'Private 🔒' if pl.get('visibility') == 'private' else 'Public 🌐'}")
     em.description = "\n".join(info_lines)
 
     if page_songs:
@@ -496,6 +576,306 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+# MODALS  (new)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class RenamePlaylistModal(discord.ui.Modal, title="Rename Playlist"):
+    name_input = discord.ui.TextInput(
+        label="New playlist name",
+        placeholder="Enter a new name (max 50 characters)",
+        min_length=1,
+        max_length=50,
+        required=True,
+    )
+
+    def __init__(self, playlist: dict, parent_view):
+        super().__init__()
+        self.playlist    = playlist
+        self.parent_view = parent_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        new_name = self.name_input.value.strip()
+        ok = await _db.rename_playlist(
+            interaction.user.id, self.playlist["id"], new_name
+        )
+        if not ok:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"{_e('zcross') or '❌'} Could not rename — you may already have a playlist with that name.",
+                    color=0xFF0000,
+                ),
+                ephemeral=True,
+            )
+            return
+        # Refresh cached name in parent_view if it's PlaylistDetailView/PlaylistActiveView
+        self.playlist["name"] = new_name
+        if self.parent_view is not None and getattr(self.parent_view, 'playlist', None) is not None:
+            self.parent_view.playlist["name"] = new_name
+            if getattr(self.parent_view, 'message', None):
+                try:
+                    await self.parent_view.message.edit(
+                        embed=self.parent_view._build_embed(),
+                        view=self.parent_view,
+                    )
+                except Exception:
+                    pass
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"{_e('ztick') or '✅'} Renamed to **{new_name}**.",
+                color=COLOR_NOW_PLAYING,
+            ),
+            ephemeral=True,
+        )
+        asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
+
+
+class SaveCreateModal(discord.ui.Modal, title="Create New Playlist & Save"):
+    name_input = discord.ui.TextInput(
+        label="Playlist name",
+        placeholder="Enter a name (max 50 characters)",
+        min_length=1,
+        max_length=50,
+        required=True,
+    )
+    visibility_input = discord.ui.TextInput(
+        label="Visibility  (public / private)",
+        placeholder="public",
+        default="public",
+        min_length=6,
+        max_length=7,
+        required=False,
+    )
+
+    def __init__(self, track, user_id: int):
+        super().__init__()
+        self.track   = track   # wavelink.Playable
+        self.user_id = user_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        name = self.name_input.value.strip()[:50]
+        raw_vis = (self.visibility_input.value or "public").strip().lower()
+        visibility = "private" if raw_vis == "private" else "public"
+
+        ok = await _db.create_playlist(self.user_id, name, visibility)
+        if not ok:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"{_e('zcross') or '❌'} You already have a playlist named **{name}**.",
+                    color=0xFF0000,
+                ),
+                ephemeral=True,
+            )
+            return
+
+        pl = await _db.get_playlist_by_owner_name(self.user_id, name)
+        if pl:
+            await _db.add_song(pl["id"], self.track.title, self.track.uri)
+            songs    = await _db.get_songs(pl["id"])
+            edit_view = PlaylistEditView(pl, None)
+            embed = _build_playlist_embed(pl, songs)
+            await interaction.response.send_message(embed=embed, view=edit_view, ephemeral=True)
+        else:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"{_e('ztick') or '✅'} Playlist **{name}** created and song saved!",
+                    color=COLOR_NOW_PLAYING,
+                ),
+                ephemeral=True,
+            )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# ORDER SONGS VIEW  (new)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class OrderSongsView(discord.ui.View):
+    """Ephemeral view: select a song then Move Up / Move Down."""
+
+    def __init__(self, playlist: dict, parent_view):
+        super().__init__(timeout=120)
+        self.playlist    = playlist
+        self.parent_view = parent_view
+        self._selected_id: Optional[int] = None
+        self._songs: list = []
+        asyncio.create_task(self._load())
+
+    async def _load(self):
+        self._songs = await _db.get_songs(self.playlist["id"])
+        self._rebuild_select()
+
+    def _rebuild_select(self):
+        for item in list(self.children):
+            if isinstance(item, discord.ui.Select):
+                self.remove_item(item)
+        if not self._songs:
+            return
+        options = [
+            discord.SelectOption(
+                label=f"{i + 1}. {s['song_name'][:80]}",
+                value=str(s["id"]),
+            )
+            for i, s in enumerate(self._songs[:25])
+        ]
+        sel = discord.ui.Select(placeholder="Select a song to move…", options=options, row=0)
+        sel.callback = self._on_select
+        self.add_item(sel)
+
+    async def _on_select(self, interaction: discord.Interaction):
+        self._selected_id = int(interaction.data["values"][0])
+        await interaction.response.defer()
+
+    async def _move(self, interaction: discord.Interaction, direction: str):
+        if self._selected_id is None:
+            await _confirm(interaction, "Select a song first.")
+            return
+        moved = await _db.move_song(self.playlist["id"], self._selected_id, direction)
+        if not moved:
+            await _confirm(interaction, "Can't move that song any further.")
+            return
+        self._songs = await _db.get_songs(self.playlist["id"])
+        self._rebuild_select()
+        # Refresh parent message if possible
+        if self.parent_view is not None:
+            self.parent_view.songs = self._songs
+            self.parent_view._rebuild_song_select()
+            if getattr(self.parent_view, 'message', None):
+                try:
+                    await self.parent_view.message.edit(
+                        embed=self.parent_view._build_embed(),
+                        view=self.parent_view,
+                    )
+                except Exception:
+                    pass
+        await _confirm(interaction, f"{_e('ztick') or '✅'} Song moved {'up' if direction == 'up' else 'down'}.")
+
+    @discord.ui.button(label="⬆ Move Up", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_up(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._move(interaction, "up")
+
+    @discord.ui.button(label="⬇ Move Down", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_down(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._move(interaction, "down")
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# SAVE SONG VIEW  (new)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class SaveSongView(discord.ui.View):
+    """Ephemeral view shown when a user clicks the 💾 Save button on an NP embed."""
+
+    def __init__(self, track, user_id: int):
+        super().__init__(timeout=60)
+        self.track   = track
+        self.user_id = user_id
+        asyncio.create_task(self._build())
+
+    async def _build(self):
+        playlists = await _db.get_user_playlists(self.user_id)
+        saved_in  = await _db.get_playlist_ids_containing_uri(self.user_id, self.track.uri or "")
+
+        options: list[discord.SelectOption] = [
+            discord.SelectOption(
+                label="➕ Create New Playlist",
+                value="__new__",
+                description="Create a playlist and save this song",
+            )
+        ]
+        for pl in playlists[:24]:  # leave room for the "create new" option
+            already = pl["id"] in saved_in
+            options.append(
+                discord.SelectOption(
+                    label=pl["name"][:100],
+                    value=str(pl["id"]),
+                    description="(✓ Already saved)" if already else f"{pl['song_count']} song(s)",
+                    emoji="✅" if already else None,
+                )
+            )
+
+        for item in list(self.children):
+            if isinstance(item, discord.ui.Select):
+                self.remove_item(item)
+
+        sel = discord.ui.Select(
+            placeholder="Save to playlist…",
+            options=options,
+            row=0,
+        )
+        sel.callback = self._on_select
+        self.add_item(sel)
+
+    async def _on_select(self, interaction: discord.Interaction):
+        value = interaction.data["values"][0]
+
+        if value == "__new__":
+            await interaction.response.send_modal(
+                SaveCreateModal(self.track, self.user_id)
+            )
+            return
+
+        pid = int(value)
+        # Check if already saved
+        saved_in = await _db.get_playlist_ids_containing_uri(self.user_id, self.track.uri or "")
+        if pid in saved_in:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"{_e('zcross') or '❌'} This song is already in that playlist.",
+                    color=0xFF0000,
+                ),
+                ephemeral=True,
+            )
+            asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
+            return
+
+        # Verify ownership
+        pl = await _db.get_playlist_by_id(pid)
+        if not pl or str(pl.get("user_id")) != str(self.user_id):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"{_e('zcross') or '❌'} Playlist not found.",
+                    color=0xFF0000,
+                ),
+                ephemeral=True,
+            )
+            asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
+            return
+
+        await _db.add_song(pid, self.track.title, self.track.uri)
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"{_e('ztick') or '✅'} Saved **{self.track.title}** to **{pl['name']}**.",
+                color=COLOR_NOW_PLAYING,
+            ),
+            ephemeral=True,
+        )
+        asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
+
+
+async def _handle_save_button(interaction: discord.Interaction):
+    """Called by the Save button in NowPlayingActionsView and playlist-mode NP."""
+    vc = interaction.guild.voice_client
+    if not vc or not isinstance(vc, __import__('wavelink').Player) or not vc.current:
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"{_e('zwarning') or '⚠️'} Nothing is playing right now.",
+                color=0xFF0000,
+            ),
+            ephemeral=True,
+        )
+        return
+    track = vc.current
+    view  = SaveSongView(track, interaction.user.id)
+    await interaction.response.send_message(
+        embed=discord.Embed(
+            description=f"**Save:** {track.title}",
+            color=COLOR_NOW_PLAYING,
+        ),
+        view=view,
+        ephemeral=True,
+    )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # VIEWS
 # ════════════════════════════════════════════════════════════════════════════════
 
@@ -504,24 +884,36 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
 class PlaylistEditView(discord.ui.View):
     """
     Private (ephemeral) view shown to the playlist owner when they click 'Edit Playlist'.
-    Allows adding and removing songs. After changes the parent track-list message refreshes.
 
-    Row 0: Add Song | Remove Song
+    Row 0: Add Song | Remove Song | Rename
+    Row 1: Order Songs | Delete Playlist
+    Row 2: Visibility Select (Public / Private)
     """
 
     def __init__(self, playlist: dict, parent_view):
-        """parent_view is PlaylistDetailView or PlaylistActiveView (has .songs / .message)."""
-        super().__init__(timeout=180)
+        super().__init__(timeout=300)
         self.playlist    = playlist
         self.parent_view = parent_view
 
-        _emap = {"pev_add": _pe("zplus") or None, "pev_remove": _pe("delete") or None}
+        _emap = {
+            "pev_add":    _pe("zplus") or None,
+            "pev_remove": _pe("delete") or None,
+        }
         for child in self.children:
             if isinstance(child, discord.ui.Button):
                 cid = getattr(child, "custom_id", "")
                 for key, emo in _emap.items():
                     if key in cid and emo:
                         child.emoji = emo
+
+        # Populate the visibility select with the current value pre-selected
+        cur_vis = self.playlist.get("visibility", "public")
+        for child in self.children:
+            if isinstance(child, discord.ui.Select) and getattr(child, 'custom_id', '') == 'pev_vis':
+                for opt in child.options:
+                    opt.default = (opt.value == cur_vis)
+
+    # ── Row 0 ─────────────────────────────────────────────────────────────────
 
     @discord.ui.button(label="Add Song", style=discord.ButtonStyle.success,
                        row=0, custom_id="pev_add")
@@ -544,8 +936,8 @@ class PlaylistEditView(discord.ui.View):
             for i, s in enumerate(songs[:25])
         ]
 
-        _outer_playlist   = self.playlist
-        _outer_parent     = self.parent_view
+        _outer_playlist = self.playlist
+        _outer_parent   = self.parent_view
 
         class RemoveSelect(discord.ui.View):
             def __init__(rs_self):
@@ -596,6 +988,113 @@ class PlaylistEditView(discord.ui.View):
             except Exception:
                 pass
         asyncio.create_task(_del_panel())
+
+    @discord.ui.button(label="Rename", style=discord.ButtonStyle.secondary,
+                       row=0, custom_id="pev_rename")
+    async def btn_rename(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(RenamePlaylistModal(self.playlist, self.parent_view))
+
+    # ── Row 1 ─────────────────────────────────────────────────────────────────
+
+    @discord.ui.button(label="Order Songs", style=discord.ButtonStyle.secondary,
+                       row=1, custom_id="pev_order")
+    async def btn_order(self, interaction: discord.Interaction, button: discord.ui.Button):
+        order_view = OrderSongsView(self.playlist, self.parent_view)
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Order Songs",
+                description="Select a song then move it up or down.",
+                color=COLOR_NOW_PLAYING,
+            ),
+            view=order_view,
+            ephemeral=True,
+        )
+
+    @discord.ui.button(label="Delete Playlist", style=discord.ButtonStyle.danger,
+                       row=1, custom_id="pev_delete")
+    async def btn_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Confirm-then-delete: first click turns red and asks for confirmation."""
+        # Use a quick ephemeral confirm pattern
+        class ConfirmDeleteView(discord.ui.View):
+            def __init__(cv_self):
+                super().__init__(timeout=15)
+                cv_self._pl    = self.playlist
+                cv_self._uid   = interaction.user.id
+                cv_self._pview = self.parent_view
+
+            @discord.ui.button(label="Yes, delete it", style=discord.ButtonStyle.danger)
+            async def confirm(cv_self, inter: discord.Interaction, btn: discord.ui.Button):
+                ok = await _db.delete_playlist(cv_self._uid, cv_self._pl["name"])
+                msg = (
+                    f"{_e('ztick') or '✅'} Playlist **{cv_self._pl['name']}** deleted."
+                    if ok else
+                    f"{_e('zcross') or '❌'} Could not delete — playlist not found."
+                )
+                await inter.response.edit_message(
+                    embed=discord.Embed(description=msg, color=COLOR_NOW_PLAYING),
+                    view=None,
+                )
+                # Destroy parent track-list message if it exists
+                if cv_self._pview is not None and getattr(cv_self._pview, 'message', None):
+                    try:
+                        await cv_self._pview.message.delete()
+                    except Exception:
+                        pass
+
+            @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+            async def cancel(cv_self, inter: discord.Interaction, btn: discord.ui.Button):
+                await inter.response.edit_message(
+                    embed=discord.Embed(description="Deletion cancelled.", color=COLOR_CONTROL),
+                    view=None,
+                )
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"⚠️ Delete **{self.playlist['name']}**? This cannot be undone.",
+                color=0xFF0000,
+            ),
+            view=ConfirmDeleteView(),
+            ephemeral=True,
+        )
+
+    # ── Row 2: Visibility ─────────────────────────────────────────────────────
+
+    @discord.ui.select(
+        placeholder="Visibility…",
+        options=[
+            discord.SelectOption(label="🌐  Public",  value="public",  description="Anyone can see and browse this playlist"),
+            discord.SelectOption(label="🔒  Private", value="private", description="Only you can see this playlist"),
+        ],
+        row=2,
+        custom_id="pev_vis",
+    )
+    async def sel_visibility(self, interaction: discord.Interaction, select: discord.ui.Select):
+        vis = interaction.data["values"][0]
+        ok  = await _db.set_visibility(interaction.user.id, self.playlist["id"], vis)
+        if ok:
+            self.playlist["visibility"] = vis
+            # Update default selection
+            for opt in select.options:
+                opt.default = (opt.value == vis)
+            if self.parent_view is not None and getattr(self.parent_view, 'playlist', None):
+                self.parent_view.playlist["visibility"] = vis
+                if getattr(self.parent_view, 'message', None):
+                    try:
+                        await self.parent_view.message.edit(
+                            embed=self.parent_view._build_embed(),
+                            view=self.parent_view,
+                        )
+                    except Exception:
+                        pass
+        label = "Private 🔒" if vis == "private" else "Public 🌐"
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"{_e('ztick') or '✅'} Visibility set to **{label}**.",
+                color=COLOR_NOW_PLAYING,
+            ),
+            ephemeral=True,
+        )
+        asyncio.create_task(_auto_delete(interaction, CONFIRM_DELAY))
 
 
 # ── PlaylistActiveView ────────────────────────────────────────────────────────
@@ -1317,9 +1816,10 @@ class PlaylistBrowserView(discord.ui.View):
 
     PER_PAGE = 10
 
-    def __init__(self, playlists: list, page: int = 0):
+    def __init__(self, playlists: list, viewer_id: int = 0, page: int = 0):
         super().__init__(timeout=300)
         self.playlists = playlists
+        self.viewer_id = viewer_id
         self.page      = page
 
         self._rebuild_select()
@@ -1339,7 +1839,7 @@ class PlaylistBrowserView(discord.ui.View):
             discord.SelectOption(
                 label=pl["name"][:100],
                 value=str(pl["id"]),
-                description=f"{pl['song_count']} song(s)",
+                description=f"{'🔒 Private' if pl.get('visibility') == 'private' else '🌐 Public'}  ·  {pl['song_count']} song(s)",
             )
             for pl in page_pls
         ]
@@ -1371,7 +1871,7 @@ class PlaylistBrowserView(discord.ui.View):
         page_pls = self.playlists[start: start + self.PER_PAGE]
         if page_pls:
             lines = [
-                f"`{start + i + 1}.` **{pl['name']}**  ·  {pl['song_count']} song(s)"
+                f"`{start + i + 1}.` {'🔒' if pl.get('visibility') == 'private' else '🌐'}  **{pl['name']}**  ·  {pl['song_count']} song(s)"
                 for i, pl in enumerate(page_pls)
             ]
             em.description = "\n".join(lines)
@@ -1386,6 +1886,16 @@ class PlaylistBrowserView(discord.ui.View):
         pl  = await _db.get_playlist_by_id(pid)
         if not pl:
             return await interaction.response.send_message("Playlist not found.", ephemeral=True)
+
+        # Block private playlists for non-owners
+        if pl.get("visibility") == "private" and str(pl.get("user_id")) != str(interaction.user.id):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=f"🔒 This playlist is **private** and can only be viewed by its owner.",
+                    color=0xFF0000,
+                ),
+                ephemeral=True,
+            )
 
         songs = await _db.get_songs(pid)
 
@@ -1504,7 +2014,7 @@ class PlaylistCog(Cog):
     @playlist_group.command(name="list", description="Browse all playlists.")
     async def cmd_playlist_list(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        playlists = await _db.get_all_playlists()
+        playlists = await _db.get_all_playlists(viewer_id=interaction.user.id)
 
         if not playlists:
             return await interaction.followup.send(
@@ -1514,15 +2024,25 @@ class PlaylistCog(Cog):
                 )
             )
 
-        view  = PlaylistBrowserView(playlists)
+        view  = PlaylistBrowserView(playlists, viewer_id=interaction.user.id)
         embed = view.build_embed()
         await interaction.followup.send(embed=embed, view=view)
 
     # ── /playlist create ──────────────────────────────────────────────────────
 
     @playlist_group.command(name="create", description="Create a new personal playlist.")
-    @app_commands.describe(name="Name for your playlist (max 50 characters)")
-    async def cmd_playlist_create(self, interaction: discord.Interaction, name: str):
+    @app_commands.describe(
+        name="Name for your playlist (max 50 characters)",
+        visibility="Who can see this playlist: public (default) or private",
+    )
+    @app_commands.choices(visibility=[
+        app_commands.Choice(name="🌐 Public",  value="public"),
+        app_commands.Choice(name="🔒 Private", value="private"),
+    ])
+    async def cmd_playlist_create(
+        self, interaction: discord.Interaction, name: str,
+        visibility: str = "public",
+    ):
         name = name.strip()[:50]
         if not name:
             return await interaction.response.send_message(
@@ -1533,7 +2053,7 @@ class PlaylistCog(Cog):
                 ephemeral=True
             )
 
-        ok = await _db.create_playlist(interaction.user.id, name)
+        ok = await _db.create_playlist(interaction.user.id, name, visibility)
         if not ok:
             return await interaction.response.send_message(
                 embed=discord.Embed(
@@ -1543,9 +2063,10 @@ class PlaylistCog(Cog):
                 ephemeral=True
             )
 
+        vis_label = "Private 🔒" if visibility == "private" else "Public 🌐"
         em = discord.Embed(
             description=(
-                f"{_e('ztick') or '✅'} Playlist **{name}** created!\n"
+                f"{_e('ztick') or '✅'} Playlist **{name}** created! ({vis_label})\n"
                 f"Use `/song add` to add songs to it."
             ),
             color=0xFF0000
