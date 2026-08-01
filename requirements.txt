@@ -1,5 +1,5 @@
 asyncpg
-supabase
+supabase==2.31.0
 discord.py
 jishaku
 pytz
@@ -87,3 +87,4 @@ PyYAML
 requests
 tasksio
 wavelink>=2.0.0
+asyncpg

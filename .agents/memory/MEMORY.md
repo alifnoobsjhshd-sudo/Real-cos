@@ -17,3 +17,4 @@
 - [otakugifs broken endpoints](otakugifs-broken-endpoints.md) — 10 endpoints return 400; nekos.best/waifu.pics also fail; remap broken ones in _OTAKUGIFS to nearest working alternative.
 - [Fun prefix configurable](fun-prefix-configurable.md) — fun_prefix column added to guild_branding table; get_fun_prefix/set_fun_prefix in utils/branding.py; guild_id=0 = global default; fun.py on_message reads it dynamically; AppearanceView + GlobalAppearanceView both show a Fun Prefix button.
 - [Emoji store reload after Neon restore](emoji-restore-timing.md) — call reload_store() after restore_from_neon() in CodeX.py main(); emojis.py _store is set at module import time so must be refreshed after DB restoration.
+- [Supabase integration boundary](supabase-integration-boundary.md) — keep Supabase additive until a deliberate table-by-table migration is requested; Render remains the production source of environment variables.

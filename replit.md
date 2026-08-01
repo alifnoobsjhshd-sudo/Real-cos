@@ -2,6 +2,12 @@
 
 A feature-rich Discord bot with moderation, anti-nuke, automod, AI chat (Groq), music, games, and more.
 
+## Current deployment
+
+This bot is deployed and runs on **Render** as a web service. Replit is used for
+development and code changes; production environment variables and persistent
+storage are configured in the Render service.
+
 ## How to run
 
 1. Add the required secrets in the **Secrets** tab (see below).
@@ -14,6 +20,11 @@ A feature-rich Discord bot with moderation, anti-nuke, automod, AI chat (Groq), 
 |---------------|-----------------|
 | `TOKEN`       | [Discord Developer Portal](https://discord.com/developers/applications) → your app → Bot → Token |
 | `GROQ_API_KEY`| [Groq Console](https://console.groq.com/) — used for the AI/chatbot cog |
+
+Supabase is optional for the existing bot until a cog is migrated to use it.
+When using the Supabase helper, configure `SUPABASE_URL` and `SUPABASE_KEY` in
+Replit Secrets for development and in the Render service's **Environment** for
+production.
 
 ## Project structure
 
@@ -120,7 +131,10 @@ The bot has a ready-to-use Supabase client at `utils/supabase_client.py`.
 3. Add them to **Replit Secrets** (padlock icon in the sidebar):
    - `SUPABASE_URL` = `https://yourproject.supabase.co`
    - `SUPABASE_KEY` = your anon or service-role key
-4. On Render, add the same two variables under **Environment**.
+4. Because production runs on Render, add the same two variables to your
+   Render service under **Environment**, then redeploy the service.
+5. Keep the `service_role` key only in Render's server-side environment; never
+   expose it in client-side code or commit it to the repository.
 
 ### Using it in a cog
 
