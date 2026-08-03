@@ -928,6 +928,8 @@ class Logging (commands .Cog ):
                 data ={str (guild_id ):config for guild_id ,config in self .config_cache .items ()}
                 content =await asyncio .to_thread (json .dumps ,data ,indent =2 )
 
+                # Ensure the jsondb directory exists before writing
+                await asyncio .to_thread (os .makedirs ,os .path .dirname (CONFIG_FILE ),exist_ok =True )
 
                 temp_file =f"{CONFIG_FILE}.tmp"
                 async with aiofiles .open (temp_file ,'w',encoding ='utf-8')as f :

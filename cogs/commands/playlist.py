@@ -184,7 +184,7 @@ class PlaylistDB:
             db.row_factory = aiosqlite.Row
             async with db.execute(
                 "SELECT id, song_name, song_uri, position, added_at "
-                "FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC, id ASC",
+                "FROM playlist_songs WHERE playlist_id = ? ORDER BY position DESC, id DESC",
                 (playlist_id,)
             ) as cur:
                 return [dict(r) for r in await cur.fetchall()]
@@ -229,12 +229,16 @@ class PlaylistDB:
                 return {row[0] for row in await cur.fetchall()}
 
     async def move_song(self, playlist_id: int, song_id: int, direction: str) -> bool:
-        """Swap the position of song_id with the adjacent song (direction='up'/'down')."""
+        """Swap the position of song_id with the adjacent song (direction='up'/'down').
+
+        'up' moves the song toward the top of the list (higher rank = lower index).
+        Order matches get_songs() — DESC by position then id so newest is first.
+        """
         async with self._conn() as db:
             await self._setup(db)
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                "SELECT id, position FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC, id ASC",
+                "SELECT id, position FROM playlist_songs WHERE playlist_id = ? ORDER BY position DESC, id DESC",
                 (playlist_id,)
             ) as cur:
                 rows = [dict(r) for r in await cur.fetchall()]
@@ -558,13 +562,14 @@ class AddSongModal(discord.ui.Modal, title="Add Song to Playlist"):
                 except Exception:
                     pass
 
-        await interaction.followup.send(
-            embed=discord.Embed(
-                description=f"{_e('ztick') or '✅'} Added **{track.title}**.",
-                color=COLOR_NOW_PLAYING,
-            ),
-            ephemeral=True,
+        em = discord.Embed(
+            description=f"{_e('ztick') or '✅'} Added **{track.title}** to **{self.playlist['name']}**.",
+            color=COLOR_NOW_PLAYING,
         )
+        if getattr(track, 'artwork', None):
+            em.set_thumbnail(url=track.artwork)
+        em.set_footer(text=f"Added by {interaction.user.display_name}")
+        await interaction.followup.send(embed=em, ephemeral=True)
         # Auto-delete confirmation after CONFIRM_DELAY
         async def _del():
             await asyncio.sleep(CONFIRM_DELAY)
@@ -691,13 +696,18 @@ class SaveCreateModal(discord.ui.Modal, title="Create New Playlist & Save"):
 class OrderSongsView(discord.ui.View):
     """Ephemeral view: select a song then Move Up / Move Down."""
 
-    def __init__(self, playlist: dict, parent_view):
+    def __init__(self, playlist: dict, parent_view, songs: list = None):
         super().__init__(timeout=120)
         self.playlist    = playlist
         self.parent_view = parent_view
         self._selected_id: Optional[int] = None
-        self._songs: list = []
-        asyncio.create_task(self._load())
+        # Accept pre-loaded songs so the select is populated immediately on send.
+        # Falls back to async load only if songs not provided (legacy path).
+        self._songs: list = songs if songs is not None else []
+        if songs is not None:
+            self._rebuild_select()
+        else:
+            asyncio.create_task(self._load())
 
     async def _load(self):
         self._songs = await _db.get_songs(self.playlist["id"])
@@ -1020,11 +1030,20 @@ class PlaylistEditView(discord.ui.View):
     @discord.ui.button(label="Order Songs", style=discord.ButtonStyle.secondary,
                        row=1, custom_id="pev_order")
     async def btn_order(self, interaction: discord.Interaction, button: discord.ui.Button):
-        order_view = OrderSongsView(self.playlist, self.parent_view)
+        # Load songs before building the view so the select is fully populated immediately.
+        songs = await _db.get_songs(self.playlist["id"])
+        if not songs:
+            await _confirm(interaction, f"{_e('zwarning') or '⚠️'} No songs in this playlist to reorder.")
+            return
+        order_view = OrderSongsView(self.playlist, self.parent_view, songs)
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="Order Songs",
-                description="Select a song then move it up or down.",
+                title=f"{_e('zmusic') or '🎵'}  Order Songs",
+                description=(
+                    f"**{len(songs)} song(s)** in this playlist.\n\n"
+                    "Select a song from the dropdown, then use **⬆ Move Up** or **⬇ Move Down** "
+                    "to change its position in the list."
+                ),
                 color=COLOR_NOW_PLAYING,
             ),
             view=order_view,
@@ -1157,13 +1176,15 @@ class PlaylistActiveView(discord.ui.View):
         self.message      = None  # set by caller after editing the message
 
         # Assign emojis to the playback/control buttons only (skip nav/edit)
+        # rewind1 = backward/previous (same as music.py MusicControlView)
+        # zreplay = circular replay arrow (restart current track)
         _nav_ids = {"pav_prev", "pav_next", "pav_edit"}
         _emap = [
-            _pe("zback"),            # 0 previous
+            _pe("rewind1"),          # 0 previous  (⏮ rewind symbol, matches music.py)
             _pe("zpause"),           # 1 pause/resume
             _pe("skip"),             # 2 next
             _pe("musicstop_icons"),  # 3 stop
-            _pe("rewind1"),          # 4 replay
+            _pe("zreplay"),          # 4 replay     (circular arrow, new dedicated emoji)
             _pe("shuffle"),          # 5 shuffle
             _pe("zloop"),            # 6 loop
             _pe("zunmute"),          # 7 volume
@@ -1256,6 +1277,15 @@ class PlaylistActiveView(discord.ui.View):
         await interaction.response.defer()
         existing_vc = interaction.guild.voice_client
         if existing_vc and isinstance(existing_vc, wavelink.Player):
+            # Delete the current NP message so it doesn't linger after jumping
+            np_msg = getattr(existing_vc, '_playlist_np_msg', None)
+            if np_msg:
+                try:
+                    await np_msg.delete()
+                except Exception:
+                    pass
+                existing_vc._playlist_np_msg = None
+
             existing_vc.queue.clear()
             if existing_vc.playing:
                 existing_vc._playlist_restarting = True
@@ -1286,7 +1316,7 @@ class PlaylistActiveView(discord.ui.View):
                 await vc.queue.put_wait(t)
             if vc.playing:
                 await vc.stop()
-            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('rewind1') or '⏮'} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
@@ -1354,7 +1384,7 @@ class PlaylistActiveView(discord.ui.View):
         vc = interaction.guild.voice_client
         if vc and isinstance(vc, wavelink.Player) and vc.playing:
             await vc.seek(0)
-            await _confirm(interaction, f"{_e('rewind1') or '🔄'} Replaying from the start.")
+            await _confirm(interaction, f"{_e('zreplay') or '🔄'} Replaying from the start.")
         else:
             await _confirm(interaction, "Nothing is playing.")
 
@@ -1468,11 +1498,11 @@ class PlaylistControlView(discord.ui.View):
         self._pre_shuffle: list = []
 
         _emap = [
-            _pe("zback"),           # 0 previous
+            _pe("rewind1"),         # 0 previous  (⏮ rewind — matches music.py)
             _pe("zpause"),          # 1 pause/resume
             _pe("skip"),            # 2 next
             _pe("musicstop_icons"), # 3 stop
-            _pe("rewind1"),         # 4 replay
+            _pe("zreplay"),         # 4 replay     (circular arrow — new dedicated emoji)
             _pe("shuffle"),         # 5 shuffle
             _pe("zloop"),           # 6 loop (loop_all)
             _pe("zunmute"),         # 7 volume
@@ -1518,7 +1548,7 @@ class PlaylistControlView(discord.ui.View):
                 await vc.queue.put_wait(t)
             if vc.playing:
                 await vc.stop()
-            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('rewind1') or '⏮'} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
@@ -1587,7 +1617,7 @@ class PlaylistControlView(discord.ui.View):
         vc = interaction.guild.voice_client
         if vc and isinstance(vc, wavelink.Player) and vc.playing:
             await vc.seek(0)
-            await _confirm(interaction, f"{_e('rewind1') or '🔄'} Replaying from the start.")
+            await _confirm(interaction, f"{_e('zreplay') or '🔄'} Replaying from the start.")
         else:
             await _confirm(interaction, "Nothing is playing.")
 

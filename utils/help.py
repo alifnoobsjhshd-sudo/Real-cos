@@ -523,12 +523,16 @@ class View(discord.ui.View):
 
         # ── Identify cogs that should be merged into another cog's page ───────
         # PlaylistCog is merged into Music; it gets no standalone dropdown entry.
+        # InviteLeaderboardCog is merged into inviteTracker; no standalone entry.
         _cogs_to_merge: dict[str, object] = {}   # class_name → cog object
         _merge_target: dict[str, str] = {}        # class_name → target class_name
         for cog in help_cogs:
             if cog.__class__.__name__ == "PlaylistCog":
                 _cogs_to_merge["PlaylistCog"] = cog
                 _merge_target["PlaylistCog"]  = "Music"
+            elif cog.__class__.__name__ == "InviteLeaderboardCog":
+                _cogs_to_merge["InviteLeaderboardCog"] = cog
+                _merge_target["InviteLeaderboardCog"]   = "inviteTracker"
 
         for cog in help_cogs:
             # Skip cogs that are merged into another page

@@ -782,6 +782,29 @@ def draw_rewind(d, pad=16):
                    (CX - ox, CY + 28)], fill=WHITE)
 
 
+def draw_replay(d, pad=16):
+    """Circular replay arrow — single clockwise arc with arrowhead (restart current track)."""
+    r = 34
+    # Draw a ~300° clockwise arc, gap at upper-right for arrowhead
+    # PIL arc: start=80, end=40 → clockwise from 80° to 40° = 320° arc
+    d.arc([CX - r, CY - r, CX + r, CY + r], start=80, end=40, fill=WHITE, width=9)
+    # Arrowhead at the END of the arc (at 40° in PIL convention)
+    # At 40°: ex = CX + r*cos40°, ey = CY + r*sin40° (PIL y-down)
+    ex = CX + int(r * math.cos(math.radians(40)))
+    ey = CY + int(r * math.sin(math.radians(40)))
+    # Clockwise tangent at 40°: direction (-sin40°, cos40°) in PIL (y-down) coords
+    tx = -math.sin(math.radians(40))   # ≈ -0.643
+    ty =  math.cos(math.radians(40))   # ≈  0.766 (downward component)
+    # Perpendicular (radius direction): (cos40°, sin40°)
+    px =  math.cos(math.radians(40))   # ≈  0.766
+    py =  math.sin(math.radians(40))   # ≈  0.643
+    sz, hw = 13, 9
+    tip   = (ex + sz * tx,      ey + sz * ty)
+    base1 = (ex + hw * px,      ey + hw * py)
+    base2 = (ex - hw * px,      ey - hw * py)
+    d.polygon([tip, base1, base2], fill=WHITE)
+
+
 def draw_shuffle_arrows(d, pad=18):
     my1, my2 = CY - 18, CY + 18
     d.line([(pad, my1), (CX + 14, my1)], fill=WHITE, width=7)
@@ -1127,8 +1150,9 @@ EMOJI_MAP: dict = {
     "zpause":              lambda d: draw_pause_bars(d),
     "icons_pause":         lambda d: draw_pause_bars(d),
     "musicstop_icons":     lambda d: draw_stop_square(d),
-    "rewind1":             lambda d: draw_rewind(d),        # ⏮ skip to start
+    "rewind1":             lambda d: draw_rewind(d),        # ⏮ skip to start / previous
     "skip":                lambda d: draw_skip_fwd(d),       # ⏭ skip forward
+    "zreplay":             lambda d: draw_replay(d),         # 🔄 replay / restart track (circular arrow)
     "shuffle":             lambda d: draw_shuffle_arrows(d),
     "zmute":               lambda d: draw_speaker_muted(d),  # 🔇 muted speaker
     "zunmute":             lambda d: draw_speaker(d),         # 🔊 speaker

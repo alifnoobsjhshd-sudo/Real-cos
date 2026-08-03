@@ -281,7 +281,7 @@ _OTAKUGIFS = {
     "triggered":   "punch",       # "triggered" → 400; use punch
     "wag":         "smile",       # "wag" → 400; use smile
     "headpat":     "pat",
-    "kick":        "kick",         # let nekos.best/waifu.pics handle kick (otakugifs may 400)
+    "kick":        "punch",        # otakugifs "kick" returns 400; "punch" gives a similar fight gif
     "tackle":      "slap",
     "bonk":        "pat",         # "bonk" → 400; use pat
     "nuzzle":      "cuddle",
@@ -405,17 +405,20 @@ class Fun(commands.Cog):
         target: discord.abc.User,
         keyword: str,
     ) -> discord.Embed:
-        """Build the reaction embed (fetches a GIF internally)."""
+        """Build the reaction embed (fetches a GIF internally).
+
+        Title format (per fun.txt):
+          [author avatar] {author} {past} {target} -| {emotion}
+        The embed image is the reaction GIF.
+        """
         gif_url  = await self._get_gif(keyword)
         past     = PAST_TENSE[keyword]
         emotion  = EMOTIONS[keyword]
 
-        embed = discord.Embed(
-            title=emotion,
-            color=0xFFD700,
-        )
+        embed = discord.Embed(color=0xFFD700)
+        # Author line carries the profile pic + full action + emotion in one line
         embed.set_author(
-            name=f"{author.display_name} {past} {target.display_name}!",
+            name=f"{author.display_name} {past} {target.display_name} -| {emotion}",
             icon_url=author.display_avatar.url,
         )
         if gif_url:
