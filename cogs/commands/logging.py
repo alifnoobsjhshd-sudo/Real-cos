@@ -98,10 +98,28 @@ class LogSetupView (View ):
             logger .error (f"Error in category selection: {e}")
             pass 
 
-    @discord .ui .button (label ="Finish Setup",style =discord .ButtonStyle .success )
+    @discord .ui .button (label ="Finish Setup",style =discord .ButtonStyle .success ,row =0 )
     async def finish_button (self ,interaction :discord .Interaction ,button :Button ):
         """Finish the setup process."""
         await self .finish_setup (interaction )
+
+    @discord .ui .button (label ="⚡ Auto Setup",style =discord .ButtonStyle .primary ,row =1 )
+    async def auto_setup_button (self ,interaction :discord .Interaction ,button :Button ):
+        """Auto-create a log category with all 9 log channels pre-configured."""
+        view =AutoLogSetupView (self .bot ,self .author )
+        embed =discord .Embed (
+            title ="⚡ Auto Log Setup",
+            description =(
+                "This will automatically create a **log category** and **9 channels** for all log types.\n\n"
+                "Optionally select a **staff role** to grant read access to log channels.\n"
+                "All channels will deny **@everyone** by default. "
+                "Note: Discord server administrators always bypass channel permissions regardless of this setting."
+            ),
+            color =0xFF0000 ,
+            timestamp =datetime .utcnow (),
+        )
+        await interaction .response .edit_message (embed =embed ,view =view )
+        view .message =interaction .message 
 
     async def finish_setup (self ,interaction :discord .Interaction ):
         """Complete the setup process."""
@@ -148,6 +166,119 @@ class LogSetupView (View ):
                 pass 
             except :
                 pass 
+
+class AutoLogSetupView (View ):
+    """Role-select + confirm view for the ⚡ Auto Setup flow."""
+
+    _CATEGORY_CHANNELS ={
+        "message_events":"msg-logs",
+        "join_leave_events":"join-leave-logs",
+        "member_moderation":"mod-logs",
+        "voice_events":"voice-logs",
+        "channel_events":"channel-logs",
+        "role_events":"role-logs",
+        "emoji_events":"emoji-logs",
+        "reaction_events":"reaction-logs",
+        "system_events":"system-logs",
+    }
+
+    def __init__ (self ,bot ,author ):
+        super ().__init__ (timeout =180 )
+        self .bot =bot 
+        self .author =author 
+        self .staff_role =None 
+        self .message =None 
+
+    async def interaction_check (self ,interaction :discord .Interaction )->bool :
+        if interaction .user !=self .author :
+            await interaction .response .send_message ("Only the command author can use this.",ephemeral =True )
+            return False 
+        return True 
+
+    async def on_timeout (self ):
+        if self .message :
+            try :
+                for item in self .children :
+                    item .disabled =True 
+                await self .message .edit (view =self )
+            except Exception :
+                pass 
+
+    @discord .ui .select (
+        cls =discord .ui .RoleSelect ,
+        placeholder ="(Optional) Select staff role for log channels…",
+        min_values =0 ,
+        max_values =1 ,
+        row =0 ,
+    )
+    async def role_select (self ,interaction :discord .Interaction ,select :discord .ui .RoleSelect ):
+        self .staff_role =select .values [0 ] if select .values else None 
+        await interaction .response .defer ()
+
+    @discord .ui .button (label ="✅ Create Log Channels",style =discord .ButtonStyle .success ,row =1 )
+    async def create_button (self ,interaction :discord .Interaction ,button :Button ):
+        await interaction .response .defer (thinking =True ,ephemeral =True )
+        try :
+            from utils.branding import get_branding 
+            branding =await get_branding (interaction .guild .id )
+            branding_name =branding .get ("name","Sunlight")
+            category_name =f"{branding_name} Logs"
+
+            # Build permission overwrites for the category
+            overwrites ={
+                interaction .guild .default_role :discord .PermissionOverwrite (read_messages =False ),
+                interaction .guild .me :discord .PermissionOverwrite (read_messages =True ,send_messages =True ,embed_links =True ),
+            }
+            if self .staff_role :
+                overwrites [self .staff_role ]=discord .PermissionOverwrite (read_messages =True ,send_messages =False )
+
+            category =await interaction .guild .create_category (category_name ,overwrites =overwrites )
+
+            selected_channels ={}
+            for cat ,ch_name in self ._CATEGORY_CHANNELS .items ():
+                ch =await category .create_text_channel (ch_name )
+                selected_channels [cat ]=ch .id 
+
+            log_enabled ={cat :True for cat in LOG_CATEGORIES }
+
+            cog =self .bot .get_cog ("Logging")
+            if cog :
+                await cog ._save_log_config (
+                    interaction .guild .id ,selected_channels ,log_enabled ,[],[],[],None 
+                )
+
+            lines =[f"✅ **#{self._CATEGORY_CHANNELS[cat]}** → <#{selected_channels[cat]}>" for cat in LOG_CATEGORIES ]
+            embed =discord .Embed (
+                title ="✅ Auto Log Setup Complete",
+                description =(
+                    f"Created category **{category_name}** with **{len(LOG_CATEGORIES)}** channels.\n\n"
+                    +"\n".join (lines )
+                ),
+                color =0x00FF00 ,
+                timestamp =datetime .utcnow (),
+            )
+            if self .staff_role :
+                embed .add_field (name ="Staff Role",value =self .staff_role .mention ,inline =False )
+            embed .set_footer (text ="All logging categories are now active. Use /log status to review." )
+
+            for item in self .children :
+                item .disabled =True 
+            if self .message :
+                await self .message .edit (view =self )
+            await interaction .followup .send (embed =embed )
+
+        except discord .Forbidden :
+            await interaction .followup .send ("❌ Missing permissions to create channels/categories.",ephemeral =True )
+        except Exception as exc :
+            await interaction .followup .send (f"❌ Setup failed: {exc}",ephemeral =True )
+
+    @discord .ui .button (label ="Cancel",style =discord .ButtonStyle .danger ,row =1 )
+    async def cancel_button (self ,interaction :discord .Interaction ,button :Button ):
+        for item in self .children :
+            item .disabled =True 
+        embed =discord .Embed (description ="Auto setup cancelled.",color =0xFF0000 )
+        await interaction .response .edit_message (embed =embed ,view =self )
+
 
 class InteractiveConfigView (View ):
     """Fully interactive configuration view for all logging settings."""

@@ -74,6 +74,20 @@ class AntiBan(commands.Cog):
             try:
                 await guild.ban(executor, reason="Member Ban | Unwhitelisted User")
                 await guild.unban(user, reason="Reverting ban by unwhitelisted user")
+                try:
+                    from utils.log_bridge import send_antinuke_log
+                    await send_antinuke_log(
+                        self.bot, guild,
+                        title="Anti-Ban Triggered",
+                        description=(
+                            f"**{executor}** (`{executor.id}`) was **banned** for performing "
+                            f"an unauthorized ban on **{user}**. The ban on {user} was reverted."
+                        ),
+                        executor=executor,
+                        target=user,
+                    )
+                except Exception:
+                    pass
                 return
             except discord.Forbidden:
                 return

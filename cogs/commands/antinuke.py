@@ -21,17 +21,6 @@ class Antinuke(commands.Cog):
     ''')
     await self.db.commit()
 
-    
-  async def enable_limit_settings(self, guild_id):
-    default_limits = DEFAULT_LIMITS
-    for action, limit in default_limits.items():
-      await self.db.execute('INSERT OR REPLACE INTO limit_settings (guild_id, action_type, action_limit, time_window) VALUES (?, ?, ?, ?)', (guild_id, action, limit, TIME_WINDOW))
-      await self.db.commit()
-
-  async def disable_limit_settings(self, guild_id):
-    await self.db.execute('DELETE FROM limit_settings WHERE guild_id = ?', (guild_id,))
-    await self.db.commit()
-
 
   @commands.hybrid_command(name='antinuke', aliases=['antiwizz', 'anti'], help="Enables/Disables Anti-Nuke Module in the server")
   

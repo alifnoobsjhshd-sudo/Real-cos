@@ -116,6 +116,15 @@ class AntiInvite(commands.Cog):
                     await channel.send(embed=simple_embed, delete_after=30)
 
                     await self.log_action(guild, user, channel, action_taken, reason)
+                    try:
+                        from utils.log_bridge import send_automod_log
+                        await send_automod_log(
+                            self.bot, guild, rule="Anti-Invite",
+                            user=user, channel=channel,
+                            action=action_taken, reason=reason,
+                        )
+                    except Exception:
+                        pass
 
                 except discord.Forbidden:
                     pass

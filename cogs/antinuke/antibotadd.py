@@ -86,6 +86,20 @@ class AntiBotAdd(commands.Cog):
             try:
                 await guild.kick(bot_member, reason=reason)
                 await guild.ban(executor, reason=reason)
+                try:
+                    from utils.log_bridge import send_antinuke_log
+                    await send_antinuke_log(
+                        self.bot, guild,
+                        title="Anti-Bot-Add Triggered",
+                        description=(
+                            f"**{executor}** (`{executor.id}`) was **banned** for "
+                            f"adding bot **{bot_member}** without authorization."
+                        ),
+                        executor=executor,
+                        target=bot_member,
+                    )
+                except Exception:
+                    pass
                 return
             except discord.Forbidden:
                 return

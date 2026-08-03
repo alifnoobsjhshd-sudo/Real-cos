@@ -76,6 +76,7 @@ from .commands.map import Map
 from .commands.botcustomization import BotCustomization
 from .commands.emoji_upload import EmojiUpload
 from .commands.playlist import PlaylistCog
+from .commands.invite_leaderboard import InviteLeaderboardCog
 #from .commands.imagine import AiStuffCog
 #____________ Events _____________
 
@@ -263,6 +264,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(BotCustomization(bot))
   await bot.add_cog(EmojiUpload(bot))
   await bot.add_cog(PlaylistCog(bot))
+  await bot.add_cog(InviteLeaderboardCog(bot))
   #await bot.add_cog(AiStuffCog(bot))
 
   await bot.add_cog(_antinuke(bot))

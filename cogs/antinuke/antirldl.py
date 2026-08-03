@@ -119,6 +119,19 @@ class AntiRoleDelete(commands.Cog):
         while retries > 0:
             try:
                 await guild.ban(executor, reason="Role Delete | Unwhitelisted User")
+                try:
+                    from utils.log_bridge import send_antinuke_log
+                    await send_antinuke_log(
+                        self.bot, guild,
+                        title="Anti-Role-Delete Triggered",
+                        description=(
+                            f"**{executor}** (`{executor.id}`) was **banned** for "
+                            f"deleting a role. Role was recreated."
+                        ),
+                        executor=executor,
+                    )
+                except Exception:
+                    pass
                 return
             except discord.Forbidden:
                 return

@@ -94,6 +94,19 @@ class AntiKick(commands.Cog):
         while retries > 0:
             try:
                 await guild.ban(executor, reason="Member Kick | Unwhitelisted User")
+                try:
+                    from utils.log_bridge import send_antinuke_log
+                    await send_antinuke_log(
+                        self.bot, guild,
+                        title="Anti-Kick Triggered",
+                        description=(
+                            f"**{executor}** (`{executor.id}`) was **banned** for "
+                            f"performing an unauthorized kick."
+                        ),
+                        executor=executor,
+                    )
+                except Exception:
+                    pass
                 return
             except discord.Forbidden:
                 return

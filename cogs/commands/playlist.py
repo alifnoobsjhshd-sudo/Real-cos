@@ -764,16 +764,21 @@ class OrderSongsView(discord.ui.View):
 class SaveSongView(discord.ui.View):
     """Ephemeral view shown when a user clicks the 💾 Save button on an NP embed."""
 
-    def __init__(self, track, user_id: int):
+    def __init__(self, track, user_id: int,
+                 playlists: list = None, saved_in: set = None):
         super().__init__(timeout=60)
         self.track   = track
         self.user_id = user_id
-        asyncio.create_task(self._build())
 
-    async def _build(self):
-        playlists = await _db.get_user_playlists(self.user_id)
-        saved_in  = await _db.get_playlist_ids_containing_uri(self.user_id, self.track.uri or "")
+        if playlists is not None:
+            # Synchronous build — data already fetched by caller
+            self._build_with_data(playlists, saved_in or set())
+        else:
+            # Fallback: async build (legacy call path)
+            asyncio.create_task(self._build())
 
+    def _build_with_data(self, playlists: list, saved_in: set):
+        """Populate the Select synchronously from pre-fetched data."""
         options: list[discord.SelectOption] = [
             discord.SelectOption(
                 label="➕ Create New Playlist",
@@ -781,7 +786,7 @@ class SaveSongView(discord.ui.View):
                 description="Create a playlist and save this song",
             )
         ]
-        for pl in playlists[:24]:  # leave room for the "create new" option
+        for pl in playlists[:24]:
             already = pl["id"] in saved_in
             options.append(
                 discord.SelectOption(
@@ -791,18 +796,22 @@ class SaveSongView(discord.ui.View):
                     emoji="✅" if already else None,
                 )
             )
-
         for item in list(self.children):
             if isinstance(item, discord.ui.Select):
                 self.remove_item(item)
-
         sel = discord.ui.Select(
-            placeholder="Save to playlist…",
+            placeholder="Choose a playlist to save this song…",
             options=options,
             row=0,
         )
         sel.callback = self._on_select
         self.add_item(sel)
+
+    async def _build(self):
+        """Async build — only used when pre-fetched data is not supplied."""
+        playlists = await _db.get_user_playlists(self.user_id)
+        saved_in  = await _db.get_playlist_ids_containing_uri(self.user_id, self.track.uri or "")
+        self._build_with_data(playlists, saved_in)
 
     async def _on_select(self, interaction: discord.Interaction):
         value = interaction.data["values"][0]
@@ -864,15 +873,27 @@ async def _handle_save_button(interaction: discord.Interaction):
         )
         return
     track = vc.current
-    view  = SaveSongView(track, interaction.user.id)
-    await interaction.response.send_message(
-        embed=discord.Embed(
-            description=f"**Save:** {track.title}",
-            color=COLOR_NOW_PLAYING,
+
+    # Pre-fetch playlist data BEFORE sending the message so the Select
+    # dropdown is fully populated when the user sees the message.
+    playlists = await _db.get_user_playlists(interaction.user.id)
+    saved_in  = await _db.get_playlist_ids_containing_uri(interaction.user.id, track.uri or "")
+
+    view = SaveSongView(track, interaction.user.id, playlists, saved_in)
+
+    embed = discord.Embed(
+        title=f"{_e('zmusic') or '🎵'}  Save Song",
+        description=(
+            f"**{track.title}**\n\n"
+            "Select a playlist from the dropdown below, or choose\n"
+            "**➕ Create New Playlist** to make a new one."
         ),
-        view=view,
-        ephemeral=True,
+        color=COLOR_NOW_PLAYING,
     )
+    if not playlists:
+        embed.set_footer(text="You have no playlists yet — create one with ➕ Create New Playlist.")
+
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

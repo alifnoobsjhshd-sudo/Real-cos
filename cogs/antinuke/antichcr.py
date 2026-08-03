@@ -60,6 +60,19 @@ class AntiChannelCreate(commands.Cog):
                 await channel.delete(reason="Channel created by unwhitelisted user")
                 #await asyncio.sleep(delay)
                 await channel.guild.ban(executor, reason="Channel Create | Unwhitelisted User")
+                try:
+                    from utils.log_bridge import send_antinuke_log
+                    await send_antinuke_log(
+                        self.bot, channel.guild,
+                        title="Anti-Channel-Create Triggered",
+                        description=(
+                            f"**{executor}** (`{executor.id}`) was **banned** for "
+                            f"creating an unauthorized channel."
+                        ),
+                        executor=executor,
+                    )
+                except Exception:
+                    pass
                 return
             except discord.Forbidden:
                 return
@@ -101,5 +114,6 @@ class AntiChannelCreate(commands.Cog):
                 whitelist_status = await cursor.fetchone()
             if whitelist_status and whitelist_status[0]:
                 return
+
 
             await self.delete_channel_and_ban(channel, executor, delay=2)
