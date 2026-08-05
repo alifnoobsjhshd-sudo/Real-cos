@@ -1,4 +1,4 @@
-# CodeX / Zyrox Discord Bot
+# CodeX / Cos Discord Bot
 
 A feature-rich Discord bot with moderation, anti-nuke, automod, AI chat (Groq), music, games, and more.
 
