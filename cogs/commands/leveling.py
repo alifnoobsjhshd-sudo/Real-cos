@@ -2,6 +2,7 @@ import discord
 from discord import app_commands 
 from discord .ext import commands 
 import aiosqlite 
+from utils.emojis import e as _e 
 import asyncio 
 import json 
 import re 
@@ -75,7 +76,7 @@ class PlaceholdersView (discord .ui .View ):
     def __init__ (self ):
         super ().__init__ (timeout =60 )
 
-    @discord .ui .button (label ="Show Placeholders",style =discord .ButtonStyle .secondary ,emoji ="📋")
+    @discord .ui .button (label ="Show Placeholders",style =discord .ButtonStyle .secondary ,emoji =__import__('utils.emojis',fromlist=['e']).e("zclipboard") or "📋")
     async def show_placeholders (self ,interaction :discord .Interaction ,button :discord .ui .Button ):
         from utils.emojis import e as _e
         embed =discord .Embed (
@@ -268,7 +269,7 @@ class LevelConfigModal (discord .ui .Modal ,title ="Leveling System Configuratio
         except Exception as e :
             logger .error (f"Critical error in LevelConfigModal: {e}")
             await interaction .followup .send (
-            f"❌ An unexpected error occurred: {str(e)}",
+            f"{_e('zcross')} An unexpected error occurred: {str(e)}",
             ephemeral =True 
             )
 
@@ -1580,7 +1581,7 @@ class Leveling (commands .Cog ):
         """Interactive setup for prefix commands"""
         try :
             embed =discord .Embed (
-            title ="🔧 Interactive Leveling Setup",
+            title =f"{_e('zwrench')} Interactive Leveling Setup",
             description ="Let's configure your leveling system! I'll ask you a few questions.\n"
             "Type `cancel` at any time to stop, or `skip` to keep current value.\n\n"
             "**Current Settings:**",
@@ -1590,11 +1591,11 @@ class Leveling (commands .Cog ):
 
             embed .add_field (
             name ="Current Configuration",
-            value =f"🔧 Status: {'enabled' if current_settings.get('enabled', False) else 'disabled'}\n"
-            f"💎 XP per Message: {current_settings.get('xp_per_message', 20)}\n"
-            f"🎨 Embed Color: {current_settings.get('embed_color', '#000000')}\n"
-            f"🖼️ Thumbnail: {'yes' if current_settings.get('thumbnail_enabled', True) else 'no'}\n"
-            f"📢 Level Channel: {'Set' if current_settings.get('channel_id') else 'Not set'}",
+            value =f"{_e('zwrench')} Status: {'enabled' if current_settings.get('enabled', False) else 'disabled'}\n"
+            f"{_e('starr')} XP per Message: {current_settings.get('xp_per_message', 20)}\n"
+            f"{_e('zsettings')} Embed Color: {current_settings.get('embed_color', '#000000')}\n"
+            f"{_e('zimage')} Thumbnail: {'yes' if current_settings.get('thumbnail_enabled', True) else 'no'}\n"
+            f"{_e('zcast')} Level Channel: {'Set' if current_settings.get('channel_id') else 'Not set'}",
             inline =False 
             )
 
@@ -1604,7 +1605,7 @@ class Leveling (commands .Cog ):
                 return m .author ==ctx .author and m .channel ==ctx .channel 
 
 
-            await ctx .send ("💎 **How much XP should users get per message?** (1-999)\n"
+            await ctx .send (f"{_e('starr')} **How much XP should users get per message?** (1-999)\n"
             f"Current: `{current_settings.get('xp_per_message', 20)}`")
 
             try :
@@ -1621,12 +1622,12 @@ class Leveling (commands .Cog ):
                         await ctx .send (f"{_e('zcross')} XP must be between 1 and 999. Using current value.")
                         xp_per_message =current_settings .get ('xp_per_message',20 )
             except (ValueError ,asyncio .TimeoutError ):
-                await ctx .send ("⏰ Timeout or invalid input. Using current value.")
+                await ctx .send (f"{_e('ztimer')} Timeout or invalid input. Using current value.")
                 xp_per_message =current_settings .get ('xp_per_message',20 )
 
 
             current_msg =current_settings .get ('level_message','Congratulations {user}! You have reached level {level}!')
-            await ctx .send ("💬 **What should the level-up message say?**\n"
+            await ctx .send (f"{_e('zmsg')} **What should the level-up message say?**\n"
             f"Available placeholders: `{'{user}'}`, `{'{username}'}`, `{'{level}'}`, `{'{server}'}`\n"
             f"Current: `{current_msg[:100]}{'...' if len(current_msg) > 100 else ''}`")
 
@@ -1644,12 +1645,12 @@ class Leveling (commands .Cog ):
                         await ctx .send (f"{_e('zcross')} Message too long (max 2000 chars). Using current value.")
                         level_message =current_msg 
             except asyncio .TimeoutError :
-                await ctx .send ("⏰ Timeout. Using current value.")
+                await ctx .send (f"{_e('ztimer')} Timeout. Using current value.")
                 level_message =current_msg 
 
 
             current_color =current_settings .get ('embed_color','#000000')
-            await ctx .send ("🎨 **What color should the level-up embeds be?** (hex format like #FF0000)\n"
+            await ctx .send (f"{_e('zsettings')} **What color should the level-up embeds be?** (hex format like #FF0000)\n"
             f"Current: `{current_color}`")
 
             try :
@@ -1671,12 +1672,12 @@ class Leveling (commands .Cog ):
                         await ctx .send (f"{_e('zcross')} Invalid hex color. Using current value.")
                         embed_color =current_color 
             except asyncio .TimeoutError :
-                await ctx .send ("⏰ Timeout. Using current value.")
+                await ctx .send (f"{_e('ztimer')} Timeout. Using current value.")
                 embed_color =current_color 
 
 
             current_image =current_settings .get ('level_image','')
-            await ctx .send ("🖼️ **Level-up image URL** (optional, direct image link)\n"
+            await ctx .send (f"{_e('zimage')} **Level-up image URL** (optional, direct image link)\n"
             f"Current: `{'Set' if current_image else 'None'}`")
 
             try :
@@ -1693,12 +1694,12 @@ class Leveling (commands .Cog ):
                         await ctx .send (f"{_e('zcross')} URL too long. Using current value.")
                         level_image =current_image 
             except asyncio .TimeoutError :
-                await ctx .send ("⏰ Timeout. Using current value.")
+                await ctx .send (f"{_e('ztimer')} Timeout. Using current value.")
                 level_image =current_image 
 
 
             current_thumb =current_settings .get ('thumbnail_enabled',True )
-            await ctx .send ("🖼️ **Show user avatar thumbnail in level-up messages?** (yes/no)\n"
+            await ctx .send (f"{_e('zimage')} **Show user avatar thumbnail in level-up messages?** (yes/no)\n"
             f"Current: `{'Yes' if current_thumb else 'No'}`")
 
             try :
@@ -1712,7 +1713,7 @@ class Leveling (commands .Cog ):
                 else :
                     thumbnail_enabled =thumb_msg .content .lower ()in ['yes','y','true','1','on','enable']
             except asyncio .TimeoutError :
-                await ctx .send ("⏰ Timeout. Using current value.")
+                await ctx .send (f"{_e('ztimer')} Timeout. Using current value.")
                 thumbnail_enabled =current_thumb 
 
 
@@ -1772,18 +1773,18 @@ class Leveling (commands .Cog ):
             )
 
             final_embed .add_field (
-            name ="📊 Configuration Summary",
-            value =f"🔧 **Status:** Enabled\n"
-            f"💎 **XP per Message:** {xp_per_message}\n"
-            f"💬 **Level-up Message:** {level_message[:50]}{'...' if len(level_message) > 50 else ''}\n"
-            f"🎨 **Embed Color:** {embed_color}\n"
-            f"🖼️ **Level-up Image:** {'Set' if level_image_final else 'None'}\n"
-            f"🖼️ **Show Thumbnail:** {'Yes' if thumbnail_enabled else 'No'}",
+            name =f"{_e('zpoll')} Configuration Summary",
+            value =f"{_e('zwrench')} **Status:** Enabled\n"
+            f"{_e('starr')} **XP per Message:** {xp_per_message}\n"
+            f"{_e('zmsg')} **Level-up Message:** {level_message[:50]}{'...' if len(level_message) > 50 else ''}\n"
+            f"{_e('zsettings')} **Embed Color:** {embed_color}\n"
+            f"{_e('zimage')} **Level-up Image:** {'Set' if level_image_final else 'None'}\n"
+            f"{_e('zimage')} **Show Thumbnail:** {'Yes' if thumbnail_enabled else 'No'}",
             inline =False 
             )
 
             final_embed .add_field (
-            name ="🚀 Next Steps",
+            name =f"{_e('zrocket')} Next Steps",
             value =f"• Use `{ctx.prefix}level channel #channel` to set announcement channel\n"
             f"• Use `{ctx.prefix}level rewards add <level> @role` to add level rewards\n"
             f"• Use `{ctx.prefix}level leaderboard` to view the server leaderboard\n"
@@ -1889,7 +1890,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ Embed Color Updated",
+            title =f"{_e('ztick')} Embed Color Updated",
             description =f"Embed color has been set to **{color}**",
             color =color_int ,
             timestamp =datetime .now (timezone .utc )
@@ -1924,7 +1925,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ Thumbnail Setting Updated",
+            title =f"{_e('ztick')} Thumbnail Setting Updated",
             description =f"User thumbnails in level-up messages: **{'Enabled' if enabled else 'Disabled'}**",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -1956,7 +1957,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ Cooldown Updated",
+            title =f"{_e('ztick')} Cooldown Updated",
             description =f"Message cooldown has been set to **{seconds} seconds**",
             color =0x00FF00 ,
             timestamp =datetime .now (timezone .utc )
@@ -2403,7 +2404,7 @@ class Leveling (commands .Cog ):
 
             if not top_users :
                 embed =discord .Embed (
-                title ="📊 Server Level Leaderboard",
+                title =f"{_e('zpoll')} Server Level Leaderboard",
                 description ="No users found in the leaderboard yet!",
                 color =0xFF0000 
                 )
@@ -2854,11 +2855,11 @@ class Leveling (commands .Cog ):
                 level =calculate_level_from_xp (xp )
 
                 if i ==0 :
-                    emoji ="🥇"
+                    emoji =_e ("king")or "🥇"
                 elif i ==1 :
-                    emoji ="🥈"
+                    emoji =_e ("starr")or "🥈"
                 elif i ==2 :
-                    emoji ="🥉"
+                    emoji =_e ("zcircle")or "🥉"
                 else :
                     emoji =f"#{i + 1}"
 
@@ -2875,7 +2876,7 @@ class Leveling (commands .Cog ):
     async def placeholders (self ,ctx ):
         """Show placeholders for level-up messages"""
         embed =discord .Embed (
-        title ="📝 Available Placeholders",
+        title =f"{_e('zclipboard')} Available Placeholders",
         description =(
         "**You can use these placeholders in your level-up message:**\n\n"
         "`{user}` - Mentions the user (@username)\n"
@@ -2901,7 +2902,7 @@ class Leveling (commands .Cog ):
 
                 if result :
                     if result [0 ]==1 :
-                        await ctx .send ("⚠️ Leveling system is already enabled!")
+                        await ctx .send (f"{_e('zwarning')} Leveling system is already enabled!")
                         return 
 
                     await db .execute ("UPDATE leveling_settings SET enabled = 1 WHERE guild_id = ?",(ctx .guild .id ,))
@@ -2912,7 +2913,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="✅ Leveling System Enabled",
+            title =f"{_e('ztick')} Leveling System Enabled",
             description ="The leveling system has been successfully enabled for this server!\n\n"
             "**Next Steps:**\n"
             f"• Use `{ctx.prefix}level settings` to configure XP rates and messages\n"
@@ -2937,18 +2938,18 @@ class Leveling (commands .Cog ):
                     result =await cursor .fetchone ()
 
                 if not result :
-                    await ctx .send ("⚠️ Leveling system is not configured for this server!")
+                    await ctx .send (f"{_e('zwarning')} Leveling system is not configured for this server!")
                     return 
 
                 if result [0 ]==0 :
-                    await ctx .send ("⚠️ Leveling system is already disabled!")
+                    await ctx .send (f"{_e('zwarning')} Leveling system is already disabled!")
                     return 
 
                 await db .execute ("UPDATE leveling_settings SET enabled = 0 WHERE guild_id = ?",(ctx .guild .id ,))
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="❌ Leveling System Disabled",
+            title =f"{_e('zcross')} Leveling System Disabled",
             description ="The leveling system has been disabled for this server.\n\n"
             "**What this means:**\n"
             "• Users will no longer gain XP from messages\n"
@@ -2994,14 +2995,14 @@ class Leveling (commands .Cog ):
 
 
             embed =discord .Embed (
-            title =f"📊 Level Statistics for {member.display_name}",
+            title =f"{_e('zpoll')} Level Statistics for {member.display_name}",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
             )
 
 
             embed .add_field (
-            name ="🎯 Basic Stats",
+            name =f"{_e('zyroxthunder')} Basic Stats",
             value =f"**Level:** {level:,}\n"
             f"**Total XP:** {format_number(xp)}\n"
             f"**Server Rank:** #{rank:,} / {total_members:,}\n"
@@ -3011,7 +3012,7 @@ class Leveling (commands .Cog ):
 
 
             embed .add_field (
-            name ="📈 Progress to Level {next_level}",
+            name =f"{_e('zlevelup')} Progress to Level {{next_level}}",
             value =f"**Current Progress:** {format_number(progress)} / {format_number(needed)} XP\n"
             f"**Percentage:** {percentage:.1f}%\n"
             f"**XP Needed:** {format_number(xp_to_next_level)}\n"
@@ -3021,7 +3022,7 @@ class Leveling (commands .Cog ):
 
 
             embed .add_field (
-            name ="📊 Additional Stats",
+            name =f"{_e('zpoll')} Additional Stats",
             value =f"**Avg XP/Message:** {avg_xp_per_message:.1f}\n"
             f"**XP for Level {level}:** {format_number(calculate_xp_for_level(level))}\n"
             f"**XP for Level {next_level}:** {format_number(calculate_xp_for_level(next_level))}\n"
@@ -3034,32 +3035,32 @@ class Leveling (commands .Cog ):
 
 
             if rank ==1 :
-                tier ="🏆 Champion"
+                tier =f"{_e('king')} Champion"
                 tier_color =0xFFD700 
             elif rank <=3 :
-                tier ="🥇 Elite"
+                tier =f"{_e('starr')} Elite"
                 tier_color =0xC0C0C0 
             elif rank <=10 :
-                tier ="⭐ Expert"
+                tier =f"{_e('starr')} Expert"
                 tier_color =0xCD7F32 
             elif percentile >=90 :
-                tier ="💎 Advanced"
+                tier =f"{_e('zlevelup')} Advanced"
                 tier_color =0x00FFFF 
             elif percentile >=70 :
-                tier ="🔥 Experienced"
+                tier =f"{_e('zyroxthunder')} Experienced"
                 tier_color =0xFF4500 
             elif percentile >=50 :
-                tier ="⚡ Intermediate"
+                tier =f"{_e('zyroxthunder')} Intermediate"
                 tier_color =0xFFFF00 
             elif percentile >=25 :
-                tier ="🌟 Beginner"
+                tier =f"{_e('starr')} Beginner"
                 tier_color =0x90EE90 
             else :
-                tier ="🌱 Newcomer"
+                tier =f"{_e('zseed')} Newcomer"
                 tier_color =0x98FB98 
 
             embed .add_field (
-            name ="🏅 Rank Information",
+            name =f"{_e('king')} Rank Information",
             value =f"**Tier:** {tier}\n"
             f"**Percentile:** Top {100-percentile:.1f}%\n"
             f"**Users Below:** {total_members - rank:,}\n"
@@ -3119,7 +3120,7 @@ class Leveling (commands .Cog ):
                 await db .commit ()
 
             embed =discord .Embed (
-            title ="📢 Level-Up Channel Set",
+            title =f"{_e('zcast')} Level-Up Channel Set",
             description =f"Level-up messages will now be sent in {channel.mention}\n\n"
             "**Note:** Make sure the bot has permission to send messages in this channel!",
             color =0x00BFFF ,
@@ -3150,12 +3151,12 @@ class Leveling (commands .Cog ):
             channel = ctx.guild.get_channel(channel_id) if channel_id else None
 
             embed = discord.Embed(
-                title="📊 Leveling System Status",
+                title=f"{_e('zpoll')} Leveling System Status",
                 color=0xFF0000,
                 timestamp=datetime.now(timezone.utc)
             )
             embed.add_field(
-                name="⚙️ System",
+                name=f"{_e('zsettings')} System",
                 value=(
                     f"**Status:** {'enabled' if enabled else 'disabled'}\n"
                     f"**XP per Message:** {xp_per_msg}\n"
@@ -3165,16 +3166,16 @@ class Leveling (commands .Cog ):
                 inline=True
             )
             embed.add_field(
-                name="📢 Notifications",
+                name=f"{_e('zcast')} Notifications",
                 value=(
                     f"**Level-Up Channel:** {channel.mention if channel else 'Current channel'}\n"
                     f"**Thumbnail:** {'yes' if thumbnail else 'no'}\n"
-                    f"**Level-Up Image:** {'✅ Set' if level_img else '❌ Not set'}"
+                    f"**Level-Up Image:** {_e('ztick')+' Set' if level_img else _e('zcross')+' Not set'}"
                 ),
                 inline=True
             )
             embed.add_field(
-                name="💬 Level-Up Message",
+                name=f"{_e('zmsg')} Level-Up Message",
                 value=f"```{level_msg[:200]}{'...' if len(level_msg) > 200 else ''}```",
                 inline=False
             )
@@ -3199,7 +3200,7 @@ class Leveling (commands .Cog ):
                     await db.execute("INSERT INTO leveling_settings (guild_id, level_image) VALUES (?, ?)", (ctx.guild.id, url))
                 await db.commit()
             embed = discord.Embed(
-                title="✅ Level-Up Image Set",
+                title=f"{_e('ztick')} Level-Up Image Set",
                 description=f"Level-up embeds will now show: [View Image]({url})",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3217,7 +3218,7 @@ class Leveling (commands .Cog ):
                 await db.execute("UPDATE leveling_settings SET level_image = NULL WHERE guild_id = ?", (ctx.guild.id,))
                 await db.commit()
             embed = discord.Embed(
-                title="✅ Level-Up Image Cleared",
+                title=f"{_e('ztick')} Level-Up Image Cleared",
                 description="The custom level-up image has been removed.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3254,7 +3255,7 @@ class Leveling (commands .Cog ):
                     )
                 await db.commit()
             embed = discord.Embed(
-                title="✅ XP Range Updated",
+                title=f"{_e('ztick')} XP Range Updated",
                 description=f"Users will now earn between **{min_xp}** and **{max_xp}** XP per message.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3281,7 +3282,7 @@ class Leveling (commands .Cog ):
                 embed_color = hex_to_int(embed_color)
 
             embed = discord.Embed(
-                title="🎉 Level Up! *(Preview)*",
+                title=f"{_e('ztada')} Level Up! *(Preview)*",
                 description=level_message,
                 color=embed_color,
                 timestamp=datetime.now(timezone.utc)
@@ -3320,7 +3321,7 @@ class Leveling (commands .Cog ):
                 )
                 await db.commit()
             embed = discord.Embed(
-                title="✅ User XP Reset",
+                title=f"{_e('ztick')} User XP Reset",
                 description=f"Successfully reset all XP and level data for {member.mention}.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3335,7 +3336,7 @@ class Leveling (commands .Cog ):
         """Reset every user's XP in this server. This cannot be undone."""
         try:
             confirm_embed = discord.Embed(
-                title="⚠️ Confirm Reset",
+                title=f"{_e('zwarning')} Confirm Reset",
                 description=(
                     "Are you sure you want to **reset ALL users' XP** in this server?\n\n"
                     "This **cannot be undone**. Reply with `confirm` within 30 seconds to proceed."
@@ -3359,7 +3360,7 @@ class Leveling (commands .Cog ):
                 await db.commit()
 
             embed = discord.Embed(
-                title="✅ All XP Reset",
+                title=f"{_e('ztick')} All XP Reset",
                 description="All user XP and level data for this server has been cleared.",
                 color=0x00FF00,
                 timestamp=datetime.now(timezone.utc)
@@ -3388,7 +3389,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, channel.id)
                 )
                 await db.commit()
-            await ctx.send(f"✅ {channel.mention} has been removed from the leveling blacklist.")
+            await ctx.send(f"{_e('ztick')} {channel.mention} has been removed from the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error unblacklisting channel: {e}")
 
@@ -3403,7 +3404,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, role.id)
                 )
                 await db.commit()
-            await ctx.send(f"✅ {role.mention} has been removed from the leveling blacklist.")
+            await ctx.send(f"{_e('ztick')} {role.mention} has been removed from the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error unblacklisting role: {e}")
 
@@ -3420,7 +3421,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, channel.id)
                 )
                 await db.commit()
-            await ctx.send(f"✅ {channel.mention} has been added to the leveling blacklist.")
+            await ctx.send(f"{_e('ztick')} {channel.mention} has been added to the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error blacklisting channel: {e}")
 
@@ -3435,7 +3436,7 @@ class Leveling (commands .Cog ):
                     (ctx.guild.id, role.id)
                 )
                 await db.commit()
-            await ctx.send(f"✅ {role.mention} has been added to the leveling blacklist.")
+            await ctx.send(f"{_e('ztick')} {role.mention} has been added to the leveling blacklist.")
         except Exception as e:
             logger.error(f"Error blacklisting role: {e}")
 

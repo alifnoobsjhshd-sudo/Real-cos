@@ -117,8 +117,9 @@ class CommandModal(discord.ui.Modal):
 
         cmd_str = " ".join(parts)
 
+        from utils.emojis import e as _e
         await interaction.followup.send(
-            f"✅ Your command is ready — copy and paste it into chat:\n"
+            f"{_e('ztick')} Your command is ready — copy and paste it into chat:\n"
             f"```\n{cmd_str}\n```",
             ephemeral=True,
         )
@@ -208,15 +209,16 @@ class CommandRunDropdown(discord.ui.Select):
                 ctx.channel = interaction.channel
 
                 # ── Fail closed: run the command's full check pipeline ────────
+                from utils.emojis import e as _e
                 if not await _check_can_run(cmd, ctx):
                     return await interaction.followup.send(
-                        f"❌ You don't have permission to use `{prefix}{cmd.qualified_name}`.",
+                        f"{_e('zcross')} You don't have permission to use `{prefix}{cmd.qualified_name}`.",
                         ephemeral=True,
                     )
 
                 await ctx.invoke(cmd)
                 try:
-                    await interaction.followup.send("✅ Command executed!", ephemeral=True)
+                    await interaction.followup.send(f"{_e('ztick')} Command executed!", ephemeral=True)
                 except Exception:
                     pass
             except Exception:

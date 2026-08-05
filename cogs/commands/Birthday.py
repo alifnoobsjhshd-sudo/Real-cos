@@ -147,7 +147,8 @@ class Birthdays(commands.Cog):
                         if channel_id:
                             channel = self.client.get_channel(channel_id)
                             if channel:
-                                await channel.send(f"Happy Birthday {user.mention}! 🎉")
+                                from utils.emojis import e as _e
+                                await channel.send(f"Happy Birthday {user.mention}! {_e('zbirthday')} {_e('ztada')}")
                                 role = discord.utils.get(channel.guild.roles, id=role_id)
                                 if role:
                                     await user.add_roles(role)

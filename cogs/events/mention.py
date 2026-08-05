@@ -32,12 +32,13 @@ def build_serverinfo_embed(guild: discord.Guild, user: discord.Member) -> discor
         embed.timestamp = discord.utils.utcnow()
 
     c_at = guild.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    from utils.emojis import e as _e
     embed.add_field(
         name="**__About__**",
         value=(
             f"**Name : ** {guild.name}\n"
             f"**ID :** {guild.id}\n"
-            f"**Owner 👑 :** {guild.owner} (<@{guild.owner_id}>)\n"
+            f"**Owner {_e('king')} :** {guild.owner} (<@{guild.owner_id}>)\n"
             f"**Created At : ** {c_at}\n"
             f"**Members :** {len(guild.members)}"
         ),
@@ -59,7 +60,7 @@ def build_serverinfo_embed(guild: discord.Guild, user: discord.Member) -> discor
     )
     if guild.features:
         features = "\n".join(
-            [f"✅: {f[:1].upper() + f[1:].lower().replace('_', ' ')}"
+            [f"{_e('ztick')}: {f[:1].upper() + f[1:].lower().replace('_', ' ')}"
              for f in guild.features]
         )
         embed.add_field(
@@ -88,7 +89,7 @@ def build_serverinfo_embed(guild: discord.Guild, user: discord.Member) -> discor
     )
     embed.add_field(
         name="**__Boost Status__**",
-        value=f"Level: {guild.premium_tier} [🚀{guild.premium_subscription_count} boosts]",
+        value=f"Level: {guild.premium_tier} [{_e('zrocket')}{guild.premium_subscription_count} boosts]",
         inline=False,
     )
     roles = guild.roles
@@ -111,51 +112,51 @@ def build_help_embed(bot: commands.Bot, user: discord.Member, prefix: str) -> di
     """Build the main help embed identical in style to the >help command."""
     embed = discord.Embed(
         description=(
-            f"**➡️ __Get Started Today__**\n"
-            f"**➡️ Type `{prefix}antinuke enable`**\n"
-            f"**➡️ Server Prefix:** `{prefix}`\n"
-            f"**➡️ Total Commands:** `{len(set(bot.walk_commands()))}`\n"
+            f"**{_e('zArrow')} __Get Started Today__**\n"
+            f"**{_e('zArrow')} Type `{prefix}antinuke enable`**\n"
+            f"**{_e('zArrow')} Server Prefix:** `{prefix}`\n"
+            f"**{_e('zArrow')} Total Commands:** `{len(set(bot.walk_commands()))}`\n"
         ),
         color=0xFF0000,
     )
     embed.set_author(name=f"{user}", icon_url=user.display_avatar.url)
     embed.set_thumbnail(url=user.display_avatar.url)
     embed.add_field(
-        name="☁️ __**Main Features**__",
+        name=f"{_e('zCloud')} __**Main Features**__",
         value=(
-            ">>> \n 🛡️ `»` Security\n"
-            " 🤖 `»` Automoderation\n"
-            " 🔧 `»` Utility\n"
-            " 📶 `»` Autoreact & responder\n"
-            " ⚔️ `»` Moderation\n"
-            " 👥 `»` Autorole & Invc\n"
-            " 🚀 `»` Fun\n"
-            " 🎮 `»` Games\n"
-            " 🔨 `»` Ignore Channels\n"
-            " 📶 `»` Server\n"
-            " 🔊 `»` Voice\n"
-            " 🌱 `»` Welcomer\n"
-            " 🎉 `»` Giveaway\n"
-            " 🎫 `»` Ticket 🆕\n"
-            " 👥 `»` Invite Tracker 🆕\n"
+            f">>> \n {_e('zSafe')} `»` Security\n"
+            f" {_e('zbot')} `»` Automoderation\n"
+            f" {_e('zwrench')} `»` Utility\n"
+            f" {_e('zwifi')} `»` Autoreact & responder\n"
+            f" {_e('zsowrd')} `»` Moderation\n"
+            f" {_e('zpeople')} `»` Autorole & Invc\n"
+            f" {_e('zrocket')} `»` Fun\n"
+            f" {_e('games')} `»` Games\n"
+            f" {_e('zyroxhammer')} `»` Ignore Channels\n"
+            f" {_e('zwifi')} `»` Server\n"
+            f" {_e('zvoice')} `»` Voice\n"
+            f" {_e('zseed')} `»` Welcomer\n"
+            f" {_e('ztada')} `»` Giveaway\n"
+            f" {_e('zticket')} `»` Ticket {_e('New')}\n"
+            f" {_e('zpeople')} `»` Invite Tracker {_e('New')}\n"
         ),
     )
     embed.add_field(
-        name=" 🧩 __**Extra Features**__",
+        name=f" {_e('zmodule')} __**Extra Features**__",
         value=(
-            ">>> \n 📡 `»` Advance Logging\n"
-            " ⭐ `»` Vanityroles\n"
-            " 🔢 `»` Counting 🆕\n"
-            " ⚙️ `»` J2C 🆕\n"
-            " 🚀 `»` Boost 🆕\n"
-            " ⬆️ `»` Leveling 🆕\n"
-            " 📌 `»` Sticky 🆕\n"
-            " ⚡ `»` Verification 🆕\n"
-            " 🔒 `»` Encryption 🆕\n"
-            " ⛏️ `»` Minecraft 🆕\n"
-            " ✉️ `»` Joindm 🆕\n"
-            " 🎂 `»` Birthday 🆕\n"
-            " 🎂 `»` Customrole\n"
+            f">>> \n {_e('zcast')} `»` Advance Logging\n"
+            f" {_e('starr')} `»` Vanityroles\n"
+            f" {_e('zcounting')} `»` Counting {_e('New')}\n"
+            f" {_e('zsettings')} `»` J2C {_e('New')}\n"
+            f" {_e('zrocket')} `»` Boost {_e('New')}\n"
+            f" {_e('zlevelup')} `»` Leveling {_e('New')}\n"
+            f" {_e('zpin')} `»` Sticky {_e('New')}\n"
+            f" {_e('zyroxthunder')} `»` Verification {_e('New')}\n"
+            f" {_e('lock')} `»` Encryption {_e('New')}\n"
+            f" {_e('zpickaxe')} `»` Minecraft {_e('New')}\n"
+            f" {_e('zenvelope')} `»` Joindm {_e('New')}\n"
+            f" {_e('zbirthday')} `»` Birthday {_e('New')}\n"
+            f" {_e('zbirthday')} `»` Customrole\n"
         ),
     )
     embed.set_footer(text=f"Requested By {user} | {DEFAULT_BRANDING}")
@@ -170,12 +171,12 @@ class MentionDropdown(discord.ui.Select):
         options = [
             discord.SelectOption(
                 label="About Server",
-                emoji="📶",
+                emoji=_e("zwifi") or "📶",
                 description="View this server's information",
             ),
             discord.SelectOption(
                 label="Commands",
-                emoji="☁️",
+                emoji=_e("zCloud") or "☁️",
                 description="Explore all bot commands",
             ),
         ]
@@ -256,9 +257,9 @@ class Mention(commands.Cog):
             embed = discord.Embed(
                 title=f"{message.guild.name}",
                 description=(
-                    f"> ❤️ **Hey {message.author.mention}!**\n"
-                    f"> ➡️ **Prefix For This Server: `{prefix}`**\n\n"
-                    f"> ☁️ Type `/help` or `{prefix}help` to explore all commands."
+                    f"> {_e('heart3')} **Hey {message.author.mention}!**\n"
+                    f"> {_e('zArrow')} **Prefix For This Server: `{prefix}`**\n\n"
+                    f"> {_e('zCloud')} Type `/help` or `{prefix}help` to explore all commands."
                 ),
                 color=branding["embed_color"],
             )

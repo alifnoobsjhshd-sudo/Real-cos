@@ -22,19 +22,20 @@ REFRESH_COOLDOWN_SECONDS = 30
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 125
 
-# --- Emojis ---
-EMOJI_STATUS_ONLINE = "🟢"
-EMOJI_STATUS_OFFLINE = "🔴"
-EMOJI_PLAYERS = "👥"
-EMOJI_INFO = "💻"
-EMOJI_SUCCESS = "✅"
-EMOJI_ERROR = "❌"
-EMOJI_WARNING = "⚠️"
-EMOJI_CLOCK = "⏱️"
-EMOJI_REFRESH = "🔄"
-EMOJI_JAVA = "☕"
-EMOJI_BEDROCK = "📱"
-EMOJI_PROXY = "🔌"
+# --- Emojis (custom via emojis store, Unicode fallbacks) ---
+from utils.emojis import e as _mc_e
+EMOJI_STATUS_ONLINE  = _mc_e("online")    or "🟢"
+EMOJI_STATUS_OFFLINE = _mc_e("reddot")   or "🔴"
+EMOJI_PLAYERS        = _mc_e("zpeople")   or "👥"
+EMOJI_INFO           = _mc_e("codebase")  or "💻"
+EMOJI_SUCCESS        = _mc_e("ztick")     or "✅"
+EMOJI_ERROR          = _mc_e("zcross")    or "❌"
+EMOJI_WARNING        = _mc_e("zwarning")  or "⚠️"
+EMOJI_CLOCK          = _mc_e("ztimer")    or "⏱️"
+EMOJI_REFRESH        = _mc_e("zrefresh")  or "🔄"
+EMOJI_JAVA           = _mc_e("zcoffee")   or "☕"
+EMOJI_BEDROCK        = _mc_e("mobile")    or "📱"
+EMOJI_PROXY          = _mc_e("zplug")     or "🔌"
 
 class SetupModal(ui.Modal, title="Minecraft Server Setup"):
     server_ip = ui.TextInput(label="Enter Server IP Address", placeholder="e.g., play.hypixel.net", required=True)

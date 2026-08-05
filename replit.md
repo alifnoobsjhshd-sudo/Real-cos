@@ -155,6 +155,25 @@ The existing SQLite databases are **unchanged** — Supabase is additive.
 
 ---
 
+## Custom Emoji System — Branch 4
+
+All bot-facing messages, buttons, and embeds use custom emojis via `utils/emojis.py`.
+New emojis in **branch4** were generated with `generate_emojis.py` and must be uploaded
+to Discord via `/upload emojis branch:branch4` (overflow to `branch5` if needed).
+
+After uploading, copy the resulting emoji IDs into the `_FALLBACK` dict in `utils/emojis.py`
+and run `reload_store()` or restart the bot so the store picks up the new IDs.
+
+**Branch4 emojis (27 total):**
+`zpoll`, `zimage`, `zbroom`, `zmood`, `zmask`, `zbrain`, `zflower`, `zrefresh`,
+`zcoffee`, `zpickaxe`, `zplug`, `zclipboard`, `zvote`, `zbirthday`, `zenvelope`,
+`zvoice`, `zbook`, `znum1`–`znum10`
+
+**Design rule:** Dropdown `placeholder` strings always keep Unicode emojis — Discord
+renders custom emojis poorly in placeholder text.
+
+---
+
 ## User preferences
 
 - Keep the existing project structure and stack.

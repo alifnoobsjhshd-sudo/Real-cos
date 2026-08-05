@@ -12,7 +12,13 @@ from utils.Tools import blacklist_check, ignore_check
 
 POLL_DB = "db/poll.db"
 MAX_OPTIONS = 10
-OPTION_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+from utils.emojis import e as _pe
+OPTION_EMOJIS = [
+    _pe("znum1") or "1️⃣", _pe("znum2") or "2️⃣", _pe("znum3") or "3️⃣",
+    _pe("znum4") or "4️⃣", _pe("znum5") or "5️⃣", _pe("znum6") or "6️⃣",
+    _pe("znum7") or "7️⃣", _pe("znum8") or "8️⃣", _pe("znum9") or "9️⃣",
+    _pe("znum10") or "🔟",
+]
 
 
 async def _setup_poll_db():
@@ -94,8 +100,9 @@ async def _build_results_embed(poll_id: int, poll_row, options, ended: bool) -> 
     total_voters = len(voters)
     total_votes = sum(vote_counts.values())
 
+    from utils.emojis import e as _pe
     embed = discord.Embed(
-        title=f"📊 {question}",
+        title=f"{_pe('zpoll') or '📊'} {question}",
         description=description or None,
         color=discord.Color.gold() if not ended else discord.Color.dark_grey(),
     )
@@ -104,13 +111,15 @@ async def _build_results_embed(poll_id: int, poll_row, options, ended: bool) -> 
     for idx, label in options:
         count = vote_counts.get(idx, 0)
         pct = round((count / total_votes) * 100) if total_votes else 0
-        emoji = OPTION_EMOJIS[idx] if idx < len(OPTION_EMOJIS) else "▪️"
+        from utils.emojis import e as _pe
+        emoji = OPTION_EMOJIS[idx] if idx < len(OPTION_EMOJIS) else (_pe("zcircle") or "▪️")
         lines.append(f"{emoji} **{label}**\n`{_bar(count, total_votes)}` {count} vote{'s' if count != 1 else ''} ({pct}%)")
 
     embed.add_field(name="\u200b", value="\n\n".join(lines) if lines else "No options.", inline=False)
 
     mode = "Multiple choice" if multiple else "Single choice"
-    status = "🔒 Poll ended" if ended else "🗳️ Voting open"
+    from utils.emojis import e as _pe
+    status = f"{_pe('lock') or '🔒'} Poll ended" if ended else f"{_pe('zvote') or '🗳️'} Voting open"
     embed.set_footer(text=f"{status} • {mode} • {total_voters} voter{'s' if total_voters != 1 else ''}")
 
     try:
@@ -343,7 +352,7 @@ class PollBuilderView(discord.ui.View):
 
     def build_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="📊 Poll Builder",
+            title=f"{_pe('zpoll') or '📊'} Poll Builder",
             description=(
                 "Configure your poll using the buttons below, then hit **Send Poll**.\n"
                 "You need a question, at least 2 options, and a channel."
@@ -356,7 +365,7 @@ class PollBuilderView(discord.ui.View):
 
         if self.options:
             opts_text = "\n".join(
-                f"{OPTION_EMOJIS[i] if i < len(OPTION_EMOJIS) else '▪️'} {opt}"
+                f"{OPTION_EMOJIS[i] if i < len(OPTION_EMOJIS) else (_pe('zcircle') or '▪️')} {opt}"
                 for i, opt in enumerate(self.options)
             )
         else:
@@ -365,7 +374,7 @@ class PollBuilderView(discord.ui.View):
 
         embed.add_field(
             name="Answer mode",
-            value="🔢 Multiple choice" if self.multiple else "🔘 Single choice",
+            value=f"{_pe('zcounting') or '🔢'} Multiple choice" if self.multiple else f"{_pe('zcircle2') or '🔘'} Single choice",
             inline=True,
         )
         embed.add_field(
@@ -375,11 +384,11 @@ class PollBuilderView(discord.ui.View):
         )
         return embed
 
-    @discord.ui.button(label="Set Question", emoji="💬", style=discord.ButtonStyle.primary, row=1)
+    @discord.ui.button(label="Set Question", emoji=_pe("zmsg") or "💬", style=discord.ButtonStyle.primary, row=1)
     async def set_question(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(PollQuestionModal(self))
 
-    @discord.ui.button(label="Add Option", emoji="➕", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label="Add Option", emoji=_pe("zplus") or "➕", style=discord.ButtonStyle.secondary, row=1)
     async def add_option(self, interaction: discord.Interaction, button: discord.ui.Button):
         if len(self.options) >= MAX_OPTIONS:
             await interaction.response.send_message(
@@ -388,7 +397,7 @@ class PollBuilderView(discord.ui.View):
             return
         await interaction.response.send_modal(PollOptionModal(self))
 
-    @discord.ui.button(label="Remove Last Option", emoji="🗑️", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label="Remove Last Option", emoji=_pe("delete") or "🗑️", style=discord.ButtonStyle.secondary, row=1)
     async def remove_option(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.options:
             await interaction.response.send_message("There are no options to remove.", ephemeral=True)
@@ -396,14 +405,14 @@ class PollBuilderView(discord.ui.View):
         self.options.pop()
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
-    @discord.ui.button(label="Single Choice", emoji="1️⃣", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(label="Single Choice", emoji=_pe("znum1") or "1️⃣", style=discord.ButtonStyle.secondary, row=2)
     async def toggle_multiple(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.multiple = not self.multiple
         button.label = "Multiple Choice" if self.multiple else "Single Choice"
-        button.emoji = discord.PartialEmoji.from_str("🔢") if self.multiple else discord.PartialEmoji.from_str("1️⃣")
+        button.emoji = discord.PartialEmoji.from_str(_pe("zcounting") or "🔢") if self.multiple else discord.PartialEmoji.from_str(_pe("znum1") or "1️⃣")
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
-    @discord.ui.button(label="Send Poll", emoji="✅", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="Send Poll", emoji=_pe("ztick") or "✅", style=discord.ButtonStyle.success, row=2)
     async def send_poll(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.question:
             await interaction.response.send_message("Please set a question first.", ephemeral=True)
@@ -487,7 +496,7 @@ class PollBuilderView(discord.ui.View):
         await interaction.response.edit_message(embed=confirm_embed, view=self)
         self.stop()
 
-    @discord.ui.button(label="Cancel", emoji="❌", style=discord.ButtonStyle.danger, row=2)
+    @discord.ui.button(label="Cancel", emoji=_pe("zcross") or "❌", style=discord.ButtonStyle.danger, row=2)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         from utils.emojis import e as _e
         for child in self.children:

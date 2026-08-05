@@ -1,6 +1,7 @@
 import os 
 import discord 
 import aiosqlite 
+from utils.emojis import e as _e 
 from discord .ext import commands ,tasks 
 try :
     import google .generativeai as genai 
@@ -222,7 +223,7 @@ Ready to have meaningful conversations and help with anything you need! 💖"""
             await self .ai_cog .bot .db .commit ()
 
             embed =discord .Embed (
-            title ="✨ Personality Set",
+            title =f"{_e('starr')} Personality Set",
             description =f"Your AI personality has been updated! The AI will now respond according to your preferences.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -638,7 +639,7 @@ Support server: https://discord.gg/codexdev"""
 
                 else :
                     embed =discord .Embed (
-                    title ="🔍 Analysis",
+                    title =f"{_e('zyrox_search')} Analysis",
                     description ="The replied message has no content to analyze (no text or images).",
                     color =0xFF0000 ,
                     timestamp =datetime .now (timezone .utc )
@@ -648,7 +649,7 @@ Support server: https://discord.gg/codexdev"""
 
             except discord .NotFound :
                 embed =discord .Embed (
-                title ="🔍 Analysis",
+                title =f"{_e('zyrox_search')} Analysis",
                 description ="Could not find the replied message.",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -670,7 +671,7 @@ Support server: https://discord.gg/codexdev"""
                     return 
                 else :
                     embed =discord .Embed (
-                    title ="🖼️ Image Analysis / 📝 Text Analysis",
+                    title =f"{_e('zimage')} Image Analysis / {_e('zmsg')} Text Analysis",
                     description ="No images or text found in recent messages. Please provide an image URL, text, or reply to a message with an image/text.",
                     color =0xFF0000 ,
                     timestamp =datetime .now (timezone .utc )
@@ -686,7 +687,7 @@ Support server: https://discord.gg/codexdev"""
         try :
             if not self .gemini_api_key :
                 return discord .Embed (
-                title ="🖼️ Image Analysis",
+                title =f"{_e('zimage')} Image Analysis",
                 description ="Gemini API key not configured.",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -704,7 +705,7 @@ Support server: https://discord.gg/codexdev"""
                 image =Image .open (io .BytesIO (image_data ))
             except ImportError :
                 return discord .Embed (
-                title ="🖼️ Image Analysis",
+                title =f"{_e('zimage')} Image Analysis",
                 description ="PIL library not available for image processing.",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -716,7 +717,7 @@ Support server: https://discord.gg/codexdev"""
             response =model .generate_content ([prompt ,image ])
 
             embed =discord .Embed (
-            title ="🖼️ Image Analysis",
+            title =f"{_e('zimage')} Image Analysis",
             description =response .text ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -727,7 +728,7 @@ Support server: https://discord.gg/codexdev"""
         except Exception as e :
             logger .error (f"Error analyzing image: {e}")
             embed =discord .Embed (
-            title ="🖼️ Image Analysis",
+            title =f"{_e('zimage')} Image Analysis",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
             )
@@ -751,7 +752,7 @@ Support server: https://discord.gg/codexdev"""
 
             if len (formatted_code )<=3900 :
                 embed =discord .Embed (
-                title ="💻 Generated Code",
+                title =f"{_e('codebase')} Generated Code",
                 description =f"**Language:** {language}\n**Task:** {description}\n\n{formatted_code}",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -778,7 +779,7 @@ Support server: https://discord.gg/codexdev"""
 
                     async def format_page (self ,menu ,content ):
                         embed =discord .Embed (
-                        title ="💻 Generated Code",
+                        title =f"{_e('codebase')} Generated Code",
                         description =f"**Language:** {self.language}\n**Task:** {self.description}\n\n{content}",
                         color =0xFF0000 ,
                         timestamp =datetime .now (timezone .utc )
@@ -822,7 +823,7 @@ Support server: https://discord.gg/codexdev"""
             explanation =await self ._get_groq_response (prompt ,history )
 
             embed =discord .Embed (
-            title =f"📚 Explanation: {topic}",
+            title =f"{_e('zbook')} Explanation: {topic}",
             description =explanation [:4096 ],
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -852,7 +853,7 @@ Support server: https://discord.gg/codexdev"""
         await self .bot .db .commit ()
 
         embed =discord .Embed (
-        title ="🧹 Conversation Cleared",
+        title =f"{_e('zbroom')} Conversation Cleared",
         description ="Your conversation history has been cleared. The AI will start fresh in future interactions.",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -873,7 +874,7 @@ Support server: https://discord.gg/codexdev"""
             analysis =await self ._get_gemini_response (prompt ,history )
 
             embed =discord .Embed (
-            title ="😊 Mood Analysis",
+            title =f"{_e('zmood')} Mood Analysis",
             description =analysis ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -891,7 +892,7 @@ Support server: https://discord.gg/codexdev"""
 
         if not hasattr (ctx ,'interaction')or not ctx .interaction :
             embed =discord .Embed (
-            title ="🎭 AI Personality",
+            title =f"{_e('zmask')} AI Personality",
             description ="This command is only available as a slash command! Use `/ai personality` instead.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -936,7 +937,7 @@ Support server: https://discord.gg/codexdev"""
 
         if not stats :
             embed =discord .Embed (
-            title ="📊 Conversation Statistics",
+            title =f"{_e('zpoll')} Conversation Statistics",
             description ="You don't have any conversation history with me yet! Start chatting to build our conversation~",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -947,16 +948,16 @@ Support server: https://discord.gg/codexdev"""
             last_msg =datetime .fromisoformat (stats ["last_message"].replace ('Z','+00:00'))
 
             embed =discord .Embed (
-            title ="📊 Your Conversation Statistics",
-            description =f"Here's our chat history, sweetie! 💕",
+            title =f"{_e('zpoll')} Your Conversation Statistics",
+            description =f"Here's our chat history!",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
             )
-            embed .add_field (name ="💬 Total Messages",value =f"{stats['message_count']} messages",inline =True )
-            embed .add_field (name ="🕐 First Chat",value =f"<t:{int(first_msg.timestamp())}:R>",inline =True )
-            embed .add_field (name ="🕒 Last Chat",value =f"<t:{int(last_msg.timestamp())}:R>",inline =True )
+            embed .add_field (name =f"{_e('zmsg')} Total Messages",value =f"{stats['message_count']} messages",inline =True )
+            embed .add_field (name =f"{_e('ztimer')} First Chat",value =f"<t:{int(first_msg.timestamp())}:R>",inline =True )
+            embed .add_field (name =f"{_e('ztimer')} Last Chat",value =f"<t:{int(last_msg.timestamp())}:R>",inline =True )
             embed .add_field (
-            name ="🌸 Memory Info",
+            name =f"{_e('zflower')} Memory Info",
             value ="I remember our last 30 messages and auto-clean after 2 hours of inactivity for better conversation continuity~",
             inline =False 
             )
@@ -970,7 +971,7 @@ Support server: https://discord.gg/codexdev"""
         """Enable AI chatbot in a channel"""
         if not ctx .author .guild_permissions .manage_channels :
             embed =discord .Embed (
-            title ="❌ Permission Denied",
+            title =f"{_e('zcross')} Permission Denied",
             description ="You need `Manage Channels` permission to activate AI chatbot.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -997,7 +998,7 @@ Support server: https://discord.gg/codexdev"""
         self .chatbot_channels [guild_id ]=channel_id 
 
         embed =discord .Embed (
-        title ="✅ AI Chatbot Activated",
+        title =f"{_e('ztick')} AI Chatbot Activated",
         description =f"AI chatbot has been enabled in {target_channel.mention}!\nI'll respond to all messages in that channel.",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1010,7 +1011,7 @@ Support server: https://discord.gg/codexdev"""
         """Disable AI chatbot in current server"""
         if not ctx .author .guild_permissions .manage_channels :
             embed =discord .Embed (
-            title ="❌ Permission Denied",
+            title =f"{_e('zcross')} Permission Denied",
             description ="You need `Manage Channels` permission to deactivate AI chatbot.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1036,7 +1037,7 @@ Support server: https://discord.gg/codexdev"""
             del self .chatbot_channels [guild_id ]
 
         embed =discord .Embed (
-        title ="🔇 AI Chatbot Deactivated",
+        title =f"{_e('zunmute')} AI Chatbot Deactivated",
         description ="AI chatbot has been disabled in this server.",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1061,7 +1062,7 @@ Support server: https://discord.gg/codexdev"""
 
         if not text :
             embed =discord .Embed (
-            title ="📝 Text Summarizer",
+            title =f"{_e('zmsg')} Text Summarizer",
             description ="Please provide text to summarize or reply to a message.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1076,7 +1077,7 @@ Support server: https://discord.gg/codexdev"""
             summary =await self ._get_groq_response (prompt ,history )
 
             embed =discord .Embed (
-            title ="📝 Text Summary",
+            title =f"{_e('zmsg')} Text Summary",
             description =summary ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1103,7 +1104,7 @@ Support server: https://discord.gg/codexdev"""
             answer =await self ._get_groq_response (question ,history )
 
             embed =discord .Embed (
-            title ="🤖 AI Response",
+            title =f"{_e('zbot')} AI Response",
             description =answer ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1156,7 +1157,7 @@ Support server: https://discord.gg/codexdev"""
             await self .bot .db .commit ()
 
             embed =discord .Embed (
-            title ="🗑️ Your Data Cleared",
+            title =f"{_e('delete')} Your Data Cleared",
             description ="Your AI conversation data and personality have been cleared successfully. The AI will start fresh with you!",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1407,7 +1408,7 @@ Support server: https://discord.gg/codexdev"""
             fact =random .choice (fallback_facts )
 
         embed =discord .Embed (
-        title ="🌟 Fun Fact!",
+        title =f"{_e('starr')} Fun Fact!",
         description =fact ,
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1420,7 +1421,7 @@ Support server: https://discord.gg/codexdev"""
         try :
             if not self .gemini_api_key :
                 return discord .Embed (
-                title ="🖼️ Image Analysis",
+                title =f"{_e('zimage')} Image Analysis",
                 description ="Gemini API key not configured.",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -1438,7 +1439,7 @@ Support server: https://discord.gg/codexdev"""
                 image =Image .open (io .BytesIO (image_data ))
             except ImportError :
                 return discord .Embed (
-                title ="🖼️ Image Analysis",
+                title =f"{_e('zimage')} Image Analysis",
                 description ="PIL library not available for image processing.",
                 color =0xFF0000 ,
                 timestamp =datetime .now (timezone .utc )
@@ -1450,7 +1451,7 @@ Support server: https://discord.gg/codexdev"""
             response =model .generate_content ([prompt ,image ])
 
             embed =discord .Embed (
-            title ="🖼️ Image Analysis",
+            title =f"{_e('zimage')} Image Analysis",
             description =response .text ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1461,7 +1462,7 @@ Support server: https://discord.gg/codexdev"""
         except Exception as e :
             logger .error (f"Error analyzing image: {e}")
             embed =discord .Embed (
-            title ="🖼️ Image Analysis",
+            title =f"{_e('zimage')} Image Analysis",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
             )
@@ -1479,7 +1480,7 @@ Support server: https://discord.gg/codexdev"""
             analysis =await self ._get_groq_response (prompt ,history )
 
             embed =discord .Embed (
-            title ="📝 Text Analysis",
+            title =f"{_e('zmsg')} Text Analysis",
             description =analysis ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1495,7 +1496,7 @@ Support server: https://discord.gg/codexdev"""
         except Exception as e :
             logger .error (f"Error analyzing text: {e}")
             embed =discord .Embed (
-            title ="📝 Text Analysis",
+            title =f"{_e('zmsg')} Text Analysis",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
             )
@@ -1620,7 +1621,7 @@ Support server: https://discord.gg/codexdev"""
         channel_id =ctx .channel .id 
         if channel_id in self .active_games :
             embed =discord .Embed (
-            title ="🧠 Trivia Game",
+            title =f"{_e('zbrain')} Trivia Game",
             description ="A trivia game is already active in this channel!",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1632,7 +1633,7 @@ Support server: https://discord.gg/codexdev"""
         question_data =await self .generate_trivia_question (effective_category ,[])
         if not question_data :
             embed =discord .Embed (
-            title ="🧠 Trivia Game",
+            title =f"{_e('zbrain')} Trivia Game",
             description ="Failed to generate a trivia question. Try again later.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1656,7 +1657,7 @@ Support server: https://discord.gg/codexdev"""
 
         view =TriviaAnswerView (self ,channel_id ,question_data ["answer"],question_data ["incorrect_answers"])
         embed =discord .Embed (
-        title ="🧠 Trivia Game",
+        title =f"{_e('zbrain')} Trivia Game",
         description =f"**Round 1/{self.active_games[channel_id]['max_rounds']}**\nCategory: {category or 'Mixed'}\n{question_data['question']}",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1694,9 +1695,9 @@ Support server: https://discord.gg/codexdev"""
         )
 
         response_message =(
-        f"🎉 First to answer! Correct! The answer was **{game['current_answer']}**. +1 point!"
+        f"{_e('ztada')} First to answer! Correct! The answer was **{game['current_answer']}**. +1 point!"
         if is_correct 
-        else f"❌ Incorrect. The answer was **{game['current_answer']}**. Your guess: **{selected_answer}**. -1 point."
+        else f"{_e('zcross')} Incorrect. The answer was **{game['current_answer']}**. Your guess: **{selected_answer}**. -1 point."
         )
 
         game ["used_questions"]=game ["used_questions"][-50 :]
@@ -1705,7 +1706,7 @@ Support server: https://discord.gg/codexdev"""
         if not question_data :
             del self .active_games [channel_id ]
             embed =discord .Embed (
-            title ="🧠 Trivia Game",
+            title =f"{_e('zbrain')} Trivia Game",
             description ="Failed to generate the next question. Game ended.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1727,7 +1728,7 @@ Support server: https://discord.gg/codexdev"""
                 response_message +=f"- {user.display_name if user else 'Unknown'}: {score}\n"
             del self .active_games [channel_id ]
             embed =discord .Embed (
-            title ="🧠 Trivia Game",
+            title =f"{_e('zbrain')} Trivia Game",
             description =response_message ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1737,7 +1738,7 @@ Support server: https://discord.gg/codexdev"""
             response_message +=f"\n\n**Round {game['round']}/{game['max_rounds']}**\n{game['current_question']}"
             view =TriviaAnswerView (self ,channel_id ,game ["current_answer"],game ["incorrect_answers"])
             embed =discord .Embed (
-            title ="🧠 Trivia Game",
+            title =f"{_e('zbrain')} Trivia Game",
             description =response_message ,
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1751,7 +1752,7 @@ Support server: https://discord.gg/codexdev"""
         stats =await self .trivia_scores .find_one ({"userId":user_id })
         if not stats :
             embed =discord .Embed (
-            title ="🧠 Trivia Statistics",
+            title =f"{_e('zbrain')} Trivia Statistics",
             description ="You haven't played any trivia games yet! Start one with `/ai trivia`.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1764,7 +1765,7 @@ Support server: https://discord.gg/codexdev"""
         win_rate =(total_correct /total_games *100 )if total_games >0 else 0 
 
         embed =discord .Embed (
-        title ="🧠 Your Trivia Statistics",
+        title =f"{_e('zbrain')} Your Trivia Statistics",
         description =f"**Total Score:** {stats['score']}\n"
         f"**Games Played:** {total_games}\n"
         f"**Correct Answers:** {total_correct}\n"
@@ -1780,7 +1781,7 @@ Support server: https://discord.gg/codexdev"""
         top_scores =await self .trivia_scores .find ()
         if not top_scores :
             embed =discord .Embed (
-            title ="🏆 Trivia Leaderboard",
+            title =f"{_e('king')} Trivia Leaderboard",
             description ="No scores yet! Play a trivia game to get started.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1791,17 +1792,17 @@ Support server: https://discord.gg/codexdev"""
         leaderboard =""
         for index ,entry in enumerate (top_scores ,1 ):
             if index ==1 :
-                emoji ="🥇"
+                emoji =_e ("king")or "🥇"
             elif index ==2 :
-                emoji ="🥈"
+                emoji =_e ("starr")or "🥈"
             elif index ==3 :
-                emoji ="🥉"
+                emoji =_e ("zcircle")or "🥉"
             else :
                 emoji =f"{index}."
             leaderboard +=f"{emoji} {entry['username']}: {entry['score']}\n"
 
         embed =discord .Embed (
-        title ="🏆 Trivia Leaderboard",
+        title =f"{_e('king')} Trivia Leaderboard",
         description =leaderboard ,
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )
@@ -1816,7 +1817,7 @@ Support server: https://discord.gg/codexdev"""
 
         if channel_id in self .roleplay_channels :
             embed =discord .Embed (
-            title ="🎭 Roleplay Mode",
+            title =f"{_e('zmask')} Roleplay Mode",
             description ="Roleplay mode is already enabled in this channel! Use `/ai roleplay-disable` to turn it off.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1831,7 +1832,7 @@ Support server: https://discord.gg/codexdev"""
         "awaiting_character":True ,
         }
         embed =discord .Embed (
-        title ="🎭 Roleplay Mode",
+        title =f"{_e('zmask')} Roleplay Mode",
         description ="Roleplay mode activated! To start, tell me what kind of character you want me to be.\n"
         "For example: `female teacher` or `male astronaut`.",
         color =0xFF0000 ,
@@ -1845,7 +1846,7 @@ Support server: https://discord.gg/codexdev"""
         channel_id =ctx .channel .id 
         if channel_id not in self .roleplay_channels :
             embed =discord .Embed (
-            title ="🎭 Roleplay Mode",
+            title =f"{_e('zmask')} Roleplay Mode",
             description ="Roleplay mode is not enabled in this channel! Use `/ai roleplay-enable` to turn it on.",
             color =0xFF0000 ,
             timestamp =datetime .now (timezone .utc )
@@ -1855,7 +1856,7 @@ Support server: https://discord.gg/codexdev"""
 
         del self .roleplay_channels [channel_id ]
         embed =discord .Embed (
-        title ="🎭 Roleplay Mode",
+        title =f"{_e('zmask')} Roleplay Mode",
         description ="Roleplay mode disabled in this channel.",
         color =0xFF0000 ,
         timestamp =datetime .now (timezone .utc )

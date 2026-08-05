@@ -120,6 +120,34 @@ _FALLBACK: dict[str, str] = {
     "zlevelup":             "<:zlevelup:1448964376504696943>",
     "zseed":                "<:zseed:1448951477640101929>",
     "j2c_wait":             "",  # Generated via generate_emojis.py → uploaded via /upload
+    # ── Branch 4 — semantic extras ─────────────────────────────────────────────
+    "zpoll":                "",   # bar chart / poll stats   → branch4
+    "zimage":               "",   # picture frame            → branch4
+    "zbroom":               "",   # broom / clear            → branch4
+    "zmood":                "",   # smiley face / mood       → branch4
+    "zmask":                "",   # theater mask / roleplay  → branch4
+    "zbrain":               "",   # brain / trivia           → branch4
+    "zflower":              "",   # flower / memory          → branch4
+    "zrefresh":             "",   # circular refresh arrows  → branch4
+    "zcoffee":              "",   # coffee cup / Java        → branch4
+    "zpickaxe":             "",   # pickaxe / Minecraft      → branch4
+    "zplug":                "",   # power plug / proxy       → branch4
+    "zclipboard":           "",   # clipboard / placeholders → branch4
+    "zvote":                "",   # ballot box / voting      → branch4
+    "zbirthday":            "",   # birthday cake            → branch4
+    "zenvelope":            "",   # mail envelope            → branch4
+    "zvoice":               "",   # speaker / voice          → branch4
+    "zbook":                "",   # open book / explanation  → branch4
+    "znum1":                "",   # ① poll option 1          → branch4
+    "znum2":                "",   # ② poll option 2          → branch4
+    "znum3":                "",   # ③ poll option 3          → branch4
+    "znum4":                "",   # ④ poll option 4          → branch4
+    "znum5":                "",   # ⑤ poll option 5          → branch4
+    "znum6":                "",   # ⑥ poll option 6          → branch4
+    "znum7":                "",   # ⑦ poll option 7          → branch4
+    "znum8":                "",   # ⑧ poll option 8          → branch4
+    "znum9":                "",   # ⑨ poll option 9          → branch4
+    "znum10":               "",   # ⑩ poll option 10         → branch4
     "zcircle":              "<:zcircle:1448964410155470848>",
     "zcircle2":             "<:zcircle:1448951351601270814>",
     "zmc":                  "<:zmc:1448964387426537474>",
@@ -276,5 +304,13 @@ BRANCHES: dict[str, list[str]] = {
         "Hypesquad_Brilliance", "a_Hypesquad_Balance", "a_Hypesquad_Bravery",
         "PartneredServerOwner", "BlackCrown", "37496alert", "3d4",
         "premium", "nitroboost", "king",
+    ],
+    # Branch 4 — new semantic emojis (all generated locally via generate_emojis.py)
+    "branch4": [
+        "zpoll", "zimage", "zbroom", "zmood", "zmask", "zbrain", "zflower",
+        "zrefresh", "zcoffee", "zpickaxe", "zplug", "zclipboard", "zvote",
+        "zbirthday", "zenvelope", "zvoice", "zbook",
+        "znum1", "znum2", "znum3", "znum4", "znum5",
+        "znum6", "znum7", "znum8", "znum9", "znum10",
     ],
 }

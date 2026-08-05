@@ -226,10 +226,10 @@ class SetupLandingView(discord.ui.View):
 
     def _embed(self):
         return discord.Embed(
-            title="🎫 Ticket Panel Setup",
+            title=f"{_e('zticket')} Ticket Panel Setup",
             description=(
-                "**🆕 Create New Panel** — Start fresh. Any existing panel config will be replaced.\n\n"
-                "**✏️ Edit Existing Panel** — Modify your current panel without losing category data."
+                f"**{_e('New')} Create New Panel** — Start fresh. Any existing panel config will be replaced.\n\n"
+                f"**{_e('zmsg')} Edit Existing Panel** — Modify your current panel without losing category data."
             ),
             color=EMBED_COLOR
         )
@@ -251,7 +251,7 @@ class SetupLandingView(discord.ui.View):
         for item in self.children:
             item.disabled = True
 
-    @discord.ui.button(label="Create New Panel", style=discord.ButtonStyle.success, emoji="🆕", row=0)
+    @discord.ui.button(label="Create New Panel", style=discord.ButtonStyle.success, emoji=_e("New") or "🆕", row=0)
     async def create_new(self, inter: discord.Interaction, btn: discord.ui.Button):
         await inter.response.defer()
         self._disable_all()
@@ -270,7 +270,7 @@ class SetupLandingView(discord.ui.View):
         view.message = self.message
         self.stop()
 
-    @discord.ui.button(label="Edit Existing Panel", style=discord.ButtonStyle.primary, emoji="✏️", row=0)
+    @discord.ui.button(label="Edit Existing Panel", style=discord.ButtonStyle.primary, emoji=_e("zmsg") or "✏️", row=0)
     async def edit_existing(self, inter: discord.Interaction, btn: discord.ui.Button):
         existing = self.cog.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (inter.guild.id,))
         if not existing or not existing["panel_channel_id"]:
@@ -333,7 +333,7 @@ class PanelEmbedSetupView(discord.ui.View):
         if self.embed_thumbnail:
             embed.set_thumbnail(url=self.embed_thumbnail)
         staff_val = f"<@&{self.staff_role_id}>" if self.staff_role_id else "*Not set — any `manage_channels` user can manage tickets*"
-        embed.add_field(name="👮 Staff Role", value=staff_val, inline=False)
+        embed.add_field(name=f"{_e('headmod')} Staff Role", value=staff_val, inline=False)
         embed.set_footer(text="Use the buttons below to configure, then click Next Step.")
         return embed
 
@@ -362,33 +362,33 @@ class PanelEmbedSetupView(discord.ui.View):
 
     @discord.ui.button(label="Title", style=discord.ButtonStyle.green, row=0)
     async def btn_title(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "📝 Type the **title** for your panel embed:"):
+        if val := await self._prompt(inter, f"{_e('zmsg')} Type the **title** for your panel embed:"):
             self.embed_title = val
             await self.message.edit(embed=self._preview_embed())
 
     @discord.ui.button(label="Description", style=discord.ButtonStyle.green, row=0)
     async def btn_desc(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "📝 Type the **description** for your panel embed:"):
+        if val := await self._prompt(inter, f"{_e('zmsg')} Type the **description** for your panel embed:"):
             self.embed_description = val
             await self.message.edit(embed=self._preview_embed())
 
     @discord.ui.button(label="Banner URL", style=discord.ButtonStyle.blurple, row=1)
     async def btn_banner(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "🖼️ Paste the **banner image URL** (type `none` to remove):"):
+        if val := await self._prompt(inter, f"{_e('zimage')} Paste the **banner image URL** (type `none` to remove):"):
             self.embed_banner = None if val.lower() == "none" else val
             await self.message.edit(embed=self._preview_embed())
 
     @discord.ui.button(label="Thumbnail URL", style=discord.ButtonStyle.blurple, row=1)
     async def btn_thumb(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "🖼️ Paste the **thumbnail URL** (type `none` to remove):"):
+        if val := await self._prompt(inter, f"{_e('zimage')} Paste the **thumbnail URL** (type `none` to remove):"):
             self.embed_thumbnail = None if val.lower() == "none" else val
             await self.message.edit(embed=self._preview_embed())
 
-    @discord.ui.button(label="Staff Role", style=discord.ButtonStyle.secondary, emoji="👮", row=2)
+    @discord.ui.button(label="Staff Role", style=discord.ButtonStyle.secondary, emoji=_e("headmod") or "👮", row=2)
     async def btn_role(self, inter: discord.Interaction, btn: discord.ui.Button):
         val = await self._prompt(
             inter,
-            "👮 **Mention the staff role** that can close/delete tickets (e.g. `@Support`).\n"
+            f"{_e('headmod')} **Mention the staff role** that can close/delete tickets (e.g. `@Support`).\n"
             "Only members with this role (or `Manage Channels`) will see the Close/Delete buttons."
         )
         if val:
@@ -402,7 +402,7 @@ class PanelEmbedSetupView(discord.ui.View):
                 except Exception:
                     pass
 
-    @discord.ui.button(label="Next Step ➜", style=discord.ButtonStyle.success, emoji="➡️", row=3)
+    @discord.ui.button(label="Next Step ➜", style=discord.ButtonStyle.success, emoji=_e("zArrow") or "➡️", row=3)
     async def btn_next(self, inter: discord.Interaction, btn: discord.ui.Button):
         await inter.response.defer()
         for item in self.children:
@@ -475,7 +475,7 @@ class ButtonManagerView(discord.ui.View):
 
         # Row 0 — Add Button
         self.add_item(discord.ui.Button(
-            label="Add Button ➕",
+            label=f"Add Button {_e('zplus') or '➕'}",
             style=discord.ButtonStyle.success,
             custom_id="bmv:add",
             row=0
@@ -498,7 +498,7 @@ class ButtonManagerView(discord.ui.View):
             disabled = True
 
         self.add_item(discord.ui.Select(
-            placeholder="🔧 Configure Ticket — pick a button to set its ticket embed",
+            placeholder="🔧 Configure Ticket — pick a button to set its ticket embed",  # placeholder: keep Unicode (Discord renders custom emojis poorly in placeholders)
             custom_id="bmv:configure",
             options=opts,
             row=1,
@@ -522,7 +522,7 @@ class ButtonManagerView(discord.ui.View):
             del_disabled = True
 
         self.add_item(discord.ui.Select(
-            placeholder="🗑️ Delete Category — pick a category to remove",
+            placeholder="🗑️ Delete Category — pick a category to remove",  # placeholder: keep Unicode (Discord renders custom emojis poorly in placeholders)
             custom_id="bmv:delete",
             options=del_opts,
             row=2,
@@ -531,7 +531,7 @@ class ButtonManagerView(discord.ui.View):
 
         # Row 3 — Send Panel
         self.add_item(discord.ui.Button(
-            label="Send Panel ✅",
+            label=f"Send Panel {_e('ztick') or '✅'}",
             style=discord.ButtonStyle.primary,
             custom_id="bmv:send",
             row=3
@@ -542,8 +542,8 @@ class ButtonManagerView(discord.ui.View):
             title="Step 2 — Panel Buttons",
             description=(
                 "Add ticket category buttons for your panel.\n"
-                "Use **🔧 Configure Ticket** to set the embed shown inside each ticket type.\n"
-                "Hit **Send Panel ✅** when finished."
+                f"Use **{_e('zwrench')} Configure Ticket** to set the embed shown inside each ticket type.\n"
+                f"Hit **Send Panel {_e('ztick')}** when finished."
             ),
             color=EMBED_COLOR
         )
@@ -551,17 +551,17 @@ class ButtonManagerView(discord.ui.View):
             lines = []
             for b in self.buttons:
                 emoji_part = (b.get("emoji") or "") + " " if b.get("emoji") else ""
-                has_config = "✅" if b.get("cat_embed_title") else "⬜"
+                has_config = _e("ztick") if b.get("cat_embed_title") else _e("zcircle2") or "⬜"
                 lines.append(f"{has_config} {emoji_part}**{b['name']}**")
             embed.add_field(
-                name=f"Buttons ({len(self.buttons)}/{MAX_BUTTONS})  ✅ = ticket embed configured",
+                name=f"Buttons ({len(self.buttons)}/{MAX_BUTTONS})  {_e('ztick')} = ticket embed configured",
                 value="\n".join(lines),
                 inline=False
             )
         else:
             embed.add_field(
                 name="Buttons (0)",
-                value="*No buttons yet. Click **Add Button ➕** to start.*",
+                value=f"*No buttons yet. Click **Add Button {_e('zplus')}** to start.*",
                 inline=False
             )
         return embed
@@ -618,19 +618,19 @@ class ButtonManagerView(discord.ui.View):
 
         name = await self._prompt(
             inter,
-            "📝 Type the **name** for this ticket button (e.g. `General Support`):",
+            f"{_e('zmsg')} Type the **name** for this ticket button (e.g. `General Support`):",
             followup=True
         )
         if not name:
-            return await inter.followup.send("⏰ Timed out.", ephemeral=True)
+            return await inter.followup.send(f"{_e('ztimer')} Timed out.", ephemeral=True)
 
         emoji = await self._prompt(
             inter,
-            "😀 Send the **emoji** for this button (e.g. `🎫` or a custom emoji), or type `skip`:",
+            f"{_e('ztada')} Send the **emoji** for this button (e.g. `🎫` or a custom emoji), or type `skip`:",
             followup=True
         )
         if not emoji:
-            return await inter.followup.send("⏰ Timed out.", ephemeral=True)
+            return await inter.followup.send(f"{_e('ztimer')} Timed out.", ephemeral=True)
         if emoji.lower() == "skip":
             emoji = None
 
@@ -655,7 +655,7 @@ class ButtonManagerView(discord.ui.View):
         self._rebuild_components()
         await inter.response.edit_message(embed=self._build_embed(), view=self)
         await inter.followup.send(
-            f"🗑️ Removed category **{removed['name']}** from the panel.", ephemeral=True
+            f"{_e('delete')} Removed category **{removed['name']}** from the panel.", ephemeral=True
         )
 
     async def _configure_ticket(self, inter: discord.Interaction, idx: int):
@@ -858,29 +858,29 @@ class TicketEmbedConfigView(discord.ui.View):
 
     @discord.ui.button(label="Title", style=discord.ButtonStyle.green, row=0)
     async def btn_title(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "📝 Enter the **title** for this ticket's channel embed:"):
+        if val := await self._prompt(inter, f"{_e('zmsg')} Enter the **title** for this ticket's channel embed:"):
             self.t_title = val
             await inter.message.edit(embed=self._build_preview(), view=self)
 
     @discord.ui.button(label="Description", style=discord.ButtonStyle.green, row=0)
     async def btn_desc(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "📝 Enter the **description** for this ticket's channel embed:"):
+        if val := await self._prompt(inter, f"{_e('zmsg')} Enter the **description** for this ticket's channel embed:"):
             self.t_desc = val
             await inter.message.edit(embed=self._build_preview(), view=self)
 
     @discord.ui.button(label="Banner URL", style=discord.ButtonStyle.blurple, row=1)
     async def btn_banner(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "🖼️ Paste the **banner URL** (type `none` to remove):"):
+        if val := await self._prompt(inter, f"{_e('zimage')} Paste the **banner URL** (type `none` to remove):"):
             self.t_banner = "" if val.lower() == "none" else val
             await inter.message.edit(embed=self._build_preview(), view=self)
 
     @discord.ui.button(label="Thumbnail URL", style=discord.ButtonStyle.blurple, row=1)
     async def btn_thumb(self, inter: discord.Interaction, btn: discord.ui.Button):
-        if val := await self._prompt(inter, "🖼️ Paste the **thumbnail URL** (type `none` to remove):"):
+        if val := await self._prompt(inter, f"{_e('zimage')} Paste the **thumbnail URL** (type `none` to remove):"):
             self.t_thumb = "" if val.lower() == "none" else val
             await inter.message.edit(embed=self._build_preview(), view=self)
 
-    @discord.ui.button(label=f"{_e('ztick')} Done", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="Done", emoji=_e("ztick") or "✅", style=discord.ButtonStyle.success, row=2)
     async def btn_done(self, inter: discord.Interaction, btn: discord.ui.Button):
         # Flush values back into the shared dict
         self.btn_data["cat_embed_title"]       = self.t_title
@@ -995,21 +995,21 @@ class TicketActionsView(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label="Delete", emoji="🗑️",
+        label="Delete", emoji=_e("delete") or "🗑️",
         style=discord.ButtonStyle.danger, custom_id="t_delete"
     )
     async def b_delete(self, inter: discord.Interaction, btn: discord.ui.Button):
         await inter.response.defer(ephemeral=True)
         channel_name = inter.channel.name
         await inter.followup.send(
-            "🗑️ This ticket channel will be **permanently deleted** in 5 seconds...",
+            f"{_e('delete')} This ticket channel will be **permanently deleted** in 5 seconds...",
             ephemeral=True
         )
 
         # DM the staff member
         try:
             await inter.user.send(
-                f"🗑️ You deleted ticket **#{channel_name}** in **{inter.guild.name}**."
+                f"{_e('delete')} You deleted ticket **#{channel_name}** in **{inter.guild.name}**."
             )
         except Exception:
             pass
@@ -1044,7 +1044,7 @@ class ClosedTicketView(discord.ui.View):
         return False
 
     @discord.ui.button(
-        label="Reopen", emoji="🔧",
+        label="Reopen", emoji=_e("zwrench") or "🔧",
         style=discord.ButtonStyle.success, custom_id="tc_reopen"
     )
     async def b_reopen(self, inter: discord.Interaction, btn: discord.ui.Button):
@@ -1080,7 +1080,7 @@ class ClosedTicketView(discord.ui.View):
             pass
 
         reopen_embed = discord.Embed(
-            title="🔧 Ticket Reopened",
+            title=f"{_e('zwrench')} Ticket Reopened",
             description=f"This ticket was reopened by {inter.user.mention}.",
             color=EMBED_COLOR,
             timestamp=datetime.now()
@@ -1089,26 +1089,26 @@ class ClosedTicketView(discord.ui.View):
             embed=reopen_embed,
             view=TicketActionsView(self.cog)
         )
-        await inter.followup.send("🔧 Ticket reopened.", ephemeral=True)
+        await inter.followup.send(f"{_e('zwrench')} Ticket reopened.", ephemeral=True)
         await _log_action(
             self.cog.db, inter.guild, inter.user, "Reopened", inter.channel.mention
         )
         self.stop()
 
     @discord.ui.button(
-        label="Delete Channel", emoji="🗑️",
+        label="Delete Channel", emoji=_e("delete") or "🗑️",
         style=discord.ButtonStyle.danger, custom_id="tc_delete"
     )
     async def b_delete(self, inter: discord.Interaction, btn: discord.ui.Button):
         await inter.response.defer(ephemeral=True)
         channel_name = inter.channel.name
         await inter.followup.send(
-            "🗑️ Deleting this ticket channel in **5 seconds**...", ephemeral=True
+            f"{_e('delete')} Deleting this ticket channel in **5 seconds**...", ephemeral=True
         )
 
         try:
             await inter.user.send(
-                f"🗑️ You deleted ticket **#{channel_name}** in **{inter.guild.name}**."
+                f"{_e('delete')} You deleted ticket **#{channel_name}** in **{inter.guild.name}**."
             )
         except Exception:
             pass

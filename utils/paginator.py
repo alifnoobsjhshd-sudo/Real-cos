@@ -131,13 +131,14 @@ class Paginator(discord.ui.View):
         """
 
         # Update the button emojis
-        self.first_page_button.emoji = kwargs.get('first_button_emoji') or '⏪'
+        from utils.emojis import e as _e
+        self.first_page_button.emoji = kwargs.get('first_button_emoji') or _e('zback') or '⏪'
         self.previous_page_button.emoji = kwargs.get(
-            'previous_button_emoji') or '▶️'
-        self.next_page_button.emoji = kwargs.get('next_button_emoji') or '▶️'
-        self.last_page_button.emoji = kwargs.get('last_button_emoji') or '⏭️'
+            'previous_button_emoji') or _e('next') or '◀️'
+        self.next_page_button.emoji = kwargs.get('next_button_emoji') or _e('icons_next') or '▶️'
+        self.last_page_button.emoji = kwargs.get('last_button_emoji') or _e('forward') or '⏭️'
         self.stop_button.emoji = kwargs.get(
-            'stop_button_emoji') or '🗑️'
+            'stop_button_emoji') or _e('delete') or '🗑️'
 
         # Update the Button Styles
         self.first_page_button.style = kwargs.get(

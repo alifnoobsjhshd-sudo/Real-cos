@@ -1027,6 +1027,193 @@ def draw_dice(d, pad=16):
         d.ellipse([cx2 - 8, cy2 - 8, cx2 + 8, cy2 + 8], fill=WHITE)
 
 
+# ── Branch-4 new emoji draw functions ─────────────────────────────────────────
+
+def draw_bar_chart(d, pad=16):
+    """📊 bar chart — for zpoll / stats."""
+    base_y = SIZE - pad - 4
+    bars = [(pad + 8, 44), (pad + 30, 30), (pad + 52, 56), (pad + 74, 22)]
+    for bx, h in bars:
+        d.rectangle([bx, base_y - h, bx + 18, base_y], fill=WHITE)
+    d.line([(pad + 4, base_y + 2), (SIZE - pad - 4, base_y + 2)], fill=WHITE, width=5)
+
+
+def draw_picture_frame(d, pad=16):
+    """🖼️ picture frame — for zimage."""
+    d.rectangle([pad, pad, SIZE - pad, SIZE - pad], outline=WHITE, width=7)
+    # Sky
+    d.rectangle([pad + 8, pad + 8, SIZE - pad - 8, CY], fill=GOLD)
+    # Mountain
+    d.polygon([(pad + 14, CY), (CX, pad + 22), (SIZE - pad - 14, CY)], fill=WHITE)
+    # Sun circle
+    d.ellipse([SIZE - pad - 30, pad + 12, SIZE - pad - 10, pad + 32], fill=WHITE)
+
+
+def draw_broom(d, pad=16):
+    """🧹 broom — for zbroom (clear/sweep)."""
+    # Handle
+    d.line([(pad + 12, pad), (SIZE - pad - 8, SIZE - pad - 8)], fill=WHITE, width=9)
+    # Bristles
+    bx, by = SIZE - pad - 8, SIZE - pad - 8
+    for ox, oy in [(-14, 8), (-6, 14), (2, 12), (10, 6)]:
+        d.line([(bx, by), (bx + ox, by + oy)], fill=WHITE, width=6)
+    d.ellipse([bx - 20, by - 6, bx + 18, by + 14], outline=WHITE, width=5)
+
+
+def draw_theater_mask(d, pad=14):
+    """🎭 theater mask — for zmask (AI personality/roleplay)."""
+    # Happy mask (left)
+    lx = pad + 4
+    d.ellipse([lx, CY - 20, lx + 44, CY + 28], outline=WHITE, width=6)
+    d.arc([lx + 10, CY, lx + 34, CY + 20], start=10, end=170, fill=WHITE, width=5)
+    d.ellipse([lx + 10, CY - 12, lx + 18, CY - 2], fill=WHITE)
+    d.ellipse([lx + 26, CY - 12, lx + 34, CY - 2], fill=WHITE)
+    # Sad mask (right, offset)
+    rx = CX + 2
+    d.ellipse([rx, CY - 28, rx + 44, CY + 20], outline=WHITE, width=6)
+    d.arc([rx + 10, CY - 2, rx + 34, CY + 18], start=190, end=350, fill=WHITE, width=5)
+    d.ellipse([rx + 10, CY - 20, rx + 18, CY - 10], fill=WHITE)
+    d.ellipse([rx + 26, CY - 20, rx + 34, CY - 10], fill=WHITE)
+
+
+def draw_brain(d, pad=16):
+    """🧠 brain — for zbrain (trivia/intelligence)."""
+    # Left lobe
+    d.ellipse([pad, CY - 28, CX + 4, CY + 28], outline=WHITE, width=7)
+    # Right lobe
+    d.ellipse([CX - 4, CY - 28, SIZE - pad, CY + 28], outline=WHITE, width=7)
+    # Folds (horizontal lines inside)
+    for y in [CY - 12, CY, CY + 12]:
+        d.arc([pad + 10, y - 8, CX - 2, y + 8], start=0, end=180, fill=WHITE, width=5)
+        d.arc([CX + 2, y - 8, SIZE - pad - 10, y + 8], start=0, end=180, fill=WHITE, width=5)
+    # Bottom connector
+    d.line([(CX - 6, CY + 20), (CX + 6, CY + 20)], fill=WHITE, width=6)
+
+
+def draw_flower(d, pad=16):
+    """🌸 flower — for zflower (memory)."""
+    r_petal = 20
+    for i in range(6):
+        angle = math.radians(i * 60)
+        px = CX + int(r_petal * math.cos(angle))
+        py = CY + int(r_petal * math.sin(angle))
+        d.ellipse([px - 13, py - 13, px + 13, py + 13], fill=WHITE)
+    d.ellipse([CX - 14, CY - 14, CX + 14, CY + 14], fill=GOLD)
+
+
+def draw_refresh_arrows(d, pad=16):
+    """🔄 two circular refresh arrows — for zrefresh."""
+    r = 34
+    # Top arc (left-to-right, clockwise)
+    d.arc([CX - r, CY - r, CX + r, CY + r], start=200, end=360, fill=WHITE, width=8)
+    # Arrowhead at end of top arc (at 360°/0°)
+    d.polygon([(CX + r - 4, CY - 10), (CX + r + 10, CY), (CX + r - 4, CY + 10)], fill=WHITE)
+    # Bottom arc (right-to-left)
+    d.arc([CX - r, CY - r, CX + r, CY + r], start=20, end=180, fill=WHITE, width=8)
+    # Arrowhead at end of bottom arc (at 180°)
+    d.polygon([(CX - r + 4, CY - 10), (CX - r - 10, CY), (CX - r + 4, CY + 10)], fill=WHITE)
+
+
+def draw_coffee_cup(d, pad=16):
+    """☕ coffee cup — for zcoffee (Java)."""
+    # Cup body
+    d.rounded_rectangle([pad + 4, CY - 12, SIZE - pad - 16, SIZE - pad - 4], radius=8, fill=WHITE)
+    # Handle
+    d.arc([SIZE - pad - 24, CY - 4, SIZE - pad - 4, CY + 22],
+          start=300, end=60, fill=WHITE, width=7)
+    # Saucer
+    d.ellipse([pad, SIZE - pad - 8, SIZE - pad - 12, SIZE - pad + 4], outline=WHITE, width=5)
+    # Steam lines
+    for ox, oy_start in [(-14, 0), (0, -8), (14, 0)]:
+        d.arc([CX + ox - 6, pad + oy_start, CX + ox + 6, CY - 12 + oy_start],
+              start=200, end=340, fill=WHITE, width=5)
+
+
+def draw_pickaxe(d, pad=16):
+    """⛏️ pickaxe — for zpickaxe (Minecraft)."""
+    # Handle (diagonal)
+    d.line([(pad + 8, SIZE - pad - 8), (SIZE - pad - 8, pad + 8)], fill=WHITE, width=8)
+    # Pick head — large horizontal rectangle at the top-right
+    head_cx = SIZE - pad - 14
+    head_cy = pad + 14
+    d.polygon([
+        (head_cx - 24, head_cy - 10),
+        (head_cx + 14, head_cy - 18),
+        (head_cx + 18, head_cy + 4),
+        (head_cx - 8, head_cy + 16),
+    ], fill=WHITE)
+
+
+def draw_power_plug(d, pad=16):
+    """🔌 power plug — for zplug (Bedrock/proxy)."""
+    # Plug body
+    d.rounded_rectangle([pad + 16, CY - 12, SIZE - pad - 16, CY + 28], radius=8, fill=WHITE)
+    # Prongs
+    d.rectangle([CX - 14, pad + 4, CX - 6, CY - 12], fill=WHITE)
+    d.rectangle([CX + 6, pad + 4, CX + 14, CY - 12], fill=WHITE)
+    # Cable
+    d.line([(CX, CY + 28), (CX, SIZE - pad)], fill=WHITE, width=8)
+    d.ellipse([CX - 6, SIZE - pad - 8, CX + 6, SIZE - pad + 4], fill=WHITE)
+
+
+def draw_clipboard(d, pad=16):
+    """📋 clipboard — for zclipboard (placeholders)."""
+    # Board
+    d.rounded_rectangle([pad + 4, pad + 12, SIZE - pad - 4, SIZE - pad], radius=6, fill=WHITE)
+    # Clip
+    d.rounded_rectangle([CX - 16, pad + 4, CX + 16, pad + 22], radius=6, fill=GOLD)
+    # Lines
+    for y in [pad + 34, pad + 46, pad + 58, pad + 70]:
+        d.line([(pad + 16, y), (SIZE - pad - 16, y)], fill=GOLD, width=5)
+    # Short last line
+    d.line([(pad + 16, pad + 82), (CX + 8, pad + 82)], fill=GOLD, width=5)
+
+
+def draw_ballot_box(d, pad=16):
+    """🗳️ ballot box — for zvote."""
+    # Box
+    d.rounded_rectangle([pad, CY - 4, SIZE - pad, SIZE - pad], radius=6, outline=WHITE, width=7)
+    # Slot at top
+    d.rounded_rectangle([CX - 16, CY - 10, CX + 16, CY + 2], radius=3, fill=WHITE)
+    # Ballot paper being inserted
+    d.rectangle([CX - 10, pad + 4, CX + 10, CY - 4], fill=WHITE)
+    # Checkmark on paper
+    d.line([(CX - 6, CY - 16), (CX - 2, CY - 10), (CX + 8, CY - 28)], fill=GOLD, width=4)
+
+
+def draw_birthday_cake(d, pad=16):
+    """🎂 birthday cake — for zbirthday."""
+    # Cake body
+    d.rounded_rectangle([pad + 6, CY + 4, SIZE - pad - 6, SIZE - pad], radius=6, fill=WHITE)
+    # Frosting
+    d.rounded_rectangle([pad + 4, CY - 4, SIZE - pad - 4, CY + 14], radius=8, fill=WHITE)
+    d.ellipse([pad + 20, CY - 6, pad + 28, CY + 4], fill=GOLD)
+    d.ellipse([CX - 4, CY - 8, CX + 4, CY + 2], fill=GOLD)
+    d.ellipse([SIZE - pad - 28, CY - 6, SIZE - pad - 20, CY + 4], fill=GOLD)
+    # Candles
+    for cx2 in [pad + 28, CX, SIZE - pad - 28]:
+        d.rectangle([cx2 - 5, CY - 24, cx2 + 5, CY - 4], fill=WHITE)
+        d.ellipse([cx2 - 5, CY - 30, cx2 + 5, CY - 20], fill=GOLD)
+
+
+def draw_envelope(d, pad=16):
+    """✉️ mail envelope — for zenvelope."""
+    # Body
+    d.rectangle([pad, CY - 16, SIZE - pad, SIZE - pad], outline=WHITE, width=6)
+    # Flap (V shape from top)
+    d.polygon([(pad, CY - 16), (CX, CY + 14), (SIZE - pad, CY - 16)], outline=WHITE, width=6)
+    # Bottom seal line
+    d.line([(pad + 12, SIZE - pad - 4), (SIZE - pad - 12, SIZE - pad - 4)], fill=WHITE, width=4)
+
+
+def draw_number_circle(d, num: int, pad=18):
+    """Numbered circle — for znum1–znum10."""
+    d.ellipse([pad, pad, SIZE - pad, SIZE - pad], outline=WHITE, width=7)
+    label = str(num)
+    sz = 38 if num < 10 else 30
+    ctext(d, label, sz)
+
+
 # ── Emoji map (zero duplicate keys) ──────────────────────────────────────────
 
 EMOJI_MAP: dict = {
@@ -1197,6 +1384,34 @@ EMOJI_MAP: dict = {
     # ── Misc ───────────────────────────────────────────────────────────────────
     "37496alert":          lambda d: draw_alert_bell(d),
     "3d4":                 lambda d: draw_dice(d),
+    # ── Branch 4 — new semantic emojis ────────────────────────────────────────
+    "zpoll":               lambda d: draw_bar_chart(d),
+    "zimage":              lambda d: draw_picture_frame(d),
+    "zbroom":              lambda d: draw_broom(d),
+    "zmood":               lambda d: draw_smiley(d),
+    "zmask":               lambda d: draw_theater_mask(d),
+    "zbrain":              lambda d: draw_brain(d),
+    "zflower":             lambda d: draw_flower(d),
+    "zrefresh":            lambda d: draw_refresh_arrows(d),
+    "zcoffee":             lambda d: draw_coffee_cup(d),
+    "zpickaxe":            lambda d: draw_pickaxe(d),
+    "zplug":               lambda d: draw_power_plug(d),
+    "zclipboard":          lambda d: draw_clipboard(d),
+    "zvote":               lambda d: draw_ballot_box(d),
+    "zbirthday":           lambda d: draw_birthday_cake(d),
+    "zenvelope":           lambda d: draw_envelope(d),
+    "zvoice":              lambda d: draw_speaker(d),
+    "zbook":               lambda d: draw_book(d),
+    "znum1":               lambda d: draw_number_circle(d, 1),
+    "znum2":               lambda d: draw_number_circle(d, 2),
+    "znum3":               lambda d: draw_number_circle(d, 3),
+    "znum4":               lambda d: draw_number_circle(d, 4),
+    "znum5":               lambda d: draw_number_circle(d, 5),
+    "znum6":               lambda d: draw_number_circle(d, 6),
+    "znum7":               lambda d: draw_number_circle(d, 7),
+    "znum8":               lambda d: draw_number_circle(d, 8),
+    "znum9":               lambda d: draw_number_circle(d, 9),
+    "znum10":              lambda d: draw_number_circle(d, 10),
 }
 
 
