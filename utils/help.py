@@ -400,7 +400,7 @@ class View(discord.ui.View):
     # ── Command-runner helpers ─────────────────────────────────────────────────
 
     # Cogs whose commands are merged into another page (kept in sync with gen_embeds logic)
-    _MERGE_INTO: dict[str, str] = {"PlaylistCog": "Music"}
+    _MERGE_INTO: dict[str, str] = {"PlaylistCog": "Music", "InviteLeaderboardCog": "inviteTracker"}
 
     def _collect_page_commands(self, cog, extra_cogs: list = None) -> list:
         """Return (raw_name, display_label, description, is_slash) for commands on a cog page.

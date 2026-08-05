@@ -224,9 +224,15 @@ class AutoLogSetupView (View ):
             branding_name =branding .get ("name","Sunlight")
             category_name =f"{branding_name} Logs"
 
-            # Build permission overwrites for the category
+            # Find a visible text channel to duplicate so cloned channels show to all users by default
+            source_channel =next (
+                (ch for ch in interaction .guild .text_channels
+                 if ch .overwrites .get (interaction .guild .default_role ,discord .PermissionOverwrite ()).read_messages is not False ),
+                interaction .guild .text_channels [0 ]if interaction .guild .text_channels else None 
+            )
+
+            # Category has no @everyone restriction → all channels visible by default
             overwrites ={
-                interaction .guild .default_role :discord .PermissionOverwrite (read_messages =False ),
                 interaction .guild .me :discord .PermissionOverwrite (read_messages =True ,send_messages =True ,embed_links =True ),
             }
             if self .staff_role :
@@ -236,7 +242,12 @@ class AutoLogSetupView (View ):
 
             selected_channels ={}
             for cat ,ch_name in self ._CATEGORY_CHANNELS .items ():
-                ch =await category .create_text_channel (ch_name )
+                if source_channel :
+                    # Duplicate an existing visible channel — inherits its visible-to-everyone permissions
+                    ch =await source_channel .clone (name =ch_name )
+                    await ch .edit (category =category ,sync_permissions =True )
+                else :
+                    ch =await category .create_text_channel (ch_name )
                 selected_channels [cat ]=ch .id 
 
             log_enabled ={cat :True for cat in LOG_CATEGORIES }
@@ -2042,8 +2053,33 @@ class Logging (commands .Cog ):
 
     @commands .Cog .listener ()
     async def on_member_remove (self ,member :discord .Member ):
-        """Log member leaves with role information."""
+        """Log member leaves and detect kicks via audit log."""
+        from utils .emojis import e as _e
         try :
+            # ── Kick detection via audit log ──────────────────────────────────
+            try :
+                kick_entry =None 
+                async for entry in member .guild .audit_logs (limit =5 ,action =discord .AuditLogAction .kick ):
+                    if hasattr (entry .target ,'id')and entry .target .id ==member .id :
+                        age =(datetime .utcnow ()-entry .created_at .replace (tzinfo =None )).total_seconds ()
+                        if age <15 :
+                            kick_entry =entry 
+                            break 
+            except Exception :
+                kick_entry =None 
+
+            if kick_entry :
+                kick_embed =self ._create_modern_embed (f"{_e('zsowrd')} Member Kicked")
+                kick_embed .set_author (name =member .display_name ,icon_url =member .display_avatar .url )
+                kick_embed .add_field (name ="Member",value =f"{member.mention} ({member})",inline =True )
+                kick_embed .add_field (name ="Kicked by",value =kick_entry .user .mention ,inline =True )
+                if kick_entry .reason :
+                    kick_embed .add_field (name ="Reason",value =kick_entry .reason [:1024 ],inline =False )
+                kick_embed .set_footer (text =f"User ID: {member.id}")
+                kick_embed .set_thumbnail (url =member .display_avatar .url )
+                await self ._send_log (member .guild ,"member_moderation",kick_embed ,None ,member .id )
+
+            # ── Always log join/leave ─────────────────────────────────────────
             embed =self ._create_modern_embed ("Member Left")
             embed .set_author (name =member .display_name ,icon_url =member .display_avatar .url )
 
@@ -2064,30 +2100,79 @@ class Logging (commands .Cog ):
 
     @commands .Cog .listener ()
     async def on_member_update (self ,before :discord .Member ,after :discord .Member ):
-        """Log member updates including role changes."""
+        """Log member updates: role changes → role_events, timeout → member_moderation."""
+        from utils .emojis import e as _e
         try :
+            # ── Role changes → role_events (with who gave/removed) ───────────
             if before .roles !=after .roles :
-                embed =self ._create_modern_embed ("Member Roles Updated")
-                embed .set_author (name =after .display_name ,icon_url =after .display_avatar .url )
-
-                embed .add_field (name ="User",value =after .mention ,inline =True )
-
                 added_roles =set (after .roles )-set (before .roles )
                 removed_roles =set (before .roles )-set (after .roles )
 
+                # Fetch audit log to find who changed the roles
+                audit_entry =None 
+                try :
+                    async for entry in after .guild .audit_logs (limit =5 ,action =discord .AuditLogAction .member_role_update ):
+                        if hasattr (entry .target ,'id')and entry .target .id ==after .id :
+                            age =(datetime .utcnow ()-entry .created_at .replace (tzinfo =None )).total_seconds ()
+                            if age <15 :
+                                audit_entry =entry 
+                                break 
+                except Exception :
+                    audit_entry =None 
+
+                embed =self ._create_modern_embed ("Member Roles Updated")
+                embed .set_author (name =after .display_name ,icon_url =after .display_avatar .url )
+                embed .add_field (name ="Member",value =after .mention ,inline =True )
+
+                if audit_entry :
+                    embed .add_field (name ="Updated by",value =audit_entry .user .mention ,inline =True )
+
                 if added_roles :
                     roles_added =", ".join ([role .mention for role in added_roles ])
-                    embed .add_field (name ="Roles Added",value =roles_added ,inline =False )
+                    embed .add_field (name =f"{_e('zplus')} Roles Added",value =roles_added ,inline =False )
 
                 if removed_roles :
                     roles_removed =", ".join ([role .mention for role in removed_roles ])
-                    embed .add_field (name ="Roles Removed",value =roles_removed ,inline =False )
+                    embed .add_field (name =f"{_e('zcross')} Roles Removed",value =roles_removed ,inline =False )
 
                 embed .set_footer (text =f"User ID: {after.id}")
+                await self ._send_log (after .guild ,"role_events",embed ,None ,after .id )
 
+            # ── Timeout → member_moderation ──────────────────────────────────
+            before_timeout =getattr (before ,'timed_out_until',None )
+            after_timeout =getattr (after ,'timed_out_until',None )
+            if before_timeout !=after_timeout :
+                audit_entry =None 
+                try :
+                    async for entry in after .guild .audit_logs (limit =5 ,action =discord .AuditLogAction .member_update ):
+                        if hasattr (entry .target ,'id')and entry .target .id ==after .id :
+                            age =(datetime .utcnow ()-entry .created_at .replace (tzinfo =None )).total_seconds ()
+                            if age <15 :
+                                audit_entry =entry 
+                                break 
+                except Exception :
+                    audit_entry =None 
+
+                if after_timeout :
+                    embed =self ._create_modern_embed (f"{_e('ztimer')} Member Timed Out")
+                    embed .set_author (name =after .display_name ,icon_url =after .display_avatar .url )
+                    embed .add_field (name ="Member",value =after .mention ,inline =True )
+                    embed .add_field (name ="Until",value =discord .utils .format_dt (after_timeout ,'F'),inline =True )
+                    if audit_entry :
+                        embed .add_field (name ="Timed out by",value =audit_entry .user .mention ,inline =True )
+                        if audit_entry .reason :
+                            embed .add_field (name ="Reason",value =audit_entry .reason [:1024 ],inline =False )
+                else :
+                    embed =self ._create_modern_embed (f"{_e('ztick')} Timeout Removed")
+                    embed .set_author (name =after .display_name ,icon_url =after .display_avatar .url )
+                    embed .add_field (name ="Member",value =after .mention ,inline =True )
+                    if audit_entry :
+                        embed .add_field (name ="Removed by",value =audit_entry .user .mention ,inline =True )
+
+                embed .set_footer (text =f"User ID: {after.id}")
                 await self ._send_log (after .guild ,"member_moderation",embed ,None ,after .id )
 
-
+            # ── Nickname change → member_moderation ──────────────────────────
             if before .nick !=after .nick :
                 embed =self ._create_modern_embed ("Nickname Changed")
                 embed .set_author (name =after .display_name ,icon_url =after .display_avatar .url )
@@ -2097,7 +2182,6 @@ class Logging (commands .Cog ):
                 embed .add_field (name ="After",value =after .nick or "No nickname",inline =True )
 
                 embed .set_footer (text =f"User ID: {after.id}")
-
                 await self ._send_log (after .guild ,"member_moderation",embed ,None ,after .id )
         except Exception as e :
             logger .error (f"Error in on_member_update: {e}")

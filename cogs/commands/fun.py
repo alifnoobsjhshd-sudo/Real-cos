@@ -2,7 +2,7 @@
 Fun anime-reaction commands.
 
 Slash command (primary, works regardless of MESSAGE_CONTENT intent):
-    /sun action:<keyword> user:<@member>
+    /fun action:<keyword> user:<@member>
 
 Message trigger (bonus, requires MESSAGE_CONTENT privileged intent
 in the Discord Developer Portal + discord.Intents.all() in code):
@@ -13,7 +13,7 @@ handholding, highfive, hold, hug, insult, kill, kiss, lick, nom,
 pat, poke, punch, slap, snuggle, stare, tickle, wave, blush,
 deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile,
 smug, teehee, thinking, thonking, thumbsup, triggered, wag, headpat,
-kick, tackle, bonk, nuzzle, yeet
+tackle, bonk, nuzzle, yeet
 
 Blocked keywords (respond with 'I can't show that'): sex, fuck
 """
@@ -41,7 +41,6 @@ PAST_TENSE = {
     "hug":         "hugged",
     "insult":      "insulted",
     "kill":        "killed",
-    "kick":        "kicked",
     "kiss":        "kissed",
     "lick":        "licked",
     "nom":         "nommed",
@@ -91,7 +90,6 @@ EMOTIONS = {
     "hug":         "Group hug! 🤗",
     "insult":      "That was really rude! 😤",
     "kill":        "Chill dude! 💀",
-    "kick":        "That's a powerful kick! 🦵",
     "kiss":        "Ahh! So cute! 😍",
     "lick":        "W-what?! 👅",
     "nom":         "Yummy! 😋",
@@ -178,7 +176,6 @@ _NEKOSBEST = {
     "triggered":   "bully",     # no triggered on nekos.best
     "wag":         "wag",
     "headpat":     "bonk",
-    "kick":        "kick",
     "tackle":      "slap",      # no tackle on nekos.best
     "bonk":        "bonk",
     "nuzzle":      "cuddle",    # no nuzzle on nekos.best
@@ -228,7 +225,6 @@ _WAIFUPICS = {
     "triggered":   "triggered",
     "wag":         "wag",
     "headpat":     "bonk",
-    "kick":        "kick",
     "tackle":      "slap",      # no tackle on waifu.pics
     "bonk":        "bonk",
     "nuzzle":      "cuddle",    # no nuzzle on waifu.pics
@@ -281,7 +277,6 @@ _OTAKUGIFS = {
     "triggered":   "punch",       # "triggered" → 400; use punch
     "wag":         "smile",       # "wag" → 400; use smile
     "headpat":     "pat",
-    "kick":        "punch",        # otakugifs "kick" returns 400; "punch" gives a similar fight gif
     "tackle":      "slap",
     "bonk":        "pat",         # "bonk" → 400; use pat
     "nuzzle":      "cuddle",
@@ -425,10 +420,10 @@ class Fun(commands.Cog):
             embed.set_image(url=gif_url)
         return embed
 
-    # ── Slash command (/sun action:<keyword> user:<member>) ───────────────────
+    # ── Slash command (/fun action:<keyword> user:<member>) ──────────────────
 
     @app_commands.command(
-        name="sun",
+        name="fun",
         description="Send an anime reaction GIF to someone.",
     )
     @app_commands.describe(
@@ -436,25 +431,26 @@ class Fun(commands.Cog):
         user="The server member to react to",
     )
     @app_commands.guild_only()
-    async def sun(
+    async def fun(
         self,
         interaction: discord.Interaction,
         action: str,
         user: discord.Member,
     ) -> None:
+        from utils.emojis import e as _e
         action = action.strip().lower()
 
         # Blocked keywords — politely decline
         if action in BLOCKED_KEYWORDS:
             await interaction.response.send_message(
-                "I can't show that", ephemeral=True
+                f"{_e('zcross')} I can't show that", ephemeral=True
             )
             return
 
         # Validate action (autocomplete filters, but manual entry is possible)
         if action not in KEYWORDS:
             await interaction.response.send_message(
-                f"❌ Unknown action **{discord.utils.escape_markdown(action)}**. "
+                f"{_e('zwarning')} Unknown action **{discord.utils.escape_markdown(action)}**. "
                 "Start typing in the `action` field to see all options.",
                 ephemeral=True,
             )
@@ -462,13 +458,13 @@ class Fun(commands.Cog):
 
         if user.bot:
             await interaction.response.send_message(
-                f"❌ {action} a real human dude!", ephemeral=True
+                f"{_e('zwarning')} {action} a real human dude!", ephemeral=True
             )
             return
 
         if user.id == interaction.user.id:
             await interaction.response.send_message(
-                f"❌ lol you can't {action} yourself!", ephemeral=True
+                f"{_e('zwarning')} lol you can't {action} yourself!", ephemeral=True
             )
             return
 
@@ -481,19 +477,20 @@ class Fun(commands.Cog):
         except Exception as exc:
             logger.error("[Fun] Error sending slash reaction: %s", exc, exc_info=True)
             try:
+                from utils.emojis import e as _e
                 await interaction.followup.send(
-                    "❌ Something went wrong sending the reaction.", ephemeral=True
+                    f"{_e('zcross')} Something went wrong sending the reaction.", ephemeral=True
                 )
             except Exception:
                 pass
 
-    @sun.autocomplete("action")
-    async def _sun_autocomplete(
+    @fun.autocomplete("action")
+    async def _fun_autocomplete(
         self,
         interaction: discord.Interaction,
         current: str,
     ) -> list[app_commands.Choice[str]]:
-        """Autocomplete for the /sun action parameter."""
+        """Autocomplete for the /fun action parameter."""
         return [
             app_commands.Choice(
                 name=f"{kw}  —  {PAST_TENSE[kw]}",
