@@ -10,26 +10,43 @@ from core import Cog, zyrox, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io
 import aiohttp
-from typing import cast
+from typing import cast, Optional
 import asyncio
 from utils.Tools import *
 from utils.emojis import e as _e
 track_histories = {}
 
 # ── Emoji helper: parse a custom-emoji string → PartialEmoji, with fallback ──
-def _pe(name: str, fallback: str = "") -> discord.PartialEmoji:
+def _pe(name: str, fallback: str = "") -> Optional[discord.PartialEmoji]:
     s = _e(name)
     try:
         if s:
             return discord.PartialEmoji.from_str(s)
     except Exception:
         pass
-    if fallback:
+    # Do not substitute Unicode or another server's custom emoji.  A missing
+    # entry means the control is rendered with its text label only.
+    return None
+
+
+async def clear_music_display(player) -> None:
+    """Delete the player's active now-playing/control messages.
+
+    A music player must have at most one display for its current track.  The
+    attributes are deliberately stored on the player so playlist.py and the
+    wavelink event handlers share the same lifecycle.
+    """
+    messages = []
+    for attr in ("_music_np_msg", "_playlist_np_msg", "_music_control_msg"):
+        message = getattr(player, attr, None)
+        if message is not None and message not in messages:
+            messages.append(message)
+        setattr(player, attr, None)
+    for message in messages:
         try:
-            return discord.PartialEmoji.from_str(fallback)
-        except Exception:
+            await message.delete()
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
             pass
-    return discord.PartialEmoji.from_str("❓")
 import base64
 import asyncio
 import re
@@ -337,7 +354,7 @@ class MusicControlView(View):
 
     # ── Row 0: Playback ───────────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="⏮", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary, row=0)
     async def btn_previous(self, interaction: discord.Interaction, button: Button):
         guild_id = interaction.guild.id
         if guild_id in track_histories and len(track_histories[guild_id]) > 1:
@@ -351,60 +368,61 @@ class MusicControlView(View):
                 await vc.queue.put_wait(_t)
             if self.player.playing:
                 await self.player.stop()
-            await _confirm(interaction, f"{_e('zback') or '⏮'} Playing previous track.")
+            await _confirm(interaction, f"{_e('zback')} Playing previous track.")
         else:
             await _confirm(interaction, "No previous track in history.")
 
-    @discord.ui.button(emoji="⏸", style=discord.ButtonStyle.success, row=0)
+    @discord.ui.button(label="Pause", style=discord.ButtonStyle.success, row=0)
     async def btn_pause(self, interaction: discord.Interaction, button: Button):
         if self.player.paused:
             await self.player.pause(False)
             try:
-                await self.player.channel.edit(status=f"🎵 Playing: {self.player.current.title}")
+                await self.player.channel.edit(status=f"Playing: {self.player.current.title}")
             except Exception:
                 pass
-            button.emoji = _pe("zpause") or discord.PartialEmoji.from_str("⏸")
+            button.emoji = _pe("zpause")
             button.style = discord.ButtonStyle.success
         elif self.player.playing:
             await self.player.pause(True)
             try:
-                await self.player.channel.edit(status=f"⏸️ Paused: {self.player.current.title}")
+                await self.player.channel.edit(status=f"Paused: {self.player.current.title}")
             except Exception:
                 pass
-            button.emoji = _pe("zplay") or discord.PartialEmoji.from_str("▶")
+            button.emoji = _pe("zplay")
             button.style = discord.ButtonStyle.secondary
         await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(emoji="⏭", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary, row=0)
     async def btn_next(self, interaction: discord.Interaction, button: Button):
         if self.player.autoplay == wavelink.AutoPlayMode.enabled:
             await self.player.stop()
-            await _confirm(interaction, f"{_e('skip') or '⏭'} Skipped.")
+            await _confirm(interaction, f"{_e('skip')} Skipped.")
             return
         if self.player.playing and not self.player.queue.is_empty:
             await self.player.stop()
-            await _confirm(interaction, f"{_e('skip') or '⏭'} Skipped.")
+            await _confirm(interaction, f"{_e('skip')} Skipped.")
         else:
             await _confirm(interaction, "No next track queued.")
 
     # ── Row 1: Stop ───────────────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="⏹", style=discord.ButtonStyle.danger, row=1)
+    @discord.ui.button(label="Stop", style=discord.ButtonStyle.danger, row=1)
     async def btn_stop(self, interaction: discord.Interaction, button: Button):
         if self.player:
+            await clear_music_display(self.player)
             if self.player.channel:
                 try:
                     await self.player.channel.edit(status=None)
                 except Exception:
                     pass
             await self.player.disconnect()
-            await _confirm(interaction, f"{_e('musicstop_icons') or '⏹'} Stopped and disconnected.")
+            await _confirm(interaction, f"{_e('musicstop_icons')} Stopped and disconnected.")
         else:
             await _confirm(interaction, "Not connected.")
 
     # ── Row 2: Music ──────────────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="📋", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(label="Queue", style=discord.ButtonStyle.secondary, row=2)
     async def btn_queue(self, interaction: discord.Interaction, button: Button):
         """Show the current queue as an ephemeral message."""
         vc = interaction.guild.voice_client
@@ -422,13 +440,13 @@ class MusicControlView(View):
         if len(queue) > 20:
             lines.append(f"*…and {len(queue) - 20} more*")
         em = discord.Embed(
-            title=f"{_e('zqueue') or '📋'}  Queue  ({len(queue)} track{'s' if len(queue) != 1 else ''})",
+            title=f"{_e('zqueue')}  Queue  ({len(queue)} track{'s' if len(queue) != 1 else ''})",
             description="\n".join(lines),
             color=COLOR_CONTROL,
         )
         await interaction.response.send_message(embed=em, ephemeral=True)
 
-    @discord.ui.button(emoji="🔀", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(label="Shuffle", style=discord.ButtonStyle.secondary, row=2)
     async def btn_shuffle(self, interaction: discord.Interaction, button: Button):
         if not self._shuffle_on:
             if not self.player.queue:
@@ -454,11 +472,11 @@ class MusicControlView(View):
 
     # ── Row 3: Settings ───────────────────────────────────────────────────────
 
-    @discord.ui.button(emoji="🔊", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(label="Volume", style=discord.ButtonStyle.secondary, row=3)
     async def btn_volume(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(VolumeModal(self.player))
 
-    @discord.ui.button(emoji="🔁", style=discord.ButtonStyle.secondary, row=3)
+    @discord.ui.button(label="Loop", style=discord.ButtonStyle.secondary, row=3)
     async def btn_loop(self, interaction: discord.Interaction, button: Button):
         self._loop_on = not self._loop_on
         self.player.queue.mode = (
@@ -820,19 +838,24 @@ class Music(commands.Cog):
         if track.artwork:
             embed.set_thumbnail(url=track.artwork)
 
+        # Remove the previous display before publishing the current one.
+        await clear_music_display(player)
+
         # ── Message 1: embed + action buttons ────────────────────────────────
         np_msg = await ctx.send(
             embed=embed,
             view=NowPlayingActionsView(player, ctx),
         )
+        player._music_np_msg = np_msg
 
         # ── Message 2: separator + playback controls (normal mode only) ──────
         if not playlist_mode:
             try:
-                await ctx.send(
+                control_msg = await ctx.send(
                     content="─────────────────────",
                     view=MusicControlView(player, ctx),
                 )
+                player._music_control_msg = control_msg
             except Exception:
                 pass
 
@@ -844,7 +867,9 @@ class Music(commands.Cog):
         """Track started: log, fix volume, update VC status, record history.
         In playlist mode also sends the per-song Now Playing embed."""
         player   = payload.player
-        track    = player.current
+        track    = payload.track or player.current
+        if track is None:
+            return
         guild_id = player.guild.id
 
         print(f"[Music] Track started: {track.title}")
@@ -856,7 +881,7 @@ class Music(commands.Cog):
         voice_channel = player.channel
         if voice_channel:
             try:
-                await voice_channel.edit(status=f"🎵 Playing: {track.title}")
+                await voice_channel.edit(status=f"Playing: {track.title}")
             except Exception:
                 pass
 
@@ -873,6 +898,10 @@ class Music(commands.Cog):
             ch = getattr(player, '_playlist_channel', None)
             if ch is None:
                 return
+            # Track-start can arrive before/after track-end depending on the
+            # Lavalink node.  Clearing here makes the operation idempotent and
+            # prevents stacked playlist messages in either order.
+            await clear_music_display(player)
             ctx = getattr(player, 'ctx', None)
             requester_name = "Unknown"
             icon_url_      = ""
@@ -955,6 +984,9 @@ class Music(commands.Cog):
         if getattr(player, '_playlist_restarting', False):
             return
 
+        # There is never a stale music display between tracks.
+        await clear_music_display(player)
+
         # Clear VC status when a track ends
         if player.channel:
             try:
@@ -964,15 +996,6 @@ class Music(commands.Cog):
 
         # ── Playlist mode ─────────────────────────────────────────────────────
         if getattr(player, '_is_playlist', False):
-            # Delete the per-song NP embed that on_wavelink_track_start created
-            np_msg = getattr(player, '_playlist_np_msg', None)
-            if np_msg:
-                try:
-                    await np_msg.delete()
-                except Exception:
-                    pass
-                player._playlist_np_msg = None
-
             if player.queue.mode == wavelink.QueueMode.loop:
                 # Single-track loop (rare in playlist mode — loop_all is used for full loop)
                 await player.play(payload.track)
@@ -990,7 +1013,7 @@ class Music(commands.Cog):
                 ch = getattr(player, '_playlist_channel', None)
                 if ch:
                     ended = discord.Embed(
-                        description=f"{_e('zplay') or '▶'} Playlist finished! Use `/playlist list` to play again.",
+                        description=f"{_e('zplay')} Playlist finished! Use `/playlist list` to play again.",
                         color=COLOR_CONTROL,
                     )
                     ended.set_author(name="Playlist Ended", icon_url=self.client.user.display_avatar.url)
@@ -1000,6 +1023,7 @@ class Music(commands.Cog):
                         pass
                 # Clean up playlist flags but stay in VC
                 player._is_playlist = False
+                await clear_music_display(player)
             return
 
         # ── Normal queue progression ──────────────────────────────────────────
@@ -1350,6 +1374,7 @@ class Music(commands.Cog):
             return
 
         if vc and player:
+            await clear_music_display(vc)
             await vc.channel.edit(status=None)
             vc.queue.clear()
             await vc.disconnect(force=True)
@@ -1475,6 +1500,7 @@ class Music(commands.Cog):
             return
 
         if vc:
+            await clear_music_display(vc)
             await vc.disconnect()
             await ctx.send(embed=discord.Embed(description="Disconnected from the voice channel.", color=0x1DB954))
         else:

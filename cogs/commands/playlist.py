@@ -33,11 +33,6 @@ def _pe(name: str, fallback: str = "") -> Optional[discord.PartialEmoji]:
             return discord.PartialEmoji.from_str(s)
     except Exception:
         pass
-    if fallback:
-        try:
-            return discord.PartialEmoji.from_str(fallback)
-        except Exception:
-            pass
     return None
 
 
@@ -1509,8 +1504,7 @@ class PlaylistControlView(discord.ui.View):
         ]
         buttons = [c for c in self.children if isinstance(c, discord.ui.Button)]
         for btn, emo in zip(buttons, _emap):
-            if emo:
-                btn.emoji = emo
+            btn.emoji = emo
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         vc = interaction.guild.voice_client

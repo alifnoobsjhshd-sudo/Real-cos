@@ -146,7 +146,7 @@ class CommandRunDropdown(discord.ui.Select):
                 for raw, display, desc, is_slash in cmd_entries[:25]
             ]
             disabled = False
-            placeholder = "⚡ Use a Command…"
+            placeholder = "Use a Command…"
         else:
             options = [discord.SelectOption(label="Navigate to a category first", value="__none__")]
             disabled = True
@@ -551,18 +551,19 @@ class View(discord.ui.View):
                 counter += 1
             used_labels.add(label)
 
-            # Use emoji_str if it looks like a valid custom emoji, else fallback
-            emoji_display = emoji_str if emoji_str else "⚙️"
+            # Missing entries render without an emoji; never use a Unicode or
+            # hardcoded custom-emoji fallback from another server.
+            emoji_display = emoji_str
 
             options.append(discord.SelectOption(
                 label=label,
-                emoji=emoji_display,
+                emoji=emoji_display or None,
                 description=description,
             ))
 
             # ── Category embed ─────────────────────────────────────────────────
             embed = discord.Embed(
-                title=f"{emoji_display} {original_label}",
+                title=f"{emoji_display + ' ' if emoji_display else ''}{original_label}",
                 color=self.branding["embed_color"],
             )
 

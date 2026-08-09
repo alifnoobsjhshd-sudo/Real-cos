@@ -1,12 +1,9 @@
 """
 Centralized emoji configuration for Zyrox X.
 
-Priority order:
-  1. Emojis uploaded via /upload emojis (stored in db/emoji_store.db)
-  2. Fallback hardcoded IDs (original server's emojis — work if bot is still there)
-
-After running /upload emojis in your server, all messages will automatically
-use the newly uploaded emojis.
+Only emojis uploaded through /upload emojis and saved in
+db/emoji_store.db are returned.  This is intentional: custom emoji IDs from
+another server must never leak into messages, embeds, selects, or buttons.
 """
 
 from __future__ import annotations
@@ -237,11 +234,10 @@ def get_store() -> dict:
 def e(name: str) -> str:
     """
     Return the emoji string for *name*.
-    Uses the uploaded version if available, falls back to the original IDs.
+    Returns an empty string when the emoji has not been uploaded to the
+    current bot emoji store.
     """
-    if name in _store:
-        return _store[name]
-    return _FALLBACK.get(name, "")
+    return _store.get(name, "")
 
 # ── Convenience aliases (used heavily across the codebase) ────────────────────
 TICK        = lambda: e("ztick")
