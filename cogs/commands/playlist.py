@@ -432,34 +432,38 @@ async def _queue_playlist_and_play(
     vc._playlist_channel = _channel
     vc._playlist_np_msg  = None
 
-    # ── Load & queue songs ────────────────────────────────────────────────────
-    first_track      = None
-    started_playback = False
+    # ── Resolve the complete playlist before starting playback ───────────────
+    # Starting the first track before the remaining searches finish creates a
+    # race: a short first song can end while the queue is still empty, causing
+    # the track-end listener to mark the playlist as exhausted.  Resolve first,
+    # then seed the player queue, then start the first track.
+    resolved_tracks = []
     for song in songs_to_play:
         try:
             results = await wavelink.Playable.search(song["song_uri"] or song["song_name"])
             if not results:
                 continue
             track = results.tracks[0] if isinstance(results, wavelink.Playlist) else results[0]
-            if not started_playback:
-                first_track      = track
-                started_playback = True
-                await vc.play(track)   # triggers on_wavelink_track_start → NP embed
-            else:
-                await vc.queue.put_wait(track)
+            resolved_tracks.append(track)
         except Exception:
             continue
 
-    if loop_all:
-        vc.queue.mode = wavelink.QueueMode.loop_all
-
-    if not first_track:
+    if not resolved_tracks:
         await _channel.send(
             embed=discord.Embed(
                 description=f"{_e('zcross') or '❌'} Could not load any songs from this playlist.",
                 color=0xFF0000,
             )
         )
+        return None
+
+    for track in resolved_tracks[1:]:
+        await vc.queue.put_wait(track)
+
+    if loop_all:
+        vc.queue.mode = wavelink.QueueMode.loop_all
+
+    await vc.play(resolved_tracks[0])  # triggers on_wavelink_track_start → NP embed
 
     return vc
 

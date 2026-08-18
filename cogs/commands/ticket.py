@@ -18,7 +18,6 @@ if not os.path.exists('db'):
     os.makedirs('db')
 DB_PATH = 'db/ticket.db'
 MAX_BUTTONS = 15
-TICKET_LIMIT_PER_USER = 3
 
 
 # ── Emoji helper ──────────────────────────────────────────────────────────────
@@ -1161,7 +1160,9 @@ class TicketCog(commands.Cog, name="Ticket System"):
             view.add_item(discord.ui.Button(
                 label=cat["name"],
                 style=discord.ButtonStyle.secondary,
-                emoji=_parse_emoji(cat["emoji"]),
+                # Ticket panel controls use the bot's uploaded custom emoji
+                # store rather than arbitrary Unicode/server emojis.
+                emoji=_parse_emoji(_e("zticket")),
                 custom_id=f"create_ticket_{cat['category_id']}"
             ))
         return view
@@ -1185,17 +1186,6 @@ class TicketCog(commands.Cog, name="Ticket System"):
     async def _create_ticket_flow(self, inter: discord.Interaction, cat_id: int):
         await inter.response.defer(ephemeral=True)
         guild, user = inter.guild, inter.user
-
-        # Ticket limit
-        count = self.db.fetchone(
-            "SELECT ticket_count FROM user_ticket_counts WHERE guild_id=? AND user_id=?",
-            (guild.id, user.id)
-        )
-        if count and count["ticket_count"] >= TICKET_LIMIT_PER_USER:
-            return await inter.followup.send(
-                f"{_e('zcross')} You already have {TICKET_LIMIT_PER_USER} open tickets. Please resolve them first.",
-                ephemeral=True
-            )
 
         cat_info = self.db.fetchone(
             "SELECT * FROM ticket_categories WHERE category_id=?", (cat_id,)

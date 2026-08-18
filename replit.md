@@ -172,6 +172,20 @@ and run `reload_store()` or restart the bot so the store picks up the new IDs.
 **Design rule:** Dropdown `placeholder` strings always keep Unicode emojis — Discord
 renders custom emojis poorly in placeholder text.
 
+## Recent system behavior
+
+- Ticket panels allow a user to open any number of tickets. Ticket panel buttons
+  use the bot's uploaded `zticket` custom emoji.
+- Playlist playback resolves and queues the full playlist before starting, so the
+  track-end listener can reliably start the next song. Playlist now-playing
+  messages are removed between tracks and contain only the existing song display,
+  Playlist, and Save actions.
+- Automatic logging creates its category as `<branding name> logs` using the
+  guild's configured branding. `/log reset` clears the saved configuration and
+  removes the configured logging channels/category when Discord permissions allow.
+- The help menu places Leveling, Ticket, and Logging in Main Commands and exposes
+  Poll Commands under Extra Commands. Slash entries are displayed with `/`.
+
 ---
 
 ## User preferences

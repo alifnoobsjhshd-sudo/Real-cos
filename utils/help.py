@@ -297,8 +297,26 @@ class View(discord.ui.View):
         elif ui == 2:
             self.buttons = self.add_buttons()
             mid_point = len(self.options) // 2
-            options_1 = self.options[:mid_point]
-            options_2 = self.options[mid_point:]
+            # Keep the two top-level menus meaningful instead of relying only
+            # on cog load order.  These categories are deliberately pinned to
+            # the menu requested by the bot's public help layout.
+            main_labels = {
+                "Leveling Commands",
+                "Ticket",
+                "Logging Commands",
+            }
+            extra_labels = {"Poll Commands"}
+            options_1 = []
+            options_2 = []
+            for index, option in enumerate(self.options):
+                if option.label in main_labels:
+                    options_1.append(option)
+                elif option.label in extra_labels:
+                    options_2.append(option)
+                elif index < mid_point:
+                    options_1.append(option)
+                else:
+                    options_2.append(option)
             if options_1:
                 self.add_item(Dropdown(ctx=self.ctx, options=options_1, placeholder="Main Commands", row=1))
             if options_2:

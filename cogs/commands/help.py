@@ -143,6 +143,8 @@ class HelpCommand(commands.HelpCommand):
             f" {_e('ztada')} `»` Giveaway\n"
             f" {_e('zticket')} `»` Ticket\n"
             f" {_e('zpeople')} `»` Invite Tracker\n"
+             f" {_e('zlevelup')} `»` Leveling\n"
+             f" {_e('zcast')} `»` Advance Logging\n"
             f" {_e('zwrench')} `»` Bot Customization {_e('starr')}\n"
         )
     )
@@ -155,7 +157,7 @@ class HelpCommand(commands.HelpCommand):
             f" {_e('zcounting')} `»` Counting\n"
             f" {_e('zyrox_system')} `»` J2C\n"
             f" {_e('boost')} `»` Boost\n"
-            f" {_e('zlevelup')} `»` Leveling\n"
+             f" {_e('zpoll')} `»` Polls\n"
             f" {_e('zpin')} `»` Sticky\n"
             f" {_e('zyroxthunder')} `»` Verification\n"
             f" {_e('lock')} `»` Encryption\n"
@@ -372,6 +374,8 @@ class Help(Cog, name="help"):
             f" {_e('ztada')} `»` Giveaway\n"
             f" {_e('zticket')} `»` Ticket\n"
             f" {_e('zpeople')} `»` Invite Tracker\n"
+             f" {_e('zlevelup')} `»` Leveling\n"
+             f" {_e('zcast')} `»` Advance Logging\n"
             f" {_e('zwrench')} `»` Bot Customization {_e('starr')}\n"
         ),
     )
@@ -384,7 +388,7 @@ class Help(Cog, name="help"):
             f" {_e('zcounting')} `»` Counting\n"
             f" {_e('zyrox_system')} `»` J2C\n"
             f" {_e('boost')} `»` Boost\n"
-            f" {_e('zlevelup')} `»` Leveling\n"
+             f" {_e('zpoll')} `»` Polls\n"
             f" {_e('zpin')} `»` Sticky\n"
             f" {_e('zyroxthunder')} `»` Verification\n"
             f" {_e('lock')} `»` Encryption\n"

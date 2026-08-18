@@ -523,6 +523,10 @@ class PollCog(Cog):
     def __init__(self, client: zyrox):
         self.client = client
 
+    def help_custom(self):
+        from utils.emojis import e as _e
+        return _e("zpoll"), "Poll Commands", "Create and manage interactive polls"
+
     async def cog_load(self):
         await _setup_poll_db()
         await self._register_persistent_views()

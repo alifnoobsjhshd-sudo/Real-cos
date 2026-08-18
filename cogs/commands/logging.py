@@ -219,10 +219,10 @@ class AutoLogSetupView (View ):
     async def create_button (self ,interaction :discord .Interaction ,button :Button ):
         await interaction .response .defer (thinking =True ,ephemeral =True )
         try :
-            from utils.branding import get_branding 
+            from utils.branding import get_branding, DEFAULT_BRANDING
             branding =await get_branding (interaction .guild .id )
-            branding_name =branding .get ("name","Sunlight")
-            category_name =f"{branding_name} Logs"
+            branding_name =branding .get ("branding_name", DEFAULT_BRANDING)
+            category_name =f"{branding_name} logs"
 
             # Find a visible text channel to duplicate so cloned channels show to all users by default
             source_channel =next (
@@ -255,7 +255,8 @@ class AutoLogSetupView (View ):
             cog =self .bot .get_cog ("Logging")
             if cog :
                 await cog ._save_log_config (
-                    interaction .guild .id ,selected_channels ,log_enabled ,[],[],[],None 
+                    interaction .guild .id ,selected_channels ,log_enabled ,[],[],[],None ,
+                    category .id
                 )
 
             lines =[f"✅ **#{self._CATEGORY_CHANNELS[cat]}** → <#{selected_channels[cat]}>" for cat in LOG_CATEGORIES ]
@@ -1026,7 +1027,8 @@ class Logging (commands .Cog ):
     ignore_channels :List [int ],
     ignore_roles :List [int ],
     ignore_users :List [int ],
-    auto_delete_duration :Optional [int ]
+    auto_delete_duration :Optional [int ],
+    auto_log_category_id :Optional [int ] =None
     ):
         """Save logging configuration with validation and error handling."""
         try :
@@ -1060,6 +1062,7 @@ class Logging (commands .Cog ):
             "ignore_roles":list (set (ignore_roles )),
             "ignore_users":list (set (ignore_users )),
             "auto_delete_duration":auto_delete_duration if isinstance (auto_delete_duration ,int )else None ,
+            "auto_log_category_id":auto_log_category_id if isinstance (auto_log_category_id ,int )else None ,
             "last_updated":datetime .utcnow ().isoformat ()
             }
 
@@ -1514,7 +1517,42 @@ class Logging (commands .Cog ):
     async def log_reset (self ,ctx :commands .Context ):
         """Reset logging configuration for the guild."""
         try :
-            if ctx .guild .id in self .config_cache :
+            config =await self ._get_log_config (ctx .guild .id )
+            if config :
+                # Reset means removing the channels created/configured by the
+                # logging system, not only forgetting their IDs in JSON.
+                channel_ids =set (
+                    config .get ("log_channels",{}).values ()
+                    if isinstance (config .get ("log_channels",{}),dict )
+                    else []
+                )
+                configured_channels =[
+                    ctx .guild .get_channel (channel_id )
+                    for channel_id in channel_ids
+                    if isinstance (channel_id ,int )
+                ]
+                category_ids =set ()
+                for channel in configured_channels :
+                    if channel and getattr (channel ,"category_id",None ):
+                        category_ids .add (channel.category_id )
+                    if channel :
+                        try :
+                            await channel .delete (reason ="Logging configuration reset")
+                        except (discord .NotFound ,discord .Forbidden ,discord .HTTPException ):
+                            pass
+
+                stored_category_id =config .get ("auto_log_category_id")
+                if isinstance (stored_category_id ,int ):
+                    category_ids .add (stored_category_id )
+
+                for category_id in category_ids :
+                    category =ctx .guild .get_channel (category_id )
+                    if category and isinstance (category ,discord.CategoryChannel ):
+                        try :
+                            await category .delete (reason ="Logging configuration reset")
+                        except (discord .NotFound ,discord .Forbidden ,discord .HTTPException ):
+                            pass
+
                 del self .config_cache [ctx .guild .id ]
                 await self ._save_config ()
 
