@@ -1,0 +1,182 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+  http2:
+    enabled: false   # Keep off — some reverse proxies (including Render) don't support h2
+
+lavalink:
+  # Plugins are pre-downloaded into ./plugins/ by the Dockerfile and auto-loaded
+  # at boot — no lavalink.plugins download section is needed.
+  pluginsDir: "./plugins"
+
+  server:
+    # ── Password ──────────────────────────────────────────────────────────────
+    # Set LAVALINK_PASSWORD in your Render env vars.
+    # The Dockerfile ENTRYPOINT normalises LAVALLINK_PASSWORD → LAVALINK_PASSWORD
+    # so either spelling works.
+    password: ${LAVALINK_PASSWORD:youshallnotpass}
+
+    # ── Audio sources ─────────────────────────────────────────────────────────
+    # youtube: false — built-in YouTube is disabled; the youtube-source plugin
+    # takes over and provides OAuth-authenticated playback + MUSIC/WEB clients.
+    sources:
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+
+    # ── Audio filters ─────────────────────────────────────────────────────────
+    # All enabled — these are applied in the JVM so they don't depend on plugins.
+    filters:
+      volume: true
+      equalizer: true
+      karaoke: true
+      timescale: true
+      tremolo: true
+      vibrato: true
+      distortion: true
+      rotation: true
+      channelMix: true
+      lowPass: true
+
+    # ── Performance tuning (Render free tier: 512 MB RAM, 0.1 vCPU) ──────────
+    #
+    # bufferDurationMs     — How many ms of audio to buffer ahead per track.
+    #   800 ms is too short on a low-CPU host; occasional GC pauses cause audible
+    #   glitches. 2000 ms gives the JVM ~2 seconds of headroom before the player
+    #   runs dry. Only increases RAM by ~160 KB per active player — negligible.
+    #
+    # frameBufferDurationMs — Discord Opus frame buffer. 5000 ms covers network
+    #   hiccups and Render's occasional CPU throttling without wasting memory.
+    #
+    # opusEncodingQuality  — 0–10. 5 = good quality at ~20% less CPU than 10.
+    #   Raise to 7–8 on Starter/Standard. Don't go below 4 (noticeably muddy).
+    #
+    # resamplingQuality    — LOW = fast linear resampling. MEDIUM/HIGH use more
+    #   CPU (sinc). LOW is indistinguishable for 44.1 → 48 kHz (Discord's rate).
+    #
+    # trackStuckThresholdMs — Mark a track stuck after 10 s of silence.
+    #   wavelink fires on_wavelink_track_stuck and the bot auto-skips.
+    #
+    # useSeekGhosting       — Pre-buffer the seek target so seeking feels instant.
+    #
+    # playerUpdateInterval  — Send player position updates to the bot every 5 s.
+    #   Lower = more WebSocket traffic. 5 s is fine for a progress bar.
+    #
+    # youtubePlaylistLoadLimit — Max pages fetched per playlist. Each page = 100
+    #   tracks. 3 pages = 300 tracks max. Keep low on free tier to avoid OOM.
+    bufferDurationMs: 2000
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 5
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    playerUpdateInterval: 5
+    youtubePlaylistLoadLimit: 3
+    soundcloudSearchEnabled: true
+    gc-warnings: true
+
+    httpConfig:
+      proxyHost: ""
+      proxyPort: 0
+      proxyUser: ""
+      proxyPassword: ""
+
+plugins:
+  # ── youtube-source plugin ─────────────────────────────────────────────────
+  # Provides YouTube audio resolution without the broken built-in YT source.
+  # Used as a fallback when SoundCloud (primary) cannot resolve a track.
+  # YOUTUBE_OAUTH_ENABLED / YOUTUBE_REFRESH_TOKEN / YOUTUBE_SKIP_INIT are read
+  # from Render env vars — set them there to enable authenticated playback.
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - WEB
+      - TVHTML5SIMPLY
+    oauth:
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: ${YOUTUBE_REFRESH_TOKEN:}
+      skipInitialization: ${YOUTUBE_SKIP_INIT:false}
+
+  # ── LavaSrc plugin ────────────────────────────────────────────────────────
+  # Resolves Spotify tracks: fetches metadata via Spotify API, then resolves
+  # audio using the provider chain below.
+  # SoundCloud is tried first (fast, no quota). YouTube is the reliable fallback
+  # for when Render's IP is blocked by SoundCloud.
+  lavasrc:
+    # ── Provider resolution chain ─────────────────────────────────────────
+    providers:
+      - "scsearch:%ISRC%"
+      - "scsearch:%QUERY%"
+      - "ytsearch:%ISRC%"
+      - "ytsearch:%QUERY%"
+
+    sources:
+      spotify: true
+      applemusic: false
+      deezer: false
+      yandexmusic: false
+      flowerytts: false
+      youtube: false
+
+    # ── Spotify credentials ───────────────────────────────────────────────
+    # Get a free Client ID + Secret from https://developer.spotify.com/dashboard
+    # (Create app → Settings → copy Client ID and Client Secret).
+    # Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in Render env vars.
+    # The bot ALSO needs these same vars set — it uses them to fetch playlist
+    # metadata client-side, while Lavalink uses them for ISRC resolution.
+    spotify:
+      clientId: ${SPOTIFY_CLIENT_ID:}
+      clientSecret: ${SPOTIFY_CLIENT_SECRET:}
+      countryCode: "US"
+
+    deezer:
+      masterDecryptionKey: ${DEEZER_MASTER_KEY:}
+
+    applemusic:
+      countryCode: "US"
+      mediaAPIToken: ""
+
+    yandexmusic:
+      accessToken: ""
+
+    flowerytts:
+      voice: "Emma"
+      translate: false
+      silence: 0
+      speed: 1.0
+      audioFormat: "mp3"
+
+# ── Prometheus metrics ─────────────────────────────────────────────────────────
+# Disabled by default. Enable if you run a Prometheus + Grafana stack.
+metrics:
+  prometheus:
+    enabled: false
+    endpoint: /metrics
+
+# ── Sentry error reporting ─────────────────────────────────────────────────────
+sentry:
+  dsn: ""
+  environment: ""
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+# INFO level for both root and lavalink keeps logs readable without being noisy.
+# Set lavalink: DEBUG temporarily if you're diagnosing playback issues.
+logging:
+  level:
+    root: INFO
+    lavalink: INFO
+  request:
+    enabled: true
+    includeClientInfo: true
+    includeHeaders: false
+    includeQueryString: true
+    includePayload: false
+    maxPayloadLength: 10000

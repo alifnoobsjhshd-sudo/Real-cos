@@ -1,0 +1,67 @@
+# ── Render Blueprint — Lavalink Server ────────────────────────────────────────
+#
+# HOW TO USE THIS FILE
+# ─────────────────────
+# Option A (separate repo — recommended for a dedicated Lavalink deployment):
+#   1. Create a new GitHub repo.
+#   2. Copy the CONTENTS of this lavalink-server/ folder into its root.
+#   3. This render.yaml will be at the repo root — Render picks it up automatically.
+#   4. In Render → New → Blueprint, connect that repo. Render reads this file
+#      and creates the service for you.
+#
+# Option B (same repo as your bot):
+#   1. Copy this render.yaml to the ROOT of your bot's repo.
+#   2. Add `rootDir: lavalink-server` to the service block below (uncomment it).
+#   3. Connect the bot repo as a Blueprint. Render will build only the
+#      lavalink-server/ subfolder.
+#   NOTE: If your bot already has a render.yaml at the root, merge the services
+#         list — don't create two render.yaml files.
+
+services:
+  - type: web
+    name: lavalink-server
+    runtime: docker
+    # rootDir: lavalink-server   # ← Uncomment for Option B (same repo as bot)
+    plan: free                   # Change to "starter" for 24/7 uptime ($7/mo)
+    healthCheckPath: /v4/info
+
+    envVars:
+      # ── Required ───────────────────────────────────────────────────────────
+      - key: LAVALINK_PASSWORD
+        # Set this to a strong password of your choice, e.g. "Zyrox#Lava2026!"
+        # This EXACT value must be set as LAVALINK_PASSWORDS on your bot service.
+        sync: false
+
+      # ── Spotify (strongly recommended — enables native Spotify link support) ─
+      - key: SPOTIFY_CLIENT_ID
+        # Free from https://developer.spotify.com/dashboard
+        # Also set this on your BOT's Render service.
+        sync: false
+
+      - key: SPOTIFY_CLIENT_SECRET
+        # Free from https://developer.spotify.com/dashboard
+        # Also set this on your BOT's Render service.
+        sync: false
+
+      # ── YouTube OAuth (strongly recommended — reduces 429 rate-limit errors) ─
+      - key: YOUTUBE_OAUTH_ENABLED
+        # Set to "true" on your FIRST deploy to get an OAuth token from the logs.
+        # After completing OAuth setup (see RENDER_SETUP_GUIDE.md Step 5), set
+        # YOUTUBE_REFRESH_TOKEN and YOUTUBE_SKIP_INIT, then set this back to false
+        # OR keep it true (both work once a valid refreshToken is stored).
+        value: "false"
+
+      - key: YOUTUBE_REFRESH_TOKEN
+        # Leave unset on first deploy. Set after completing the OAuth flow.
+        sync: false
+
+      - key: YOUTUBE_SKIP_INIT
+        # Set to "true" AFTER you have saved a refresh token, so Lavalink stops
+        # printing the auth URL on every restart.
+        value: "false"
+
+      # ── Optional JVM tuning ────────────────────────────────────────────────
+      # Uncomment and set if you upgrade to Starter plan (1 GB RAM).
+      # Leave commented on free tier — the Dockerfile defaults are correct.
+      # - key: JAVA_OPTS
+      #   value: "-Xms64M -Xmx600M -XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:MaxGCPauseMillis=200"

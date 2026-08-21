@@ -1,0 +1,52 @@
+keywords : bite, boop, bully, cuddle, greet, handholding, highfive, hold, hug, insult, kill, kick, kiss, lick, nom, pat, pats, poke, punch, slap, snuggle, stare, tickle, wave, blush, cry, dance, deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile, smug, teehee, thinking, thonking, thumbsup, thumbs, triggered, wag, pic, gif, headpat, tackle, bonk, nuzzle, yeet
+
+blocked keywords (respond with "I can't show that") : sex, fuck
+
+
+
+gif for keywords : from tenor you can find the gif for correct keywords. here are some filter you must use to get gif:
+1. always choose anime contents.
+2. refer to choose banner like ratio gif instead of 1:1 type. and try to find some actual gif that can match the feel.
+for a single keyword every time by typing the same keyword the same gif will not come. randomly bot will choose gif.
+
+how the embed massage would be:
+
+title: "(first will have the author profile pic) (the author display name) (the keywords in past tense) (the mentioned user display name) (a emotion sentence)"
+
+banner: the embed banner will be the chosen gif.
+
+embed color: yellow.
+
+
+describing the emotion sentence at the last lf the embed title: according to the gif and keyword the emotion sentence will be some examples:
+   keyword = kiss:
+   title = "(author pfp) (author display mame) kissed (mentioned user display name) Ahh! so cute"
+
+   keyword = kill
+   title = "(author pfp) (author display mame) killed (mentioned user display name) Chill dude!"
+
+   keyword = kick
+   title = "(author pfp) (author display name) kicked (mentioned user display name) That's a powerful kick! 🦵"
+
+   keyword = tackle
+   title = "(author pfp) (author display name) tackled (mentioned user display name) Oof! You got tackled! 💨"
+
+   keyword = bonk
+   title = "(author pfp) (author display name) bonked (mentioned user display name) No horny! 🔨"
+
+   keyword = nuzzle
+   title = "(author pfp) (author display name) nuzzled (mentioned user display name) So affectionate! 🐾"
+
+   keyword = yeet
+   title = "(author pfp) (author display name) yeeted (mentioned user display name) They're gone! 🚀"
+
+   keyword = sex / fuck
+   response = "I can't show that"  (no embed, no gif — plain text only)
+
+
+if for emotion sentence need ai integration know me. if no need ai will be much better.
+
+extra:
+the prefix for these fun commands will be  "sun" like "sun kiss @user", "sun kill @user"
+
+in the help massage fun commands page who these fun commands with the "sun prefix"

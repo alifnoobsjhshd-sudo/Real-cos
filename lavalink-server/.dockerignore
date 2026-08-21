@@ -1,0 +1,11 @@
+# Keep the Docker build context minimal — only Dockerfile and application.yml
+# are needed inside the image. Everything else is documentation/config for
+# humans and should not be copied into the container.
+RENDER_SETUP_GUIDE.md
+render.yaml
+README.md
+*.md
+.git
+.gitignore
+.env
+.env.*
