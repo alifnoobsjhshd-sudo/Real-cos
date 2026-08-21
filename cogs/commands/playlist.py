@@ -437,34 +437,39 @@ async def _queue_playlist_and_play(
     vc._playlist_channel = _channel
     vc._playlist_np_msg  = None
 
-    # ── Load & queue songs ────────────────────────────────────────────────────
-    first_track      = None
-    started_playback = False
+    # ── Resolve the full playlist before starting playback ───────────────────
+    # Starting the first track before the remaining songs were queued allowed
+    # a short playlist/fast track to reach TrackEnd while the loader was still
+    # working, so the end handler saw an empty queue and stopped early.
+    loaded_tracks = []
     for song in songs_to_play:
         try:
             results = await wavelink.Playable.search(song["song_uri"] or song["song_name"])
             if not results:
                 continue
             track = results.tracks[0] if isinstance(results, wavelink.Playlist) else results[0]
-            if not started_playback:
-                first_track      = track
-                started_playback = True
-                await vc.play(track)   # triggers on_wavelink_track_start → NP embed
-            else:
-                await vc.queue.put_wait(track)
+            loaded_tracks.append(track)
         except Exception:
             continue
 
-    if loop_all:
-        vc.queue.mode = wavelink.QueueMode.loop_all
-
-    if not first_track:
+    if not loaded_tracks:
         await _channel.send(
             embed=discord.Embed(
                 description=f"{_e('zcross') or '❌'} Could not load any songs from this playlist.",
                 color=0xFF0000,
             )
         )
+        return None
+
+    if loop_all:
+        vc.queue.mode = wavelink.QueueMode.loop_all
+
+    # Keep the first track as the active track and put every remaining track
+    # into the normal player queue before the first TrackEnd can occur.
+    first_track = loaded_tracks[0]
+    for track in loaded_tracks[1:]:
+        await vc.queue.put_wait(track)
+    await vc.play(first_track)   # triggers on_wavelink_track_start → NP embed
 
     return vc
 

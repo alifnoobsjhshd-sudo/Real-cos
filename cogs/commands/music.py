@@ -494,6 +494,24 @@ class Music(commands.Cog):
         # Tracks the last time each node (by URI) returned a successful search result.
         self._node_last_success: dict[str, datetime.datetime] = {}
 
+    async def _delete_now_playing_message(self, player) -> None:
+        """Delete the display belonging to the track that just stopped."""
+        message = getattr(player, "_music_display_message", None)
+        if message is None:
+            message = getattr(player, "_playlist_np_msg", None)
+
+        if message is not None:
+            try:
+                await message.delete()
+            except Exception:
+                # The message may already have been removed by Discord or a
+                # moderation action. Either way, clear the stale reference.
+                pass
+
+        player._music_display_message = None
+        if hasattr(player, "_playlist_np_msg"):
+            player._playlist_np_msg = None
+
     async def monitor_inactivity(self):
         while True:
             for guild in self.client.guilds:
@@ -842,12 +860,17 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
         """Track started: log, fix volume, update VC status, record history.
-        In playlist mode also sends the per-song Now Playing embed."""
+        Send exactly one fresh Now Playing display for every triggered track."""
         player   = payload.player
         track    = player.current
         guild_id = player.guild.id
 
         print(f"[Music] Track started: {track.title}")
+        # A skipped/replaced track can start before the previous display has
+        # been cleaned up by its end event. Always make track start the final
+        # authority for the one-message-per-track lifecycle.
+        await self._delete_now_playing_message(player)
+
         # Ensure volume is audible — Lavalink defaults to 100 but be explicit
         if player.volume != 100:
             await player.set_volume(100)
@@ -904,6 +927,22 @@ class Music(commands.Cog):
                     view=NowPlayingActionsView(player, ctx),
                 )
                 player._playlist_np_msg = np_msg
+                player._music_display_message = np_msg
+            except Exception:
+                pass
+            return
+
+        # Normal play commands use the existing two-message display layout.
+        # The first message is tracked and removed when this track ends.
+        ctx = getattr(player, "ctx", None)
+        if ctx is not None:
+            try:
+                player._music_display_message = await self.display_player_embed(
+                    player,
+                    track,
+                    ctx,
+                    autoplay=getattr(track, "_recommended", False),
+                )
             except Exception:
                 pass
 
@@ -964,14 +1003,9 @@ class Music(commands.Cog):
 
         # ── Playlist mode ─────────────────────────────────────────────────────
         if getattr(player, '_is_playlist', False):
-            # Delete the per-song NP embed that on_wavelink_track_start created
-            np_msg = getattr(player, '_playlist_np_msg', None)
-            if np_msg:
-                try:
-                    await np_msg.delete()
-                except Exception:
-                    pass
-                player._playlist_np_msg = None
+            # Delete the exact display for the track that just ended before
+            # starting the next one.
+            await self._delete_now_playing_message(player)
 
             if player.queue.mode == wavelink.QueueMode.loop:
                 # Single-track loop (rare in playlist mode — loop_all is used for full loop)
@@ -1007,17 +1041,10 @@ class Music(commands.Cog):
             if player.queue.mode == wavelink.QueueMode.loop:
                 await player.play(payload.track)
             elif player.autoplay == wavelink.AutoPlayMode.enabled:
-                await asyncio.sleep(5)
-                if player.current:
-                    try:
-                        await self.display_player_embed(player, player.current, player.ctx, autoplay=True)
-                    except Exception:
-                        pass
-                else:
-                    try:
-                        await player.ctx.send("No suitable track found for autoplay.")
-                    except Exception:
-                        pass
+                # Wavelink owns recommendation loading and playback when
+                # autoplay is enabled. Its next TrackStart event creates the
+                # fresh display through the handler above.
+                return
             else:
                 # Normal music mode: disconnect when queue ends
                 try:
@@ -1036,10 +1063,6 @@ class Music(commands.Cog):
         else:
             next_track = await player.queue.get_wait()
             await player.play(next_track)
-            try:
-                await self.display_player_embed(player, next_track, player.ctx)
-            except Exception:
-                pass
 
 
 
@@ -1107,13 +1130,11 @@ class Music(commands.Cog):
             if not vc.playing:
                 track = await vc.queue.get_wait()
                 await vc.play(track)
-                await self.display_player_embed(vc, track, ctx)
         else:
             track = tracks[0]
             await vc.queue.put_wait(track)
             if not vc.playing:
                 await vc.play(await vc.queue.get_wait())
-                await self.display_player_embed(vc, track, ctx)
             else:
                 queue_pos = len(vc.queue)
                 await ctx.send(embed=discord.Embed(
@@ -1303,12 +1324,7 @@ class Music(commands.Cog):
             await ctx.send(embed=discord.Embed(description=f"{_e('zwarning')} You need to be in the same voice channel as me to use this command.", color=0xFF0000))
             return
 
-        if vc.autoplay == wavelink.AutoPlayMode.enabled:
-            await vc.stop()
-            return await ctx.send(embed=discord.Embed(description=f"Skipped by {ctx.author.mention}.", color=0xFF0000))
-
-
-        if vc and vc.playing and not vc.queue.is_empty:
+        if vc and vc.playing:
             await vc.stop()
             await ctx.send(embed=discord.Embed(description=f"Skipped by {ctx.author.mention}.", color=0xFF0000))
         else:

@@ -18,7 +18,7 @@ if not os.path.exists('db'):
     os.makedirs('db')
 DB_PATH = 'db/ticket.db'
 MAX_BUTTONS = 15
-TICKET_LIMIT_PER_USER = 3
+TICKET_LIMIT_PER_USER = 10
 
 
 # ── Emoji helper ──────────────────────────────────────────────────────────────

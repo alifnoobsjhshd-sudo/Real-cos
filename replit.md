@@ -178,3 +178,14 @@ renders custom emojis poorly in placeholder text.
 
 - Keep the existing project structure and stack.
 - Bot is deployed on Render as a web service.
+
+## Recent music fixes
+
+- Track-end progression now consumes the next queued track for both natural
+  finishes and skips; Wavelink's recommendation queue remains responsible for
+  autoplay playback.
+- The Now Playing display is owned by the track lifecycle: the previous
+  display is deleted when a track ends or is replaced, and a fresh existing
+  layout is sent when the next track starts.
+- Playlist playback resolves and queues all tracks before starting the first
+  one, preventing fast tracks from reaching an empty queue while loading.
