@@ -9,6 +9,7 @@ Environment variable required:
 """
 
 import asyncio
+import hashlib
 import os
 import glob
 import signal
@@ -29,6 +30,8 @@ _DB_GLOBS = [
 
 # How often to auto-save (seconds)
 SYNC_INTERVAL = 60  # 1 minute — short enough that a crash loses very little data
+_saved_hashes: dict[str, bytes] = {}
+_sync_task: asyncio.Task | None = None
 
 # ── Internal helpers ────────────────────────────────────────────────────────────
 
@@ -79,6 +82,7 @@ async def restore_from_neon():
             os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
             with open(path, "wb") as f:
                 f.write(data)
+            _saved_hashes[path] = hashlib.sha256(data).digest()
             restored += 1
 
         await pool.close()
@@ -89,7 +93,7 @@ async def restore_from_neon():
 
 async def save_to_neon():
     """
-    Upload all local DB files to Neon.
+    Upload changed local DB files to Neon.
     Safe to call at any time (upserts, never truncates).
     """
     if not NEON_URL:
@@ -99,16 +103,28 @@ async def save_to_neon():
     if not files:
         return
 
+    changed_files = []
+    for path in files:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+            digest = hashlib.sha256(data).digest()
+            if _saved_hashes.get(path) != digest:
+                changed_files.append((path, data, digest))
+        except Exception as fe:
+            print(f"[db_sync] Warning: could not read {path} — {fe}")
+
+    if not changed_files:
+        return
+
     try:
         pool = await _get_pool()
         await _ensure_table(pool)
 
         saved = 0
         async with pool.acquire() as conn:
-            for path in files:
+            for path, data, digest in changed_files:
                 try:
-                    with open(path, "rb") as f:
-                        data = f.read()
                     await conn.execute("""
                         INSERT INTO sqlite_backups (filename, data, updated_at)
                         VALUES ($1, $2, NOW())
@@ -116,12 +132,13 @@ async def save_to_neon():
                             SET data = EXCLUDED.data,
                                 updated_at = NOW()
                     """, path, data)
+                    _saved_hashes[path] = digest
                     saved += 1
                 except Exception as fe:
                     print(f"[db_sync] Warning: could not save {path} — {fe}")
 
         await pool.close()
-        print(f"[db_sync] ✓ Saved {saved}/{len(files)} file(s) to Neon.")
+        print(f"[db_sync] ✓ Saved {saved}/{len(changed_files)} changed file(s) to Neon.")
     except Exception as e:
         print(f"[db_sync] Warning: could not save to Neon — {e}")
 
@@ -143,7 +160,10 @@ def start_sync_loop(bot_loop: asyncio.AbstractEventLoop):
         print("[db_sync] NEON_DATABASE_URL not set — persistence disabled.")
         return
 
-    bot_loop.create_task(_sync_loop())
+    global _sync_task
+    if _sync_task is not None and not _sync_task.done():
+        return
+    _sync_task = bot_loop.create_task(_sync_loop())
 
     # Render sends SIGTERM before killing the process — save on the way out.
     def _on_sigterm(*_):

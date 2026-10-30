@@ -119,6 +119,8 @@ LOG_CHANNEL_ID = 1396794297386532978 # Replace with the channel ID for join/leav
 
 client = zyrox()
 tree = client.tree
+_commands_synced = False
+_stats_task = None
 
 # --- Background Task for Stats ---
 async def update_stats():
@@ -132,11 +134,13 @@ async def update_stats():
             server_channel = client.get_channel(SERVER_COUNT_CHANNEL_ID)
             user_channel = client.get_channel(USER_COUNT_CHANNEL_ID)
             
-            if server_channel:
-                await server_channel.edit(name=f"Servers: {servers}")
+            server_name = f"Servers: {servers}"
+            if server_channel and server_channel.name != server_name:
+                await server_channel.edit(name=server_name)
             
-            if user_channel:
-                await user_channel.edit(name=f"Users: {users}")
+            user_name = f"Users: {users}"
+            if user_channel and user_channel.name != user_name:
+                await user_channel.edit(name=user_name)
                 
         except Exception as e:
             print(f"Error updating stats: {e}")
@@ -146,6 +150,7 @@ async def update_stats():
 # --- Event Handlers ---
 @client.event
 async def on_ready():
+    global _commands_synced, _stats_task
     await client.wait_until_ready()
     
     print("""
@@ -162,15 +167,18 @@ async def on_ready():
     print(f"Logged in as: {client.user}")
     print(f"Connected to: {len(client.guilds)} guilds")
     print(f"Connected to: {len(client.users)} users")
-    try:
-        synced = await client.tree.sync()
-        all_commands = list(client.commands)
-        print(f"Synced Total {len(all_commands)} Client Commands and {len(synced)} Slash Commands")
-    except Exception as e:
-        print(e)
+    if not _commands_synced:
+        try:
+            synced = await client.tree.sync()
+            _commands_synced = True
+            all_commands = list(client.commands)
+            print(f"Synced Total {len(all_commands)} Client Commands and {len(synced)} Slash Commands")
+        except Exception as e:
+            print(e)
 
     start_sync_loop(client.loop)
-    client.loop.create_task(update_stats())
+    if _stats_task is None or _stats_task.done():
+        _stats_task = client.loop.create_task(update_stats())
 
 
 @client.event
