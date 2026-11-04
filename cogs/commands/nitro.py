@@ -20,7 +20,7 @@ class Nitro(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.display_avatar.url)
         embed.set_thumbnail(url="https://i.pinimg.com/originals/23/a6/51/23a6518aebdc551e72a6eab23bd2c282.gif")
 
-        claim_button = Button(style=discord.ButtonStyle.primary, label="Click me!", url="https://discord.gg/codexdev", disabled=False)
+        claim_button = Button(style=discord.ButtonStyle.primary, label="Click me!", url="https://www.youtube.com/watch?v=_6HzLIJPH2A", disabled=False)
 
         view = View()
         view.add_item(claim_button)
