@@ -99,7 +99,7 @@ class HelpCommand(commands.HelpCommand):
     loading_msg = await ctx.reply(embed=loading_embed)
 
     # Wait 2 seconds
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)
 
     # Delete loading message
     with suppress(discord.NotFound):
@@ -125,76 +125,74 @@ class HelpCommand(commands.HelpCommand):
         embed.set_image(url=branding["embed_banner"])
 
     # Field 1: Security
-embed.add_field(
-    name=f"{_e('zSafe')} __Security__",
-    value=(
-        ">>> `»` • Automod\n"
-        "    • Antinuke\n"
-        "    • Verification\n"
-        "    • Encrypting"
-    ),
-    inline=False
-)
-
-# Field 2: Moderation
-embed.add_field(
-    name=f"{_e('zbot')} __Moderation__",
-    value=(
-        ">>> `»` • Moderation\n"
-        "    • Ticket\n"
-        "    • Welcomer\n"
-        "    • Giveaway\n"
-        "    • Logging\n"
-        "    • Voice\n"
-        "    • Ignoring"
-    ),
-    inline=False
-)
-
-# Field 3: Utility
-embed.add_field(
-    name=f"{_e('zwrench')} __Utility__",
-    value=(
-        ">>> `»` • Utility\n"
-        "    • General\n"
-        "    • Server\n"
-        "    • Vanity\n"
-        "    • Reaction Roles\n"
-        "    • Giveaway\n"
-        "    • Boost Massage"
-    ),
-    inline=False
-)
-
-# Field 4: Music & Fun
-embed.add_field(
-    name=f"{_e('starr')} __Music & Fun__",
-    value=(
-        ">>> `»` • Music\n"
-        "    • Playlist\n"
-        "    • Fun\n"
-        "    • Birthday\n"
-        "    • Minecraft"
-    ),
-    inline=False
-)
-
-# Field 5: Extra
-embed.add_field(
-    name=f"{_e('zmodule')} __Extra__",
-    value=(
-        ">>> `»` • J2C\n"
-        "    • Counting\n"
-        "    • Sticky\n"
-        "    • Joindm"
-    ),
-    inline=False
-)
-
-
-    embed.set_footer(
-      text=f"Requested By {self.context.author} | {b_name}",
+    embed.add_field(
+        name=f"{_e('zSafe')} __Security__",
+        value=(
+            ">>> `»` • Automod\n"
+            "    • Antinuke\n"
+            "    • Verification\n"
+            "    • Encrypting"
+        ),
+        inline=False
     )
+
+    # Field 2: Moderation
+    embed.add_field(
+        name=f"{_e('zbot')} __Moderation__",
+        value=(
+            ">>> `»` • Moderation\n"
+            "    • Ticket\n"
+            "    • Welcomer\n"
+            "    • Giveaway\n"
+            "    • Logging\n"
+            "    • Voice\n"
+            "    • Ignoring"
+        ),
+        inline=False
+    )
+
+    # Field 3: Utility
+    embed.add_field(
+        name=f"{_e('zwrench')} __Utility__",
+        value=(
+            ">>> `»` • Utility\n"
+            "    • General\n"
+            "    • Server\n"
+            "    • Vanity\n"
+            "    • Reaction Roles\n"
+            "    • Giveaway\n"
+            "    • Boost Massage"
+        ),
+        inline=False
+    )
+
+    # Field 4: Music & Fun
+    embed.add_field(
+        name=f"{_e('starr')} __Music & Fun__",
+        value=(
+            ">>> `»` • Music\n"
+            "    • Playlist\n"
+            "    • Fun\n"
+            "    • Birthday\n"
+            "    • Minecraft"
+        ),
+        inline=False
+    )
+
+    # Field 5: Extra
+    embed.add_field(
+        name=f"{_e('zmodule')} __Extra__",
+        value=(
+            ">>> `»` • J2C\n"
+            "    • Counting\n"
+            "    • Sticky\n"
+            "    • Joindm"
+        ),
+        inline=False
+    )
+
+    # Footer
+    embed.set_footer(text="by ZENOX")
     
     view = vhelp.View(mapping=mapping, ctx=self.context, homeembed=embed, ui=2, branding=branding)
     await ctx.reply(embed=embed, view=view)
