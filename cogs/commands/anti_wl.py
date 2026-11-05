@@ -3,7 +3,6 @@ from utils.emojis import e as _e
 from discord.ext import commands
 import aiosqlite
 from utils.Tools import *
-from utils.branding import DEFAULT_BRANDING
 
 
 class Whitelist(commands.Cog):
@@ -168,7 +167,7 @@ class Whitelist(commands.Cog):
         embed.add_field(name="**Executor**", value=f"<@!{ctx.author.id}>", inline=True)
         embed.add_field(name="**Target**", value=f"<@!{member.id}>", inline=True)
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        embed.set_footer(text=f"Developed by {DEFAULT_BRANDING} Development™")
+        embed.set_footer(text="Developed by ZENOX development")
 
         msg = await ctx.send(embed=embed, view=view)
 
@@ -209,7 +208,7 @@ class Whitelist(commands.Cog):
                 embed.add_field(name="**Executor**", value=f"<@!{ctx.author.id}>", inline=True)
                 embed.add_field(name="**Target**", value=f"<@!{member.id}>", inline=True)
                 embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-                embed.set_footer(text=f"Developed by {DEFAULT_BRANDING} Development™")
+                embed.set_footer(text="Developed by ZENOX development")
 
                 await interaction.response.edit_message(embed=embed, view=None)
             else:
@@ -253,7 +252,7 @@ class Whitelist(commands.Cog):
                 embed.add_field(name="**Executor**", value=f"<@!{ctx.author.id}>", inline=True)
                 embed.add_field(name="**Target**", value=f"<@!{member.id}>", inline=True)
                 embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-                embed.set_footer(text=f"Developed by {DEFAULT_BRANDING} Development™")
+                embed.set_footer(text="Developed by ZENOX development")
 
                 await interaction.response.edit_message(embed=embed, view=None)
         except TimeoutError:

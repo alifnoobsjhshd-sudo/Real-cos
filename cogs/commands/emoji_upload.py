@@ -49,7 +49,7 @@ class EmojiUpload(commands.Cog):
 
     @app_commands.command(
         name="upload",
-        description="Upload Zyrox's custom emoji pack to this server."
+        description="\u200b"
     )
     @app_commands.describe(
         branch="Which branch of emojis to upload (each branch has up to 45 emojis)."

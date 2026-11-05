@@ -307,36 +307,43 @@ class View(discord.ui.View):
                 ("Voice Commands", "Voice"),
                 ("Ignore Commands", "Ignoring"),
                 ("Utility Commands", "Utility"),
-                ("Poll Commands", "Poll"),
                 ("General Commands", "General"),
                 ("Server Commands", "Server"),
                 ("Vanity", "Vanity"),
                 ("Reaction Roles", "Reaction Roles"),
-                ("Boost Commands", "Boost massage"),
             ]
             more_order = [
                 ("Music Commands", "Music"),
-                ("Playlist Commands", "Playlist"),
+                ("Games Commands", "Games"),
                 ("Fun Commands", "Fun"),
                 ("Birthday Commands", "Birthday"),
                 ("Minecraft Commands", "Minecraft"),
+                ("Leveling Commands", "Leveling"),
                 ("J2C", "J2C"),
                 ("Counting", "Counting"),
                 ("Sticky Commands", "Sticky"),
+                ("Invite Tracker", "Invite Tracker"),
+                ("Poll Commands", "Poll"),
+                ("Boost Commands", "Boost massage"),
                 ("Joindm", "Joindm"),
             ]
             options_by_value = {option.value: option for option in self.options}
+
+            def make_option(option, label=None):
+                label = label or option.label
+                return discord.SelectOption(
+                    label=label,
+                    value=option.value,
+                    emoji=option.emoji,
+                    description=f"Get all {label} commands",
+                )
 
             def ordered_options(order):
                 result = []
                 for value, label in order:
                     option = options_by_value.get(value)
                     if option is not None:
-                        result.append(discord.SelectOption(
-                            label=label,
-                            value=option.value,
-                            emoji=option.emoji,
-                        ))
+                        result.append(make_option(option, label))
                 return result
 
             options_1 = []
@@ -352,11 +359,11 @@ class View(discord.ui.View):
 
             ordered_values = {value for value, _ in main_order + more_order}
             options_1.extend(
-                option for option in self.options
+                make_option(option) for option in self.options
                 if option.value != "Home" and option.value not in ordered_values
             )
-            self.add_item(Dropdown(ctx=self.ctx, options=options_1, placeholder="⟩ Commands", row=1))
-            self.add_item(Dropdown(ctx=self.ctx, options=options_2, placeholder="⟩ More", row=2))
+            self.add_item(Dropdown(ctx=self.ctx, options=options_1, placeholder="|  Commands .", row=1))
+            self.add_item(Dropdown(ctx=self.ctx, options=options_2, placeholder="|    More ...", row=2))
         else:
             self.buttons = self.add_buttons()
             self.add_item(Dropdown(ctx=self.ctx, options=self.options))
@@ -452,7 +459,11 @@ class View(discord.ui.View):
     # ── Command-runner helpers ─────────────────────────────────────────────────
 
     # Cogs whose commands are merged into another page (kept in sync with gen_embeds logic)
-    _MERGE_INTO: dict[str, str] = {"PlaylistCog": "Music", "InviteLeaderboardCog": "inviteTracker"}
+    _MERGE_INTO: dict[str, str] = {
+        "PlaylistCog": "_music",
+        "_playlist": "_music",
+        "InviteLeaderboardCog": "inviteTracker",
+    }
 
     def _collect_page_commands(self, cog, extra_cogs: list = None) -> list:
         """Return (raw_name, display_label, description, is_slash) for commands on a cog page.
@@ -581,9 +592,10 @@ class View(discord.ui.View):
         _cogs_to_merge: dict[str, object] = {}   # class_name → cog object
         _merge_target: dict[str, str] = {}        # class_name → target class_name
         for cog in help_cogs:
-            if cog.__class__.__name__ == "PlaylistCog":
-                _cogs_to_merge["PlaylistCog"] = cog
-                _merge_target["PlaylistCog"]  = "Music"
+            if cog.__class__.__name__ in ("PlaylistCog", "_playlist"):
+                merge_key = cog.__class__.__name__
+                _cogs_to_merge[merge_key] = cog
+                _merge_target[merge_key] = "_music"
             elif cog.__class__.__name__ == "InviteLeaderboardCog":
                 _cogs_to_merge["InviteLeaderboardCog"] = cog
                 _merge_target["InviteLeaderboardCog"]   = "inviteTracker"
@@ -610,6 +622,7 @@ class View(discord.ui.View):
             options.append(discord.SelectOption(
                 label=label,
                 emoji=emoji_display or None,
+                description=f"Get all {label} commands",
             ))
 
             # ── Category embed ─────────────────────────────────────────────────
@@ -620,7 +633,14 @@ class View(discord.ui.View):
 
             cmd_lines: list[str] = []
 
-            if original_label == "Fun Commands":
+            if original_label == "Poll Commands":
+                poll_description = "Create and manage interactive polls with custom options."
+                poll_emoji = f"{emoji_display} " if emoji_display else ""
+                cmd_lines.extend((
+                    f"`1.` {poll_emoji}`/poll` — {poll_description}",
+                    f"`2.` {poll_emoji}`>poll` — {poll_description}",
+                ))
+            elif original_label == "Fun Commands":
                 from cogs.commands.fun import FUN_HELP_MESSAGE
                 embed.description = FUN_HELP_MESSAGE
             else:
@@ -637,12 +657,13 @@ class View(discord.ui.View):
                             self._append_cmd_lines(part, emoji_display, cmd_lines)
 
             # Slash commands directly on this cog
-            for slash_cmd in getattr(cog, "__cog_app_commands__", []):
-                desc = (slash_cmd.description or "No description")[:80]
-                n = sum(1 for l in cmd_lines if not l.startswith("\n"))
-                cmd_lines.append(
-                    f"`{n + 1}.` {emoji_display} `/` `{slash_cmd.name}` — {desc}"
-                )
+            if original_label != "Poll Commands":
+                for slash_cmd in getattr(cog, "__cog_app_commands__", []):
+                    desc = (slash_cmd.description or "No description")[:80]
+                    n = sum(1 for l in cmd_lines if not l.startswith("\n"))
+                    cmd_lines.append(
+                        f"`{n + 1}.` {emoji_display} `/` `{slash_cmd.name}` — {desc}"
+                    )
 
             # ── Merge-in any cogs that target this cog ─────────────────────────
             for merge_cls, target_cls in _merge_target.items():
@@ -703,7 +724,7 @@ class View(discord.ui.View):
                         value=chunk.strip(),
                         inline=False,
                     )
-            elif original_label != "Fun Commands":
+            elif original_label not in ("Fun Commands", "Poll Commands"):
                 embed.add_field(name="Commands", value="*No commands listed.*", inline=False)
 
             embeds.append(embed)

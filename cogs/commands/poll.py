@@ -525,7 +525,11 @@ class PollCog(Cog):
 
     def help_custom(self):
         from utils.emojis import e as _e
-        return _e("zpoll"), "Poll Commands", "Create and manage interactive polls"
+        emoji = next(
+            (value for name in ("zbot", "zmodule", "zwrench", "starr") if (value := _e(name))),
+            "",
+        )
+        return emoji, "Poll Commands", "Create and manage interactive polls"
 
     async def cog_load(self):
         await _setup_poll_db()
