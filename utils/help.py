@@ -140,10 +140,9 @@ class CommandRunDropdown(discord.ui.Select):
             options = [
                 discord.SelectOption(
                     label=display[:100],
-                    description=(desc or "No description")[:100],
                     value=f"{raw}||{is_slash}",
                 )
-                for raw, display, desc, is_slash in cmd_entries[:25]
+                for raw, display, _, is_slash in cmd_entries[:25]
             ]
             disabled = False
             placeholder = "Use a Command…"
@@ -295,34 +294,69 @@ class View(discord.ui.View):
         elif ui == 1:
             self.buttons = self.add_buttons()
         elif ui == 2:
-            self.buttons = self.add_buttons()
-            mid_point = len(self.options) // 2
-            # Keep the two top-level menus meaningful instead of relying only
-            # on cog load order.  These categories are deliberately pinned to
-            # the menu requested by the bot's public help layout.
-            main_labels = {
-                "Leveling Commands",
-                "Ticket",
-                "Logging Commands",
-            }
-            extra_labels = {"Poll Commands"}
+            main_order = [
+                ("Automod Commands", "Autimod"),
+                ("Security Commands", "Antinuke"),
+                ("Verification Commands", "Verification"),
+                ("Encryption Commands", "Encrypting"),
+                ("Moderation Commands", "Moderation"),
+                ("Ticket", "Ticket"),
+                ("Welcomer Commands", "Welcomer"),
+                ("Giveaway Commands", "Giveaway"),
+                ("Logging Commands", "Logging"),
+                ("Voice Commands", "Voice"),
+                ("Ignore Commands", "Ignoring"),
+                ("Utility Commands", "Utility"),
+                ("Poll Commands", "Poll"),
+                ("General Commands", "General"),
+                ("Server Commands", "Server"),
+                ("Vanity", "Vanity"),
+                ("Reaction Roles", "Reaction Roles"),
+                ("Boost Commands", "Boost massage"),
+            ]
+            more_order = [
+                ("Music Commands", "Music"),
+                ("Playlist Commands", "Playlist"),
+                ("Fun Commands", "Fun"),
+                ("Birthday Commands", "Birthday"),
+                ("Minecraft Commands", "Minecraft"),
+                ("J2C", "J2C"),
+                ("Counting", "Counting"),
+                ("Sticky Commands", "Sticky"),
+                ("Joindm", "Joindm"),
+            ]
+            options_by_value = {option.value: option for option in self.options}
+
+            def ordered_options(order):
+                result = []
+                for value, label in order:
+                    option = options_by_value.get(value)
+                    if option is not None:
+                        result.append(discord.SelectOption(
+                            label=label,
+                            value=option.value,
+                            emoji=option.emoji,
+                        ))
+                return result
+
             options_1 = []
-            options_2 = []
-            for index, option in enumerate(self.options):
-                if option.label in main_labels:
-                    options_1.append(option)
-                elif option.label in extra_labels:
-                    options_2.append(option)
-                elif index < mid_point:
-                    options_1.append(option)
-                else:
-                    options_2.append(option)
-            if options_1:
-                self.add_item(Dropdown(ctx=self.ctx, options=options_1, placeholder="Main Commands", row=1))
-            if options_2:
-                self.add_item(Dropdown(ctx=self.ctx, options=options_2, placeholder="Extra Commands", row=2))
-            # Command runner starts disabled on home page
-            self._refresh_cmd_runner(0)
+            home_option = options_by_value.get("Home")
+            if home_option is not None:
+                options_1.append(discord.SelectOption(
+                    label="Home",
+                    value=home_option.value,
+                    emoji=home_option.emoji,
+                ))
+            options_1.extend(ordered_options(main_order))
+            options_2 = ordered_options(more_order)
+
+            ordered_values = {value for value, _ in main_order + more_order}
+            options_1.extend(
+                option for option in self.options
+                if option.value != "Home" and option.value not in ordered_values
+            )
+            self.add_item(Dropdown(ctx=self.ctx, options=options_1, placeholder="⟩ Commands", row=1))
+            self.add_item(Dropdown(ctx=self.ctx, options=options_2, placeholder="⟩ More", row=2))
         else:
             self.buttons = self.add_buttons()
             self.add_item(Dropdown(ctx=self.ctx, options=self.options))
@@ -531,7 +565,7 @@ class View(discord.ui.View):
         used_labels: set[str] = set()
 
         # Home page
-        options.append(discord.SelectOption(label="Home", emoji=_e("icons_home"), description=""))
+        options.append(discord.SelectOption(label="Home", emoji=_e("icons_home")))
         embeds.append(self.home)
         total_pages += 1
         used_labels.add("Home")
@@ -559,7 +593,7 @@ class View(discord.ui.View):
             if cog.__class__.__name__ in _cogs_to_merge:
                 continue
 
-            emoji_str, label, description = cog.help_custom()
+            emoji_str, label, _ = cog.help_custom()
             emoji_str = emoji_str.strip()  # remove accidental trailing spaces
             original_label = label
 
@@ -576,7 +610,6 @@ class View(discord.ui.View):
             options.append(discord.SelectOption(
                 label=label,
                 emoji=emoji_display or None,
-                description=description,
             ))
 
             # ── Category embed ─────────────────────────────────────────────────
@@ -587,17 +620,21 @@ class View(discord.ui.View):
 
             cmd_lines: list[str] = []
 
-            for command in cog.get_commands():
-                docstring = command.help or ""
-                # Split on section headers like __**Section Name**__
-                parts = re.split(r'(__\*\*.+?\*\*__)', docstring)
-                for part in parts:
-                    if re.match(r'__\*\*.+?\*\*__', part):
-                        # Section header — convert and add as a separator line
-                        title = re.sub(r'__\*\*(.+?)\*\*__', r'\1', part).strip()
-                        cmd_lines.append(f"\n**» {title}**")
-                    else:
-                        self._append_cmd_lines(part, emoji_display, cmd_lines)
+            if original_label == "Fun Commands":
+                from cogs.commands.fun import FUN_HELP_MESSAGE
+                embed.description = FUN_HELP_MESSAGE
+            else:
+                for command in cog.get_commands():
+                    docstring = command.help or ""
+                    # Split on section headers like __**Section Name**__
+                    parts = re.split(r'(__\*\*.+?\*\*__)', docstring)
+                    for part in parts:
+                        if re.match(r'__\*\*.+?\*\*__', part):
+                            # Section header — convert and add as a separator line
+                            title = re.sub(r'__\*\*(.+?)\*\*__', r'\1', part).strip()
+                            cmd_lines.append(f"\n**» {title}**")
+                        else:
+                            self._append_cmd_lines(part, emoji_display, cmd_lines)
 
             # Slash commands directly on this cog
             for slash_cmd in getattr(cog, "__cog_app_commands__", []):
@@ -666,20 +703,13 @@ class View(discord.ui.View):
                         value=chunk.strip(),
                         inline=False,
                     )
-            else:
+            elif original_label != "Fun Commands":
                 embed.add_field(name="Commands", value="*No commands listed.*", inline=False)
 
             embeds.append(embed)
             total_pages += 1
 
-        self.home.set_footer(
-            text=(
-                f"• Help page 1/{total_pages} | "
-                f"Requested by: {self.ctx.author.display_name} | "
-                f"{self.branding['branding_name']}"
-            ),
-            icon_url=self.ctx.bot.user.display_avatar.url,
-        )
+        self.home.set_footer(text="by ZENOX")
         return options, embeds, total_pages
 
     def _append_cmd_lines(self, text: str, emoji_display: str, lines: list[str]):
@@ -740,14 +770,7 @@ class View(discord.ui.View):
         if not self.index + page < 0 or not self.index + page > len(self.options):
             await self.set_index(page)
             embed = self.embeds[self.index]
-            embed.set_footer(
-                text=(
-                    f"• Help page {self.index + 1}/{self.total_pages} | "
-                    f"Requested by: {self.ctx.author.display_name} | "
-                    f"{self.branding['branding_name']}"
-                ),
-                icon_url=self.ctx.bot.user.display_avatar.url,
-            )
+            embed.set_footer(text="by ZENOX")
             await interaction.response.edit_message(embed=embed, view=self)
 
     async def set_page(self, page: int, interaction: discord.Interaction):

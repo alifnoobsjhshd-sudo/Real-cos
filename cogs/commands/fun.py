@@ -26,6 +26,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+FUN_HELP_MESSAGE = (
+    "__**GIF**__\n"
+    "Use ``sun (keyword) @example``\n"
+    "Keywords:\n"
+    "> ``bite, boop, bully, cuddle, greet, handholding, highfive, hold, hug, insult, kill, kick, kiss, lick, nom, pat, pats, poke, punch, slap, snuggle, stare, tickle, wave, blush, cry, dance, deredere, grin, happy, lewd, pout, scoff, shrug, sleepy, smile, smug, teehee, thinking, thonking, thumbsup, thumbs, triggered, wag, pic, gif, headpat, tackle, bonk, nuzzle, yeet``\n\n"
+    "__**General**__\n"
+    "> ``>snipe``, ``>hack``, ``>token``, ``>wizz``, ``>urban``, ``>rickroll``, ``>YouTube``, ``>GitHu``, ``>nitro``"
+)
+
 
 # ─── Keyword data ─────────────────────────────────────────────────────────────
 
@@ -434,10 +443,14 @@ class Fun(commands.Cog):
     async def fun(
         self,
         interaction: discord.Interaction,
-        action: str,
-        user: discord.Member,
+        action: str | None = None,
+        user: discord.Member | None = None,
     ) -> None:
         from utils.emojis import e as _e
+        if action is None or user is None:
+            await interaction.response.send_message(FUN_HELP_MESSAGE, ephemeral=True)
+            return
+
         action = action.strip().lower()
 
         # Blocked keywords — politely decline

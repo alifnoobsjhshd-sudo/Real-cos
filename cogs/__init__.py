@@ -191,7 +191,7 @@ async def setup(bot: zyrox):
         AntiChannelCreate, AntiChannelDelete, AntiChannelUpdate, AntiEveryone, AntiGuildUpdate,
         AntiIntegration, AntiKick, AntiPrune, AntiRoleCreate, AntiRoleDelete,
         AntiRoleUpdate, AntiWebhookUpdate, AntiWebhookCreate, 
-        AntiWebhookDelete, AntiSpam, AntiCaps, AntiLink, AntiInvite, AntiMassMention, Stats, Status, NoPrefix, FilterCog, AutoReaction, AutoReactListener, Ban, Unban, Mute, Unmute, Lock, Unlock, Hide, Unhide, Kick, Warn, Role, Message, Moderation, TopCheck, Snipe, Global, QR, VanityRoles, ReactionRoles, Messages, TranslateCog, FastGreet, Jail, inviteTracker, Counting
+        AntiWebhookDelete, AntiSpam, AntiCaps, AntiLink, AntiInvite, AntiMassMention, Stats, Status, NoPrefix, FilterCog, AutoReaction, AutoReactListener, Ban, Unban, Mute, Unmute, Lock, Unlock, Hide, Unhide, Kick, Warn, Role, Message, Moderation, TopCheck, Snipe, Global, VanityRoles, ReactionRoles, Messages, TranslateCog, FastGreet, Jail, inviteTracker, Counting
     ]
 
 
@@ -236,7 +236,6 @@ async def setup(bot: zyrox):
  # await bot.add_cog(Map(bot))
   await bot.add_cog(TicketCog(bot))
   await bot.add_cog(Logging(bot))
-  await bot.add_cog(QR(bot))
   await bot.add_cog(VanityRoles(bot))
   await bot.add_cog(ReactionRoles(bot))
   await bot.add_cog(Messages(bot))

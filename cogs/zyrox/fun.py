@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from cogs.commands.fun import FUN_HELP_MESSAGE
 
 
 class _fun(commands.Cog):
@@ -26,7 +27,7 @@ class _fun(commands.Cog):
         description = f"Anime-style reaction commands triggered with the `{fun_prefix}` prefix"
         return emoji, label, description
 
-    @commands.group()
+    @commands.group(name="fun", invoke_without_command=True)
     async def __Fun__(self, ctx: commands.Context):
-        """Send anime reaction GIFs. Usage: `<fun_prefix> <keyword> @mention`\n\nKeywords: bite, boop, bully, cuddle, greet, handholding, highfive, hold, hug, insult, kill, kiss, lick, nom, pat, poke, punch, slap, snuggle, stare, tickle, wave, blush, cry, dance, happy, smile, smug, wag, headpat, triggered, thinking, shrug, tackle, bonk, nuzzle, yeet\n\nSlash: `/fun action:<keyword> user:<@member>`"""
-        pass
+        """Show Fun command usage and available commands."""
+        await ctx.send(FUN_HELP_MESSAGE)
