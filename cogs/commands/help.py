@@ -366,9 +366,8 @@ class Help(Cog, name="help"):
 
     embed = discord.Embed(
         description=(
-            f"**{_e('ArrowRed')} __Start {b_name} Today__**\n"
-            f"**{_e('zArrow')} Type {prefix}antinuke enable**\n"
-            f"**{_e('zArrow')} Server Prefix:** `{prefix}`\n"
+            f"** • > __{b_name}__ < •**\n"
+            f"**{_e('zArrow')} Prefix:** `{prefix}`\n"
             f"**{_e('zArrow')} Total Commands:** `{len(set(bot.walk_commands()))}`\n"
         ),
         color=b_color
@@ -381,50 +380,78 @@ class Help(Cog, name="help"):
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
 
+        # Field 1: Security
     embed.add_field(
-        name=f"{_e('zCloud')} __**Main Features**__",
+        name=f"{_e('zSafe')} __Security__",
         value=(
-            f">>> \n {_e('zSafe')} `»` Security\n"
-            f" {_e('zbot')} `»` Automoderation\n"
-            f" {_e('zwrench')} `»` Utility\n"
-            f" {_e('zwifi')} `»` Autoreact & responder\n"
-            f" {_e('zsowrd')} `»` Moderation\n"
-            f" {_e('zpeople')} `»` Autorole & Invc\n"
-            f" {_e('zrocket')} `»` Fun\n"
-            f" {_e('games')} `»` Games\n"
-            f" {_e('zban')} `»` Ignore Channels\n"
-            f" {_e('zwifi')} `»` Server\n"
-            f" {_e('zunmute')} `»` Voice\n"
-            f" {_e('zseed')} `»` Welcomer\n"
-            f" {_e('ztada')} `»` Giveaway\n"
-            f" {_e('zticket')} `»` Ticket\n"
-            f" {_e('zpeople')} `»` Invite Tracker\n"
-             f" {_e('zlevelup')} `»` Leveling\n"
-             f" {_e('zcast')} `»` Advance Logging\n"
-            f" {_e('zwrench')} `»` Bot Customization {_e('starr')}\n"
+            ">>> `»` • Automod\n"
+            "    • Antinuke\n"
+            "    • Verification\n"
+            "    • Encrypting"
         ),
+        inline=False
     )
 
+    # Field 2: Moderation
     embed.add_field(
-        name=f" {_e('zmodule')} __**Extra Features**__",
+        name=f"{_e('zbot')} __Moderation__",
         value=(
-            f">>> \n {_e('zcast')} `»` Advance Logging\n"
-            f" {_e('starr')} `»` Vanityroles\n"
-            f" {_e('zcounting')} `»` Counting\n"
-            f" {_e('zyrox_system')} `»` J2C\n"
-            f" {_e('boost')} `»` Boost\n"
-             f" {_e('zpoll')} `»` Polls\n"
-            f" {_e('zpin')} `»` Sticky\n"
-            f" {_e('zyroxthunder')} `»` Verification\n"
-            f" {_e('lock')} `»` Encryption\n"
-            f" {_e('zmc')} `»` Minecraft\n"
-            f" {_e('zmsg')} `»` Joindm\n"
-            f" {_e('zcircle')} `»` Birthday\n"
-            f" {_e('zcircle2')} `»` Customrole\n"
+            ">>> `»` • Moderation\n"
+            "    • Ticket\n"
+            "    • Welcomer\n"
+            "    • Giveaway\n"
+            "    • Logging\n"
+            "    • Voice\n"
+            "    • Ignoring"
         ),
+        inline=False
     )
 
-    embed.set_footer(text=f"Requested By {interaction.user} | {b_name}")
+    # Field 3: Utility
+    embed.add_field(
+        name=f"{_e('zwrench')} __Utility__",
+        value=(
+            ">>> `»` • Utility\n"
+            "    • General\n"
+            "    • Server\n"
+            "    • Vanity\n"
+            "    • Reaction Roles\n"
+            "    • Giveaway"
+        ),
+        inline=False
+    )
+
+    # Field 4: Music & Fun
+    embed.add_field(
+        name=f"{_e('starr')} __Music & Fun__",
+        value=(
+            ">>> `»` • Music\n"
+            "    • Fun\n"
+            "    • Games\n"
+            "    • Birthday\n"
+            "    • Minecraft"
+        ),
+        inline=False
+    )
+
+    # Field 5: Extra
+    embed.add_field(
+        name=f"{_e('zmodule')} __Extra__",
+        value=(
+            ">>> `»` • J2C\n"
+            "    • Leveling\n"
+            "    • Invite Tracker\n"
+            "    • Poll\n"
+            "    • Boost Massage\n"
+            "    • Counting\n"
+            "    • Sticky\n"
+            "    • Joindm"
+        ),
+        inline=False
+    )
+
+    # Footer
+    embed.set_footer(text="by ZENOX")
 
     view = vhelp.View(mapping=mapping, ctx=ctx, homeembed=embed, ui=2, branding=branding)
     await interaction.followup.send(embed=embed, view=view)
