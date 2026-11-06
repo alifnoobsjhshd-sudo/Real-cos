@@ -198,7 +198,7 @@ class HelpCommand(commands.HelpCommand):
     
     # Field 6: Exclusive
     embed.add_field(
-        name=f"{_e('zstarr')} __Free Exclusive__",
+        name=f"{_e('premium')} __Free Exclusive__",
         value=(
             ">>> `»` • Bot Customization"
         ),
@@ -461,26 +461,10 @@ class Help(Cog, name="help"):
         inline=False
     )
     
-    # Field 5: Extra
-    embed.add_field(
-        name=f"{_e('zmodule')} __Extra__",
-        value=(
-            ">>> `»` • J2C\n"
-            "    • Leveling\n"
-            "    • boost massage\n"
-            "    • Poll\n"
-            "    • Counting\n"
-            "    • Sticky\n"
-            "    • Joindm\n"
-            "    • Invite Tracker\n"
-            "    • Nickchanger"
-        ),
-        inline=False
-    )
     
     # Field 6: Exclusive
     embed.add_field(
-        name=f"{_e('zstarr')} __Free Exclusive__",
+        name=f"{_e('premium')} __Free Exclusive__",
         value=(
             ">>> `»` • Bot Customization"
         ),
