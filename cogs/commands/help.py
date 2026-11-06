@@ -111,7 +111,7 @@ class HelpCommand(commands.HelpCommand):
 
     embed = discord.Embed(
         description=(
-         f"**{_e('ArrowRed')} • > __ {b_name} < • __**\n"
+         f"** • > __ {b_name} __ < • **\n"
          f"**{_e('zArrow')} Prefix:** `{prefix}`\n"
          f"**{_e('zArrow')} Total Commands:** `{len(set(self.context.bot.walk_commands()))}`\n"),
         color=b_color)
@@ -184,9 +184,23 @@ class HelpCommand(commands.HelpCommand):
         name=f"{_e('zmodule')} __Extra__",
         value=(
             ">>> `»` • J2C\n"
+            "    • Leveling\n"
+            "    • boost massage\n"
+            "    • Poll\n"
             "    • Counting\n"
             "    • Sticky\n"
-            "    • Joindm"
+            "    • Joindm\n"
+            "    • Invite Tracker\n"
+            "    • Nickchanger"
+        ),
+        inline=False
+    )
+    
+    # Field 6: Exclusive
+    embed.add_field(
+        name=f"{_e('zstarr')} __Free Exclusive__",
+        value=(
+            ">>> `»` • Bot Customization"
         ),
         inline=False
     )
@@ -430,23 +444,49 @@ class Help(Cog, name="help"):
         ),
         inline=False
     )
-
     # Field 5: Extra
     embed.add_field(
         name=f"{_e('zmodule')} __Extra__",
         value=(
             ">>> `»` • J2C\n"
             "    • Leveling\n"
-            "    • Invite Tracker\n"
+            "    • boost massage\n"
             "    • Poll\n"
-            "    • Boost Massage\n"
             "    • Counting\n"
             "    • Sticky\n"
-            "    • Joindm"
+            "    • Joindm\n"
+            "    • Invite Tracker\n"
+            "    • Nickchanger"
         ),
         inline=False
     )
-
+    
+    # Field 5: Extra
+    embed.add_field(
+        name=f"{_e('zmodule')} __Extra__",
+        value=(
+            ">>> `»` • J2C\n"
+            "    • Leveling\n"
+            "    • boost massage\n"
+            "    • Poll\n"
+            "    • Counting\n"
+            "    • Sticky\n"
+            "    • Joindm\n"
+            "    • Invite Tracker\n"
+            "    • Nickchanger"
+        ),
+        inline=False
+    )
+    
+    # Field 6: Exclusive
+    embed.add_field(
+        name=f"{_e('zstarr')} __Free Exclusive__",
+        value=(
+            ">>> `»` • Bot Customization"
+        ),
+        inline=False
+    )
+    
     # Footer
     embed.set_footer(text="by ZENOX")
 
