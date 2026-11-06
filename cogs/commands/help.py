@@ -99,7 +99,7 @@ class HelpCommand(commands.HelpCommand):
     loading_msg = await ctx.reply(embed=loading_embed)
 
     # Wait 2 seconds
-    await asyncio.sleep(10)
+    await asyncio.sleep(4)
 
     # Delete loading message
     with suppress(discord.NotFound):
@@ -111,7 +111,7 @@ class HelpCommand(commands.HelpCommand):
 
     embed = discord.Embed(
         description=(
-         f"** • > __ {b_name} < • __**\n"
+         f"**{_e('ArrowRed')} • > __ {b_name} < • __**\n"
          f"**{_e('zArrow')} Prefix:** `{prefix}`\n"
          f"**{_e('zArrow')} Total Commands:** `{len(set(self.context.bot.walk_commands()))}`\n"),
         color=b_color)
@@ -160,7 +160,8 @@ class HelpCommand(commands.HelpCommand):
             "    • Server\n"
             "    • Vanity\n"
             "    • Reaction Roles\n"
-            "    • Giveaway"
+            "    • Giveaway\n"
+            "    • Boost Massage"
         ),
         inline=False
     )
@@ -170,8 +171,8 @@ class HelpCommand(commands.HelpCommand):
         name=f"{_e('starr')} __Music & Fun__",
         value=(
             ">>> `»` • Music\n"
+            "    • Playlist\n"
             "    • Fun\n"
-            "    • Games\n"
             "    • Birthday\n"
             "    • Minecraft"
         ),
@@ -183,10 +184,6 @@ class HelpCommand(commands.HelpCommand):
         name=f"{_e('zmodule')} __Extra__",
         value=(
             ">>> `»` • J2C\n"
-            "    • Leveling\n"
-            "    • Invite Tracker\n"
-            "    • Poll\n"
-            "    • Boost Massage\n"
             "    • Counting\n"
             "    • Sticky\n"
             "    • Joindm"
