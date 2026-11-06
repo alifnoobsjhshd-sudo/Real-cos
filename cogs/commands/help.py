@@ -205,7 +205,7 @@ class HelpCommand(commands.HelpCommand):
       await self.send_ignore_message(ctx, "command")
       return
 
-    zyrox = f">>> {command.help}" if command.help else '>>> No Help Provided...'
+    zyrox = f">no no>> {command.help}" if command.help else '>>> No Help Provided...'
     embed = discord.Embed(
         description=f"""{zyrox}""",
         color=color)
