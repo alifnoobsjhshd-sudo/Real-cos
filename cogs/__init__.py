@@ -65,6 +65,7 @@ from .commands.minecraft import Minecraft
 from .commands.encryption import encryption
 from .commands.calc import calculator
 from .commands.joindm import joindm
+from .commands.nickchanger import NickChanger
 from .commands.Birthday import Birthdays
 from .commands.nitro import Nitro
 from .commands.image import ImageCommands
@@ -235,6 +236,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(Global(bot))
  # await bot.add_cog(Map(bot))
   await bot.add_cog(TicketCog(bot))
+  await bot.add_cog(NickChanger(bot))
   await bot.add_cog(Logging(bot))
   await bot.add_cog(VanityRoles(bot))
   await bot.add_cog(ReactionRoles(bot))

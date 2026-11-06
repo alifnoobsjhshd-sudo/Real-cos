@@ -297,7 +297,6 @@ class View(discord.ui.View):
             main_order = [
                 ("Automod Commands", "Autimod"),
                 ("Security Commands", "Antinuke"),
-                ("Verification Commands", "Verification"),
                 ("Encryption Commands", "Encrypting"),
                 ("Moderation Commands", "Moderation"),
                 ("Ticket", "Ticket"),
@@ -314,18 +313,20 @@ class View(discord.ui.View):
             ]
             more_order = [
                 ("Music Commands", "Music"),
-                ("Games Commands", "Games"),
                 ("Fun Commands", "Fun"),
+                ("Games Commands", "Games"),
                 ("Birthday Commands", "Birthday"),
                 ("Minecraft Commands", "Minecraft"),
-                ("Leveling Commands", "Leveling"),
                 ("J2C", "J2C"),
-                ("Counting", "Counting"),
-                ("Sticky Commands", "Sticky"),
+                ("Leveling Commands", "Leveling"),
                 ("Invite Tracker", "Invite Tracker"),
                 ("Poll Commands", "Poll"),
                 ("Boost Commands", "Boost massage"),
+                ("Counting", "Counting"),
+                ("Sticky Commands", "Sticky"),
                 ("Joindm", "Joindm"),
+                ("Verification Commands", "Verification"),
+                ("Nickchanger Commands", "Nickchanger"),
             ]
             options_by_value = {option.value: option for option in self.options}
 

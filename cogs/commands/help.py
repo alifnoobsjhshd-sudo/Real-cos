@@ -93,17 +93,10 @@ class HelpCommand(commands.HelpCommand):
 
     # Show loading embed
     loading_embed = discord.Embed(
-      description=f"{_e('loadingred')} Loading help Menu...",
+      description=f"{_e('loadingred')} Loading help Menu... Please wait.",
       color=b_color
     )
     loading_msg = await ctx.reply(embed=loading_embed)
-
-    # Wait 2 seconds
-    await asyncio.sleep(10)
-
-    # Delete loading message
-    with suppress(discord.NotFound):
-      await loading_msg.delete()
 
     data = await getConfig(self.context.guild.id)
     prefix = data["prefix"]
@@ -198,7 +191,7 @@ class HelpCommand(commands.HelpCommand):
     embed.set_footer(text="by ZENOX")
     
     view = vhelp.View(mapping=mapping, ctx=self.context, homeembed=embed, ui=2, branding=branding)
-    await ctx.reply(embed=embed, view=view)
+    await loading_msg.edit(embed=embed, view=view)
 
   async def send_command_help(self, command):
     ctx = self.context
