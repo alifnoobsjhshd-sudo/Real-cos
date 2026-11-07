@@ -327,6 +327,7 @@ class View(discord.ui.View):
                 ("Sticky Commands", "Stick"),
                 ("Joindm", "Joindm"),
                 ("Verification Commands", "Verification"),
+                ("Bot Customization", "Bot Customization"),
             ]
             options_by_value = {option.value: option for option in self.options}
 
@@ -479,6 +480,10 @@ class View(discord.ui.View):
             return ""
 
         def _process_cog(c):
+            customization_page = (
+                "help_custom" in dir(c)
+                and c.help_custom()[1] == "Bot Customization"
+            )
             for command in c.get_commands():
                 docstring = command.help or ""
                 cmd_patterns = re.findall(r'`([^`]+)`', docstring)
@@ -498,6 +503,8 @@ class View(discord.ui.View):
                     entries.append((clean, display, desc, is_slash))
 
             for slash_item in getattr(c, "__cog_app_commands__", []):
+                if customization_page and slash_item.name != "botcustomization":
+                    continue
                 sub_cmds = getattr(slash_item, "commands", None)
                 if sub_cmds:
                     # It's a group — expand sub-commands
@@ -661,6 +668,8 @@ class View(discord.ui.View):
             # Slash commands directly on this cog
             if original_label != "Poll Commands":
                 for slash_cmd in getattr(cog, "__cog_app_commands__", []):
+                    if original_label == "Bot Customization" and slash_cmd.name != "botcustomization":
+                        continue
                     desc = (slash_cmd.description or "No description")[:80]
                     n = sum(1 for l in cmd_lines if not l.startswith("\n"))
                     cmd_lines.append(

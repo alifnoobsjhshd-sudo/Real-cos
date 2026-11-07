@@ -77,9 +77,24 @@ class TicketDatabase:
                     pass
 
             self.conn.execute(
+                "CREATE TABLE IF NOT EXISTS ticket_panels ("
+                "panel_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "guild_id INTEGER NOT NULL, "
+                "panel_channel_id INTEGER, "
+                "panel_message_id INTEGER, "
+                "embed_title TEXT, "
+                "embed_description TEXT, "
+                "embed_color INTEGER, "
+                "embed_image_url TEXT, "
+                "embed_thumbnail_url TEXT, "
+                "staff_role_id INTEGER"
+                ")"
+            )
+            self.conn.execute(
                 "CREATE TABLE IF NOT EXISTS ticket_categories ("
                 "category_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 "guild_id INTEGER, "
+                "panel_id INTEGER, "
                 "name TEXT NOT NULL, "
                 "emoji TEXT, "
                 "notified_roles TEXT, "
@@ -93,6 +108,7 @@ class TicketDatabase:
                 ")"
             )
             for col, coltype in [
+                ("panel_id", "INTEGER"),
                 ("cat_embed_title", "TEXT"),
                 ("cat_embed_description", "TEXT"),
                 ("cat_embed_banner", "TEXT"),
@@ -102,6 +118,51 @@ class TicketDatabase:
                     self.conn.execute(f"ALTER TABLE ticket_categories ADD COLUMN {col} {coltype}")
                 except Exception:
                     pass
+
+            # Migrate the former one-panel-per-guild setup without replacing
+            # any existing panel or category records.
+            legacy_panels = self.conn.execute(
+                "SELECT * FROM guild_configs WHERE panel_channel_id IS NOT NULL"
+            ).fetchall()
+            for legacy in legacy_panels:
+                panel = None
+                if legacy["panel_message_id"]:
+                    panel = self.conn.execute(
+                        "SELECT panel_id FROM ticket_panels WHERE guild_id=? AND panel_message_id=?",
+                        (legacy["guild_id"], legacy["panel_message_id"]),
+                    ).fetchone()
+                if panel is None:
+                    panel = self.conn.execute(
+                        "SELECT panel_id FROM ticket_panels "
+                        "WHERE guild_id=? AND panel_channel_id=? AND embed_title=?",
+                        (legacy["guild_id"], legacy["panel_channel_id"], legacy["embed_title"]),
+                    ).fetchone()
+                if panel is None:
+                    cursor = self.conn.execute(
+                        "INSERT INTO ticket_panels "
+                        "(guild_id, panel_channel_id, panel_message_id, embed_title, "
+                        "embed_description, embed_color, embed_image_url, embed_thumbnail_url, staff_role_id) "
+                        "VALUES (?,?,?,?,?,?,?,?,?)",
+                        (
+                            legacy["guild_id"], legacy["panel_channel_id"], legacy["panel_message_id"],
+                            legacy["embed_title"], legacy["embed_description"], legacy["embed_color"],
+                            legacy["embed_image_url"], legacy["embed_thumbnail_url"], legacy["staff_role_id"],
+                        ),
+                    )
+                    panel_id = cursor.lastrowid
+                else:
+                    panel_id = panel["panel_id"]
+                self.conn.execute(
+                    "UPDATE ticket_categories SET panel_id=? WHERE guild_id=? AND panel_id IS NULL",
+                    (panel_id, legacy["guild_id"]),
+                )
+            for panel in self.conn.execute(
+                "SELECT DISTINCT guild_id FROM ticket_panels"
+            ).fetchall():
+                self.conn.execute(
+                    "INSERT OR IGNORE INTO guild_configs (guild_id) VALUES (?)",
+                    (panel["guild_id"],),
+                )
 
             self.conn.execute(
                 "CREATE TABLE IF NOT EXISTS open_tickets ("
@@ -202,7 +263,18 @@ def _is_staff(db, inter: discord.Interaction) -> bool:
     """True if the user has the configured staff role or manage_channels."""
     if inter.user.guild_permissions.manage_channels:
         return True
-    cfg = db.fetchone("SELECT staff_role_id FROM guild_configs WHERE guild_id=?", (inter.guild.id,))
+    cfg = db.fetchone(
+        "SELECT p.staff_role_id FROM open_tickets t "
+        "JOIN ticket_categories c ON c.category_id=t.category_db_id "
+        "JOIN ticket_panels p ON p.panel_id=c.panel_id "
+        "WHERE t.channel_id=?",
+        (inter.channel.id,),
+    )
+    if not cfg:
+        cfg = db.fetchone(
+            "SELECT staff_role_id FROM guild_configs WHERE guild_id=?",
+            (inter.guild.id,),
+        )
     if cfg and cfg["staff_role_id"]:
         role_id = cfg["staff_role_id"]
         return any(r.id == role_id for r in inter.user.roles)
@@ -227,8 +299,8 @@ class SetupLandingView(discord.ui.View):
         return discord.Embed(
             title=f"{_e('zticket')} Ticket Panel Setup",
             description=(
-                f"**{_e('New')} Create New Panel** — Start fresh. Any existing panel config will be replaced.\n\n"
-                f"**{_e('zmsg')} Edit Existing Panel** — Modify your current panel without losing category data."
+                f"**{_e('New')} Create New Panel** — Add another independent ticket panel.\n\n"
+                f"**{_e('zmsg')} Edit Existing Panel** — Choose a panel to modify its embed and categories."
             ),
             color=EMBED_COLOR
         )
@@ -271,41 +343,134 @@ class SetupLandingView(discord.ui.View):
 
     @discord.ui.button(label="Edit Existing Panel", style=discord.ButtonStyle.primary, emoji=_e("zmsg") or "✏️", row=0)
     async def edit_existing(self, inter: discord.Interaction, btn: discord.ui.Button):
-        existing = self.cog.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (inter.guild.id,))
-        if not existing or not existing["panel_channel_id"]:
+        templates = self.cog.db.fetchall(
+            "SELECT * FROM ticket_panels WHERE guild_id=? ORDER BY panel_id",
+            (inter.guild.id,),
+        )
+        if not templates:
             await inter.response.send_message(
                 f"{_e('zcross')} No existing panel found. Please **Create New Panel** instead.", ephemeral=True
             )
             return
-        await inter.response.defer()
-        self._disable_all()
-        try:
-            await self.message.edit(view=self)
-        except Exception:
-            pass
-        view = PanelEmbedSetupView(
-            self.cog, self.ctx, self.panel_channel, is_new=False, existing=existing
+        view = ExistingPanelSelectView(
+            self.cog, self.ctx, self.panel_channel, templates
         )
-        self.message = await inter.followup.send(
+        await inter.response.edit_message(
+            content="Select the ticket panel you want to edit:",
+            embed=None,
+            view=view,
+        )
+
+
+class ExistingPanelSelectView(discord.ui.View):
+    def __init__(self, cog, ctx, fallback_channel, templates):
+        super().__init__(timeout=120)
+        self.cog = cog
+        self.ctx = ctx
+        self.fallback_channel = fallback_channel
+        self.templates = templates
+        self.page = 0
+        self._rebuild_components()
+
+    def _rebuild_components(self):
+        self.clear_items()
+        start = self.page * 25
+        self.add_item(ExistingPanelSelect(self, self.templates[start:start + 25]))
+        if len(self.templates) > 25:
+            previous = discord.ui.Button(
+                label="Previous",
+                style=discord.ButtonStyle.secondary,
+                row=1,
+                disabled=self.page == 0,
+            )
+            previous.callback = self.previous_page
+            following = discord.ui.Button(
+                label="Next",
+                style=discord.ButtonStyle.secondary,
+                row=1,
+                disabled=(start + 25) >= len(self.templates),
+            )
+            following.callback = self.next_page
+            self.add_item(previous)
+            self.add_item(following)
+
+    async def previous_page(self, inter: discord.Interaction):
+        self.page = max(0, self.page - 1)
+        self._rebuild_components()
+        await inter.response.edit_message(view=self)
+
+    async def next_page(self, inter: discord.Interaction):
+        self.page = min((len(self.templates) - 1) // 25, self.page + 1)
+        self._rebuild_components()
+        await inter.response.edit_message(view=self)
+
+    async def interaction_check(self, inter: discord.Interaction) -> bool:
+        if inter.user.id != self.ctx.author.id:
+            await inter.response.send_message("This setup is not for you.", ephemeral=True)
+            return False
+        return True
+
+
+class ExistingPanelSelect(discord.ui.Select):
+    def __init__(self, panel_view, templates):
+        self.panel_view = panel_view
+        options = [
+            discord.SelectOption(
+                label=(template["embed_title"] or "Untitled Ticket Panel")[:100],
+                value=str(template["panel_id"]),
+                description=f"Panel #{template['panel_id']}",
+            )
+            for template in templates[:25]
+        ]
+        super().__init__(
+            placeholder="Choose a ticket panel by title",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, inter: discord.Interaction):
+        panel_id = int(self.values[0])
+        template = self.panel_view.cog.db.fetchone(
+            "SELECT * FROM ticket_panels WHERE panel_id=? AND guild_id=?",
+            (panel_id, inter.guild.id),
+        )
+        if template is None:
+            await inter.response.send_message(
+                f"{_e('zcross')} That ticket panel no longer exists.", ephemeral=True
+            )
+            return
+
+        channel = inter.guild.get_channel(template["panel_channel_id"])
+        if channel is None:
+            channel = self.panel_view.fallback_channel
+        view = PanelEmbedSetupView(
+            self.panel_view.cog,
+            self.panel_view.ctx,
+            channel,
+            is_new=False,
+            existing=template,
+            panel_id=panel_id,
+        )
+        await inter.response.edit_message(
             content="**Step 1 — Panel Embed & Staff Role** *(editing existing)*",
             embed=view._preview_embed(),
             view=view,
-            ephemeral=True,
-            wait=True
         )
-        view.message = self.message
-        self.stop()
+        view.message = inter.message
+        self.panel_view.stop()
 
 
 # ── Step 1: Panel embed + staff role ─────────────────────────────────────────
 
 class PanelEmbedSetupView(discord.ui.View):
-    def __init__(self, cog, ctx, panel_channel, is_new=True, existing=None):
+    def __init__(self, cog, ctx, panel_channel, is_new=True, existing=None, panel_id=None):
         super().__init__(timeout=600)
         self.cog = cog
         self.ctx = ctx
         self.panel_channel = panel_channel
         self.is_new = is_new
+        self.panel_id = panel_id
         self.message = None
 
         self.embed_title       = "Support Tickets"
@@ -411,29 +576,37 @@ class PanelEmbedSetupView(discord.ui.View):
         except Exception:
             pass
 
-        # Persist panel embed config
-        self.cog.db.execute(
-            "INSERT INTO guild_configs "
-            "(guild_id, panel_channel_id, panel_type, embed_title, embed_description, embed_color, "
-            "embed_image_url, embed_thumbnail_url, staff_role_id) "
-            "VALUES (?,?,?,?,?,?,?,?,?) "
-            "ON CONFLICT(guild_id) DO UPDATE SET "
-            "panel_channel_id=excluded.panel_channel_id, panel_type=excluded.panel_type, "
-            "embed_title=excluded.embed_title, embed_description=excluded.embed_description, "
-            "embed_color=excluded.embed_color, embed_image_url=excluded.embed_image_url, "
-            "embed_thumbnail_url=excluded.embed_thumbnail_url, staff_role_id=excluded.staff_role_id",
-            (
-                self.ctx.guild.id, self.panel_channel.id, "button",
-                self.embed_title, self.embed_description, EMBED_COLOR,
-                self.embed_banner, self.embed_thumbnail, self.staff_role_id
-            )
+        panel_values = (
+            self.panel_channel.id, self.embed_title, self.embed_description,
+            EMBED_COLOR, self.embed_banner, self.embed_thumbnail, self.staff_role_id,
         )
+        self.cog.db.execute(
+            "INSERT OR IGNORE INTO guild_configs (guild_id) VALUES (?)",
+            (self.ctx.guild.id,),
+        )
+        if self.is_new:
+            cursor = self.cog.db.execute(
+                "INSERT INTO ticket_panels "
+                "(guild_id, panel_channel_id, embed_title, embed_description, embed_color, "
+                "embed_image_url, embed_thumbnail_url, staff_role_id) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (self.ctx.guild.id, *panel_values),
+            )
+            self.panel_id = cursor.lastrowid
+        else:
+            self.cog.db.execute(
+                "UPDATE ticket_panels SET panel_channel_id=?, embed_title=?, embed_description=?, "
+                "embed_color=?, embed_image_url=?, embed_thumbnail_url=?, staff_role_id=? "
+                "WHERE panel_id=? AND guild_id=?",
+                (*panel_values, self.panel_id, self.ctx.guild.id),
+            )
 
         # Pre-load existing categories if editing
         preloaded = []
         if not self.is_new:
             rows = self.cog.db.fetchall(
-                "SELECT * FROM ticket_categories WHERE guild_id=?", (self.ctx.guild.id,)
+                "SELECT * FROM ticket_categories WHERE panel_id=? ORDER BY category_id",
+                (self.panel_id,),
             )
             for r in rows:
                 preloaded.append({
@@ -446,7 +619,9 @@ class PanelEmbedSetupView(discord.ui.View):
                     "cat_embed_thumbnail": r["cat_embed_thumbnail"],
                 })
 
-        btn_view = ButtonManagerView(self.cog, self.ctx, preloaded_buttons=preloaded)
+        btn_view = ButtonManagerView(
+            self.cog, self.ctx, panel_id=self.panel_id, preloaded_buttons=preloaded
+        )
         new_msg = await inter.followup.send(
             embed=btn_view._build_embed(), view=btn_view, ephemeral=True, wait=True
         )
@@ -459,10 +634,11 @@ class PanelEmbedSetupView(discord.ui.View):
 class ButtonManagerView(discord.ui.View):
     """Manage panel buttons and configure per-button ticket embeds."""
 
-    def __init__(self, cog, ctx, preloaded_buttons=None):
+    def __init__(self, cog, ctx, panel_id, preloaded_buttons=None):
         super().__init__(timeout=900)
         self.cog = cog
         self.ctx = ctx
+        self.panel_id = panel_id
         self.message = None
         # Each dict: name, emoji, discord_category_id,
         #            cat_embed_title, cat_embed_description, cat_embed_banner, cat_embed_thumbnail
@@ -683,7 +859,10 @@ class ButtonManagerView(discord.ui.View):
             pass
 
         guild_id = self.ctx.guild.id
-        config = self.cog.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (guild_id,))
+        config = self.cog.db.fetchone(
+            "SELECT * FROM ticket_panels WHERE panel_id=? AND guild_id=?",
+            (self.panel_id, guild_id),
+        )
         if not config:
             return await inter.followup.send(
                 f"{_e('zcross')} Configuration lost. Please run `/ticket setup` again.", ephemeral=True
@@ -695,8 +874,25 @@ class ButtonManagerView(discord.ui.View):
                 f"{_e('zcross')} The panel channel no longer exists.", ephemeral=True
             )
 
-        # Rebuild ticket_categories in DB
-        self.cog.db.execute("DELETE FROM ticket_categories WHERE guild_id=?", (guild_id,))
+        existing_message = None
+        if config["panel_message_id"]:
+            try:
+                existing_message = await panel_ch.fetch_message(config["panel_message_id"])
+            except discord.NotFound:
+                pass
+            except discord.HTTPException as error:
+                return await inter.followup.send(
+                    f"{_e('zcross')} Could not access the existing panel message: {error}",
+                    ephemeral=True,
+                )
+
+        # Rebuild categories only for this panel; other panels remain intact.
+        existing_cat_id = self.cog.db.fetchone(
+            "SELECT discord_category_id FROM ticket_categories "
+            "WHERE guild_id=? AND panel_id=? LIMIT 1",
+            (guild_id, self.panel_id),
+        )
+        self.cog.db.execute("DELETE FROM ticket_categories WHERE panel_id=?", (self.panel_id,))
         staff_role_id = config["staff_role_id"]
 
         # ── Shared "Tickets" category — one category at the top for all ticket types ──
@@ -704,12 +900,16 @@ class ButtonManagerView(discord.ui.View):
         # or fall back to any Discord category literally named "Tickets".
         shared_cat = None
 
-        existing_cat_id = self.cog.db.fetchone(
-            "SELECT discord_category_id FROM ticket_categories WHERE guild_id=? LIMIT 1",
-            (guild_id,)
-        )
         if existing_cat_id and existing_cat_id["discord_category_id"]:
             shared_cat = self.ctx.guild.get_channel(existing_cat_id["discord_category_id"])
+
+        if not shared_cat:
+            any_category = self.cog.db.fetchone(
+                "SELECT discord_category_id FROM ticket_categories WHERE guild_id=? LIMIT 1",
+                (guild_id,),
+            )
+            if any_category and any_category["discord_category_id"]:
+                shared_cat = self.ctx.guild.get_channel(any_category["discord_category_id"])
 
         if not shared_cat:
             # Try to find an existing "Tickets" category in Discord
@@ -743,11 +943,11 @@ class ButtonManagerView(discord.ui.View):
         for btn in self.buttons:
             self.cog.db.execute(
                 "INSERT INTO ticket_categories "
-                "(guild_id, name, emoji, notified_roles, button_style, discord_category_id, "
+                "(guild_id, panel_id, name, emoji, notified_roles, button_style, discord_category_id, "
                 "cat_embed_title, cat_embed_description, cat_embed_banner, cat_embed_thumbnail) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    guild_id, btn["name"], btn["emoji"],
+                    guild_id, self.panel_id, btn["name"], btn["emoji"],
                     str(staff_role_id) if staff_role_id else None,
                     discord.ButtonStyle.secondary.value,
                     shared_cat.id,
@@ -757,14 +957,6 @@ class ButtonManagerView(discord.ui.View):
                     btn.get("cat_embed_thumbnail"),
                 )
             )
-
-        # Delete old panel message if it exists
-        if config["panel_message_id"]:
-            try:
-                old_msg = await panel_ch.fetch_message(config["panel_message_id"])
-                await old_msg.delete()
-            except Exception:
-                pass
 
         # Build panel embed
         panel_embed = discord.Embed(
@@ -777,13 +969,25 @@ class ButtonManagerView(discord.ui.View):
         if config["embed_thumbnail_url"]:
             panel_embed.set_thumbnail(url=config["embed_thumbnail_url"])
 
-        final_view = self.cog.create_panel_view(guild_id)
+        final_view = self.cog.create_panel_view(self.panel_id)
         if not final_view:
             return await inter.followup.send(f"{_e('zcross')} Failed to build panel view.", ephemeral=True)
 
-        msg = await panel_ch.send(embed=panel_embed, view=final_view)
+        msg = None
+        if existing_message:
+            try:
+                await existing_message.edit(embed=panel_embed, view=final_view)
+                msg = existing_message
+            except discord.HTTPException as error:
+                return await inter.followup.send(
+                    f"{_e('zcross')} Could not update the existing panel message: {error}",
+                    ephemeral=True,
+                )
+        if msg is None:
+            msg = await panel_ch.send(embed=panel_embed, view=final_view)
         self.cog.db.execute(
-            "UPDATE guild_configs SET panel_message_id=? WHERE guild_id=?", (msg.id, guild_id)
+            "UPDATE ticket_panels SET panel_message_id=? WHERE panel_id=?",
+            (msg.id, self.panel_id),
         )
         await inter.followup.send(
             f"{_e('ztick')} Ticket panel sent to {panel_ch.mention}!", ephemeral=True
@@ -1140,19 +1344,22 @@ class TicketCog(commands.Cog, name="Ticket System"):
         await self.bot.wait_until_ready()
 
         # Panel views
-        for cfg in self.db.fetchall(
-            "SELECT guild_id, panel_message_id FROM guild_configs WHERE panel_message_id IS NOT NULL"
+        for panel in self.db.fetchall(
+            "SELECT panel_id, panel_message_id FROM ticket_panels WHERE panel_message_id IS NOT NULL"
         ):
-            if view := self.create_panel_view(cfg["guild_id"]):
-                self.bot.add_view(view, message_id=cfg["panel_message_id"])
+            if view := self.create_panel_view(panel["panel_id"]):
+                self.bot.add_view(view, message_id=panel["panel_message_id"])
 
         # Persistent ticket action views — one instance handles ALL tickets
         # (Discord routes by custom_id; ch_id is resolved from inter.channel.id in callbacks)
         self.bot.add_view(TicketActionsView(self))
         self.bot.add_view(ClosedTicketView(self))
 
-    def create_panel_view(self, guild_id: int):
-        cats = self.db.fetchall("SELECT * FROM ticket_categories WHERE guild_id=?", (guild_id,))
+    def create_panel_view(self, panel_id: int):
+        cats = self.db.fetchall(
+            "SELECT * FROM ticket_categories WHERE panel_id=? ORDER BY category_id",
+            (panel_id,),
+        )
         if not cats:
             return None
         view = TicketPanelButtons(self)
@@ -1160,9 +1367,7 @@ class TicketCog(commands.Cog, name="Ticket System"):
             view.add_item(discord.ui.Button(
                 label=cat["name"],
                 style=discord.ButtonStyle.secondary,
-                # Ticket panel controls use the bot's uploaded custom emoji
-                # store rather than arbitrary Unicode/server emojis.
-                emoji=_parse_emoji(_e("zticket")),
+                emoji=_parse_emoji(cat["emoji"]),
                 custom_id=f"create_ticket_{cat['category_id']}"
             ))
         return view
@@ -1202,7 +1407,10 @@ class TicketCog(commands.Cog, name="Ticket System"):
                 ephemeral=True
             )
 
-        config = self.db.fetchone("SELECT * FROM guild_configs WHERE guild_id=?", (guild.id,))
+        config = self.db.fetchone(
+            "SELECT staff_role_id FROM ticket_panels WHERE panel_id=?",
+            (cat_info["panel_id"],),
+        )
         staff_role_id = config["staff_role_id"] if config else None
         staff_role = guild.get_role(staff_role_id) if staff_role_id else None
 

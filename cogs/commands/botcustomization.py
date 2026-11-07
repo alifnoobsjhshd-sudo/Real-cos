@@ -5,6 +5,7 @@ from discord import app_commands
 import aiohttp
 from core.Cog import Cog
 from core.zyrox import zyrox
+from utils.emojis import e as _e
 from utils.branding import (
     get_branding, set_branding, reset_branding,
     get_global_branding, set_global_branding,
@@ -899,12 +900,15 @@ class BotCustomization(Cog, name="botcustomization"):
     def __init__(self, client: zyrox):
         self.client = client
 
+    def help_custom(self):
+        return _e("zsettings") or _e("zbot"), "Bot Customization", "Customize bot message appearance"
+
     # ── Prefix command ────────────────────────────────────────────────────────
 
     @commands.command(
         name="botcustomization",
         aliases=["botcustom", "customize", "customizebot"],
-        help="Open the bot customization panel to change branding, embed colors, thumbnails and banners.",
+        help="Open the bot customization panel with `>botcustomization`.",
     )
     @commands.has_permissions(manage_guild=True)
     @ignore_check()
