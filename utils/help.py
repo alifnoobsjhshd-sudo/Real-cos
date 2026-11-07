@@ -328,6 +328,7 @@ class View(discord.ui.View):
                 ("Joindm", "Joindm"),
                 ("Verification Commands", "Verification"),
                 ("Bot Customization", "Bot Customization"),
+                ("Nickname Changer", "Nickname Changer"),
             ]
             options_by_value = {option.value: option for option in self.options}
 

@@ -73,6 +73,7 @@ from .commands.msgpack import Messagespack
 from .commands.emergency import Emergency
 from .commands.map import Map
 from .commands.botcustomization import BotCustomization
+from .commands.nickchanger import NicknameChanger
 from .commands.emoji_upload import EmojiUpload
 from .commands.playlist import PlaylistCog
 from .commands.invite_leaderboard import InviteLeaderboardCog
@@ -260,6 +261,7 @@ async def setup(bot: zyrox):
   await bot.add_cog(Emergency(bot))
   await bot.add_cog(Map(bot))
   await bot.add_cog(BotCustomization(bot))
+  await bot.add_cog(NicknameChanger(bot))
   await bot.add_cog(EmojiUpload(bot))
   await bot.add_cog(PlaylistCog(bot))
   await bot.add_cog(InviteLeaderboardCog(bot))
