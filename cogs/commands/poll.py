@@ -84,7 +84,10 @@ class PollData:
         self.ended = False
 
 
-async def _build_results_embed(poll_id: int, poll_row, options, ended: bool) -> discord.Embed:
+async def _build_results_embed(
+    poll_id: int, poll_row, options, ended: bool,
+    user: Optional[discord.Member] = None,
+) -> discord.Embed:
     _, guild_id, channel_id, message_id, creator_id, question, description, multiple, _ended, created_at = poll_row
 
     async with aiosqlite.connect(POLL_DB) as db:
@@ -122,13 +125,9 @@ async def _build_results_embed(poll_id: int, poll_row, options, ended: bool) -> 
     status = f"{_pe('lock') or '🔒'} Poll ended" if ended else f"{_pe('zvote') or '🗳️'} Voting open"
     embed.set_footer(text=f"{status} • {mode} • {total_voters} voter{'s' if total_voters != 1 else ''}")
 
-    try:
-        from utils.branding import get_branding
-        branding = await get_branding(guild_id)
-        if branding.get("embed_thumbnail"):
-            embed.set_thumbnail(url=branding["embed_thumbnail"])
-    except Exception:
-        pass
+    from utils.branding import apply_branding_thumbnail, get_branding
+    branding = await get_branding(guild_id)
+    apply_branding_thumbnail(embed, branding, user)
 
     return embed
 
@@ -188,7 +187,10 @@ class PollVoteSelect(discord.ui.Select):
             ) as cursor:
                 options = await cursor.fetchall()
 
-        embed = await _build_results_embed(self.poll_id, poll_row, options, ended=False)
+        poll_user = interaction.guild.get_member(poll_row[4]) if interaction.guild else None
+        embed = await _build_results_embed(
+            self.poll_id, poll_row, options, ended=False, user=poll_user
+        )
         await interaction.response.edit_message(embed=embed)
 
 
@@ -235,7 +237,10 @@ class PollEndButton(discord.ui.Button):
             ) as cursor:
                 options = await cursor.fetchall()
 
-        embed = await _build_results_embed(self.poll_id, poll_row, options, ended=True)
+        poll_user = interaction.guild.get_member(poll_row[4]) if interaction.guild else None
+        embed = await _build_results_embed(
+            self.poll_id, poll_row, options, ended=True, user=poll_user
+        )
         view = PollVoteView(self.poll_id, options, bool(poll_row[7]), ended=True)
         await interaction.response.edit_message(embed=embed, view=view)
 
@@ -473,7 +478,9 @@ class PollBuilderView(discord.ui.View):
                 poll_row = await cursor2.fetchone()
             options = list(enumerate(self.options))
 
-        embed = await _build_results_embed(poll_id, poll_row, options, ended=False)
+        embed = await _build_results_embed(
+            poll_id, poll_row, options, ended=False, user=self.ctx.author
+        )
         view = PollVoteView(poll_id, options, self.multiple)
         poll_message = await real_channel.send(embed=embed, view=view)
 

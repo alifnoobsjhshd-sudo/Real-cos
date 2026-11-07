@@ -10,6 +10,7 @@ from utils.branding import (
     get_global_branding, set_global_branding,
     get_guild_profile, set_guild_profile,
     get_fun_prefix, set_fun_prefix,
+    apply_branding_thumbnail,
     parse_color, color_to_hex,
     DEFAULT_BRANDING, DEFAULT_COLOR, DEFAULT_FUN_PREFIX,
 )
@@ -183,6 +184,60 @@ class EmbedBannerModal(discord.ui.Modal, title="Change Embed Banner"):
         await interaction.response.edit_message(embed=embed, view=self.appearance_view)
 
 
+class ThumbnailSettingsView(discord.ui.View):
+    def __init__(self, invoker, appearance_view, guild_id=None, is_global=False):
+        super().__init__(timeout=180)
+        self.invoker = invoker
+        self.appearance_view = appearance_view
+        self.guild_id = guild_id
+        self.is_global = is_global
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.invoker:
+            await interaction.response.send_message(
+                "You must run this command to interact with it.", ephemeral=True
+            )
+            return False
+        return True
+
+    async def set_mode(self, interaction: discord.Interaction, mode: str):
+        try:
+            if self.is_global:
+                await set_global_branding(thumbnail_mode=mode)
+            else:
+                if self.guild_id is None:
+                    raise ValueError("A server must be selected for server thumbnail settings.")
+                await set_branding(self.guild_id, thumbnail_mode=mode)
+        except Exception as error:
+            await interaction.response.send_message(
+                f"❌ Could not update thumbnail settings: {error}", ephemeral=True
+            )
+            return
+
+        self.appearance_view.thumbnail_mode = mode
+        self.appearance_view.main_view.branding["thumbnail_mode"] = mode
+        embed = self.appearance_view.build_embed()
+        await interaction.response.edit_message(
+            content=None, embed=embed, view=self.appearance_view
+        )
+        await interaction.followup.send(
+            f"✅ Thumbnail setting updated to **{mode.replace('_', ' ').title()}**.",
+            ephemeral=True,
+        )
+
+    @discord.ui.button(label="Enable", style=discord.ButtonStyle.success, row=0)
+    async def btn_enable(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.set_mode(interaction, "enabled")
+
+    @discord.ui.button(label="Disable", style=discord.ButtonStyle.danger, row=0)
+    async def btn_disable(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.set_mode(interaction, "disabled")
+
+    @discord.ui.button(label="Set as User PFP", style=discord.ButtonStyle.primary, row=0)
+    async def btn_user_pfp(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.set_mode(interaction, "user")
+
+
 # ─────────────────────────────────────────────
 #  Appearance sub-page view (per-guild)
 # ─────────────────────────────────────────────
@@ -198,6 +253,7 @@ class AppearanceView(discord.ui.View):
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner   = branding["embed_banner"]
         self.fun_prefix     = fun_prefix
+        self.thumbnail_mode = branding.get("thumbnail_mode", "enabled")
 
     def build_embed(self) -> discord.Embed:
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
@@ -214,8 +270,14 @@ class AppearanceView(discord.ui.View):
             ),
             color=self.embed_color,
         )
-        if self.embed_thumbnail:
-            embed.set_thumbnail(url=self.embed_thumbnail)
+        apply_branding_thumbnail(
+            embed,
+            {
+                "embed_thumbnail": self.embed_thumbnail,
+                "thumbnail_mode": self.thumbnail_mode,
+            },
+            self.invoker,
+        )
         if self.embed_banner:
             embed.set_image(url=self.embed_banner)
         embed.set_footer(text=f"• {self.branding_name} | Bot Customization")
@@ -249,6 +311,15 @@ class AppearanceView(discord.ui.View):
     async def btn_fun_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(FunPrefixModal(self.guild_id, self))
 
+    @discord.ui.button(label="Thumbnail Setting", emoji="🖼️", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_thumbnail_setting(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = ThumbnailSettingsView(self.invoker, self, guild_id=self.guild_id)
+        await interaction.response.edit_message(
+            content="Choose how thumbnails appear in bot messages.",
+            embed=None,
+            view=view,
+        )
+
     @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = self.main_view.build_embed()
@@ -263,6 +334,8 @@ class AppearanceView(discord.ui.View):
         self.embed_color     = branding["embed_color"]
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner    = branding["embed_banner"]
+        self.thumbnail_mode  = branding.get("thumbnail_mode", "enabled")
+        self.main_view.branding["thumbnail_mode"] = self.thumbnail_mode
         self.fun_prefix      = await get_fun_prefix(self.guild_id)
         embed = self.build_embed()
         await interaction.response.edit_message(embed=embed, view=self)
@@ -296,8 +369,7 @@ class MainCustomizationView(discord.ui.View):
             ),
             color=self.branding["embed_color"],
         )
-        if self.branding.get("embed_thumbnail"):
-            embed.set_thumbnail(url=self.branding["embed_thumbnail"])
+        apply_branding_thumbnail(embed, self.branding, self.invoker)
         embed.set_footer(text=f"• {self.branding['branding_name']} | Bot Customization")
         return embed
 
@@ -578,6 +650,7 @@ class GlobalAppearanceView(discord.ui.View):
         self.embed_thumbnail = branding["embed_thumbnail"]
         self.embed_banner   = branding["embed_banner"]
         self.fun_prefix     = fun_prefix
+        self.thumbnail_mode = branding.get("thumbnail_mode", "enabled")
 
     def build_embed(self) -> discord.Embed:
         thumb_display  = f"[View]({self.embed_thumbnail})" if self.embed_thumbnail else "Not set"
@@ -594,8 +667,14 @@ class GlobalAppearanceView(discord.ui.View):
             ),
             color=self.embed_color,
         )
-        if self.embed_thumbnail:
-            embed.set_thumbnail(url=self.embed_thumbnail)
+        apply_branding_thumbnail(
+            embed,
+            {
+                "embed_thumbnail": self.embed_thumbnail,
+                "thumbnail_mode": self.thumbnail_mode,
+            },
+            self.invoker,
+        )
         if self.embed_banner:
             embed.set_image(url=self.embed_banner)
         embed.set_footer(text=f"• {self.branding_name} | Global Customization Control")
@@ -628,6 +707,15 @@ class GlobalAppearanceView(discord.ui.View):
     @discord.ui.button(label="Fun Prefix", emoji="🎮", style=discord.ButtonStyle.secondary, row=1)
     async def btn_fun_prefix(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(GlobalFunPrefixModal(self))
+
+    @discord.ui.button(label="Thumbnail Setting", emoji="🖼️", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_thumbnail_setting(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = ThumbnailSettingsView(self.invoker, self, is_global=True)
+        await interaction.response.edit_message(
+            content="Choose how thumbnails appear in bot messages.",
+            embed=None,
+            view=view,
+        )
 
     @discord.ui.button(label="Back", emoji="▶️", style=discord.ButtonStyle.danger, row=2)
     async def btn_back(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -798,8 +886,7 @@ class GlobalMainView(discord.ui.View):
             ),
             color=self.branding["embed_color"],
         )
-        if self.branding.get("embed_thumbnail"):
-            embed.set_thumbnail(url=self.branding["embed_thumbnail"])
+        apply_branding_thumbnail(embed, self.branding, self.invoker)
         embed.set_footer(text=f"• {self.branding['branding_name']} | Global Customization Control")
         return embed
 

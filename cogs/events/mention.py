@@ -4,7 +4,7 @@ from discord.ext import commands
 from utils.Tools import get_ignore_data
 import aiosqlite
 from utils import help as vhelp
-from utils.branding import DEFAULT_BRANDING, get_branding
+from utils.branding import DEFAULT_BRANDING, apply_branding_thumbnail, get_branding
 
 
 class _MentionCtx:
@@ -263,7 +263,7 @@ class Mention(commands.Cog):
                 ),
                 color=branding["embed_color"],
             )
-            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+            apply_branding_thumbnail(embed, branding, message.author)
             embed.set_footer(
                 text=f"Powered by {branding['branding_name']}",
                 icon_url=self.bot.user.display_avatar.url,

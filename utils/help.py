@@ -4,7 +4,7 @@ import inspect
 from discord.ext import commands as _commands
 from discord.ext.commands import CheckFailure, CommandError
 from utils.Tools import *
-from utils.branding import DEFAULT_COLOR, DEFAULT_BRANDING
+from utils.branding import DEFAULT_COLOR, DEFAULT_BRANDING, apply_branding_thumbnail
 from utils.emojis import e as _e
 
 
@@ -314,18 +314,19 @@ class View(discord.ui.View):
             ]
             more_order = [
                 ("Music Commands", "Music"),
-                ("Games Commands", "Games"),
                 ("Fun Commands", "Fun"),
+                ("Games Commands", "Games"),
                 ("Birthday Commands", "Birthday"),
                 ("Minecraft Commands", "Minecraft"),
+                ("J2C", "J2c"),
                 ("Leveling Commands", "Leveling"),
-                ("J2C", "J2C"),
-                ("Counting", "Counting"),
-                ("Sticky Commands", "Sticky"),
                 ("Invite Tracker", "Invite Tracker"),
                 ("Poll Commands", "Poll"),
-                ("Boost Commands", "Boost massage"),
+                ("Boost Commands", "Boost Massage"),
+                ("Counting", "Counting"),
+                ("Sticky Commands", "Stick"),
                 ("Joindm", "Joindm"),
+                ("Verification Commands", "Verification"),
             ]
             options_by_value = {option.value: option for option in self.options}
 
@@ -630,6 +631,7 @@ class View(discord.ui.View):
                 title=f"{emoji_display + ' ' if emoji_display else ''}{original_label}",
                 color=self.branding["embed_color"],
             )
+            apply_branding_thumbnail(embed, self.branding, self.ctx.author)
 
             cmd_lines: list[str] = []
 

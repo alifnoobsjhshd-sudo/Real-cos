@@ -14,7 +14,7 @@ from utils import Paginator, DescriptionEmbedPaginator, FieldPagePaginator, Text
 import asyncio
 from utils.config import serverLink
 from utils.Tools import *
-from utils.branding import get_branding, DEFAULT_COLOR, DEFAULT_BRANDING
+from utils.branding import get_branding, apply_branding_thumbnail, DEFAULT_COLOR, DEFAULT_BRANDING
 from utils.emojis import e as _e
 
 color = DEFAULT_COLOR
@@ -64,8 +64,7 @@ class HelpCommand(commands.HelpCommand):
         description=f">>> **Ops! Command not found with the name** `{string}`.",
         color=branding["embed_color"]
     )
-    if branding.get("embed_thumbnail"):
-        embed.set_thumbnail(url=branding["embed_thumbnail"])
+    apply_branding_thumbnail(embed, branding, self.context.author)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
                           
@@ -93,17 +92,10 @@ class HelpCommand(commands.HelpCommand):
 
     # Show loading embed
     loading_embed = discord.Embed(
-      description=f"{_e('loadingred')} Loading help Menu...",
+      description=f"{_e('loadingred')} Loading help Menu... Please wait.",
       color=b_color
     )
     loading_msg = await ctx.reply(embed=loading_embed)
-
-    # Wait 2 seconds
-    await asyncio.sleep(4)
-
-    # Delete loading message
-    with suppress(discord.NotFound):
-      await loading_msg.delete()
 
     data = await getConfig(self.context.guild.id)
     prefix = data["prefix"]
@@ -117,10 +109,7 @@ class HelpCommand(commands.HelpCommand):
         color=b_color)
     embed.set_author(name=f"{ctx.author}",
                      icon_url=ctx.author.display_avatar.url)
-    if branding.get("embed_thumbnail"):
-        embed.set_thumbnail(url=branding["embed_thumbnail"])
-    else:
-        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+    apply_branding_thumbnail(embed, branding, ctx.author)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
 
@@ -209,7 +198,7 @@ class HelpCommand(commands.HelpCommand):
     embed.set_footer(text="by ZENOX")
     
     view = vhelp.View(mapping=mapping, ctx=self.context, homeembed=embed, ui=2, branding=branding)
-    await ctx.reply(embed=embed, view=view)
+    await loading_msg.edit(embed=embed, view=view)
 
   async def send_command_help(self, command):
     ctx = self.context
@@ -384,10 +373,7 @@ class Help(Cog, name="help"):
         color=b_color
     )
     embed.set_author(name=f"{interaction.user}", icon_url=interaction.user.display_avatar.url)
-    if branding.get("embed_thumbnail"):
-        embed.set_thumbnail(url=branding["embed_thumbnail"])
-    else:
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+    apply_branding_thumbnail(embed, branding, interaction.user)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
 

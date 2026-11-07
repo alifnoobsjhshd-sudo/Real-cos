@@ -18,12 +18,18 @@ def _setup_branding_db():
             embed_color   INTEGER,
             embed_thumbnail TEXT,
             embed_banner    TEXT,
-            fun_prefix  TEXT
+            fun_prefix  TEXT,
+            thumbnail_mode TEXT
         )
     ''')
     # Add fun_prefix column to existing DBs that were created before this field
     try:
         conn.execute("ALTER TABLE guild_branding ADD COLUMN fun_prefix TEXT")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    try:
+        conn.execute("ALTER TABLE guild_branding ADD COLUMN thumbnail_mode TEXT")
         conn.commit()
     except Exception:
         pass  # Column already exists
@@ -45,6 +51,19 @@ def _setup_branding_db():
     ''')
     conn.commit()
     conn.close()
+
+
+def apply_branding_thumbnail(embed: discord.Embed, branding: dict, user=None):
+    """Apply the configured branded thumbnail behavior to an embed."""
+    mode = branding.get("thumbnail_mode", "enabled")
+    if mode == "disabled":
+        return
+    if mode == "user":
+        if user is not None:
+            embed.set_thumbnail(url=user.display_avatar.url)
+        return
+    if branding.get("embed_thumbnail"):
+        embed.set_thumbnail(url=branding["embed_thumbnail"])
 
 
 _setup_branding_db()
@@ -99,12 +118,13 @@ async def get_global_branding() -> dict:
         "embed_thumbnail": None,
         "embed_banner":    None,
         "fun_prefix":      DEFAULT_FUN_PREFIX,
+        "thumbnail_mode":  "enabled",
     }
     for _attempt in range(2):
         try:
             async with aiosqlite.connect('db/branding.db') as db:
                 async with db.execute(
-                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix, thumbnail_mode "
                     "FROM guild_branding WHERE guild_id = 0"
                 ) as cursor:
                     row = await cursor.fetchone()
@@ -115,6 +135,7 @@ async def get_global_branding() -> dict:
                     "embed_thumbnail": row[2],
                     "embed_banner":    row[3],
                     "fun_prefix":      row[4] if row[4] else DEFAULT_FUN_PREFIX,
+                    "thumbnail_mode":  row[5] if row[5] in ("enabled", "disabled", "user") else "enabled",
                 }
             return _default
         except Exception as _e:
@@ -130,7 +151,7 @@ async def get_global_branding() -> dict:
 
 async def set_global_branding(**kwargs):
     """Set global default branding (guild_id = 0)."""
-    valid = {"branding_name", "embed_color", "embed_thumbnail", "embed_banner"}
+    valid = {"branding_name", "embed_color", "embed_thumbnail", "embed_banner", "thumbnail_mode"}
     data = {k: v for k, v in kwargs.items() if k in valid}
     if not data:
         return
@@ -169,14 +190,14 @@ async def get_branding(guild_id: int) -> dict:
         try:
             async with aiosqlite.connect('db/branding.db') as db:
                 async with db.execute(
-                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix, thumbnail_mode "
                     "FROM guild_branding WHERE guild_id = ?",
                     (guild_id,)
                 ) as cursor:
                     guild_row = await cursor.fetchone()
 
                 async with db.execute(
-                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix "
+                    "SELECT branding_name, embed_color, embed_thumbnail, embed_banner, fun_prefix, thumbnail_mode "
                     "FROM guild_branding WHERE guild_id = 0"
                 ) as cursor:
                     global_row = await cursor.fetchone()
@@ -196,13 +217,14 @@ async def get_branding(guild_id: int) -> dict:
                 "embed_thumbnail": None,
                 "embed_banner":    None,
                 "fun_prefix":      DEFAULT_FUN_PREFIX,
+                "thumbnail_mode":  "enabled",
             }
     else:
         guild_row = None
         global_row = None
 
-    g  = guild_row  or (None, None, None, None, None)
-    gl = global_row or (None, None, None, None, None)
+    g  = guild_row  or (None, None, None, None, None, None)
+    gl = global_row or (None, None, None, None, None, None)
 
     def _pick(guild_val, global_val, hardcoded):
         """First non-null, non-empty value wins. Integer 0 is treated as valid."""
@@ -218,11 +240,12 @@ async def get_branding(guild_id: int) -> dict:
         "embed_thumbnail": _pick(g[2], gl[2], None),
         "embed_banner":    _pick(g[3], gl[3], None),
         "fun_prefix":      _pick(g[4], gl[4], DEFAULT_FUN_PREFIX),
+        "thumbnail_mode":  _pick(g[5], gl[5], "enabled"),
     }
 
 
 async def set_branding(guild_id: int, **kwargs):
-    valid = {"branding_name", "embed_color", "embed_thumbnail", "embed_banner"}
+    valid = {"branding_name", "embed_color", "embed_thumbnail", "embed_banner", "thumbnail_mode"}
     data = {k: v for k, v in kwargs.items() if k in valid}
     if not data:
         return
