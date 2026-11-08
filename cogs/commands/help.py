@@ -119,6 +119,10 @@ class HelpCommand(commands.HelpCommand):
 
     # Field 1: Security
     embed.add_field(
+        name=f"**Explore Bot Featurs**",
+
+    # Field 1: Security
+    embed.add_field(
         name=f"{_e('zSafe')} __Security__",
         value=(
             ">>> ★ Automod • Antinuke • Verification • Encrypting"
