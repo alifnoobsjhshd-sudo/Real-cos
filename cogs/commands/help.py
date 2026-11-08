@@ -118,8 +118,11 @@ class HelpCommand(commands.HelpCommand):
         embed.set_image(url=branding["embed_banner"])
 
     # Field 1: Security
-    embed.add_field(
-        name=f"**Explore Bot Featurs**",
+   embed.add_field(
+       name="**Explore Bot Features**"
+       value="\u200b",
+       inline=False
+)
 
     # Field 1: Security
     embed.add_field(
