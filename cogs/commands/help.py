@@ -118,25 +118,16 @@ class HelpCommand(commands.HelpCommand):
     embed.add_field(
         name=f"{_e('zSafe')} __Security__",
         value=(
-            ">>> `»` • Automod\n"
-            "    • Antinuke\n"
-            "    • Verification\n"
-            "    • Encrypting"
+            ">>> ★ Automod • Antinuke • Verification • Encrypting"
         ),
         inline=False
     )
 
     # Field 2: Moderation
     embed.add_field(
-        name=f"{_e('zbot')} __Moderation__",
+        name=f"{_e('zbot')} __Mkderation__",
         value=(
-            ">>> `»` • Moderation\n"
-            "    • Ticket\n"
-            "    • Welcomer\n"
-            "    • Giveaway\n"
-            "    • Logging\n"
-            "    • Voice\n"
-            "    • Ignoring"
+            ">>> ★ Moderation • Ticket | Welcomer • Giveaway • Logging • Voice • Ignoring"
         ),
         inline=False
     )
@@ -145,13 +136,7 @@ class HelpCommand(commands.HelpCommand):
     embed.add_field(
         name=f"{_e('zwrench')} __Utility__",
         value=(
-            ">>> `»` • Utility\n"
-            "    • General\n"
-            "    • Server\n"
-            "    • Vanity\n"
-            "    • Reaction Roles\n"
-            "    • Giveaway\n"
-            "    • Boost Massage"
+            ">>> ★ Utility • General • Server • Vanity • Reaction Roles • Giveaway • Boost Massage"
         ),
         inline=False
     )
@@ -160,11 +145,7 @@ class HelpCommand(commands.HelpCommand):
     embed.add_field(
         name=f"{_e('starr')} __Music & Fun__",
         value=(
-            ">>> `»` • Music\n"
-            "    • Playlist\n"
-            "    • Fun\n"
-            "    • Birthday\n"
-            "    • Minecraft"
+            ">>> ★ Music • Playlist • Fun • Birthday • Minecraft"
         ),
         inline=False
     )
@@ -173,15 +154,7 @@ class HelpCommand(commands.HelpCommand):
     embed.add_field(
         name=f"{_e('zmodule')} __Extra__",
         value=(
-            ">>> `»` • J2C\n"
-            "    • Leveling\n"
-            "    • boost massage\n"
-            "    • Poll\n"
-            "    • Counting\n"
-            "    • Sticky\n"
-            "    • Joindm\n"
-            "    • Invite Tracker\n"
-            "    • Nickchanger"
+            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker • Nickchanger"
         ),
         inline=False
     )
