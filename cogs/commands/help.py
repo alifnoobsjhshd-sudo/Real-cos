@@ -107,7 +107,9 @@ class HelpCommand(commands.HelpCommand):
         "The only bot you need to set up your entire server!```\n"
         "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
         "• [Help](https://discord.gg/NztQjFxnAg)\n"
-        "• [By Zen0x](https://imalif.onrender.com)"
+        "• [By Zen0x](https://imalif.onrender.com)\n*
+        "\n"
+        " ## Explore bot features"
     ),
     color=b_color
     )
@@ -116,13 +118,6 @@ class HelpCommand(commands.HelpCommand):
     apply_branding_thumbnail(embed, branding, ctx.author)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
-      
-    # Field 1: Explore Bot Features
-    embed.add_field(
-        name="**Explore Bot Features**",
-        value="\u200b",
-        inline=False
-    )
 
     # Field 1: Security
     embed.add_field(
@@ -177,6 +172,10 @@ class HelpCommand(commands.HelpCommand):
         ),
         inline=False
     )
+
+        
+    # Footer
+    embed.set_footer(text=" ")
     
     view = vhelp.View(mapping=mapping, ctx=self.context, homeembed=embed, ui=2, branding=branding)
     await loading_msg.edit(embed=embed, view=view)
@@ -346,41 +345,36 @@ class Help(Cog, name="help"):
     b_color = branding["embed_color"]
 
     embed = discord.Embed(
-        description=(
-            f"** • > __{b_name}__ < •**\n"
-            f"**{_e('zArrow')} Prefix:** `{prefix}`\n"
-            f"**{_e('zArrow')} Total Commands:** `{len(set(bot.walk_commands()))}`\n"
-        ),
-        color=b_color
+    description=(
+        f"```Hey! I'm {b_name}, your own best companion. "
+        "The only bot you need to set up your entire server!```\n"
+        "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
+        "• [Help](https://discord.gg/NztQjFxnAg)\n"
+        "• [By Zen0x](https://imalif.onrender.com)\n*
+        "\n"
+        " ## Explore bot features"
+    ),
+    color=b_color
     )
     embed.set_author(name=f"{interaction.user}", icon_url=interaction.user.display_avatar.url)
     apply_branding_thumbnail(embed, branding, interaction.user)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
 
-        # Field 1: Security
+    # Field 1: Security
     embed.add_field(
         name=f"{_e('zSafe')} __Security__",
         value=(
-            ">>> `»` • Automod\n"
-            "    • Antinuke\n"
-            "    • Verification\n"
-            "    • Encrypting"
+            ">>> ★ Automod • Antinuke • Verification • Encrypting"
         ),
         inline=False
     )
 
     # Field 2: Moderation
     embed.add_field(
-        name=f"{_e('zbot')} __Moderation__",
+        name=f"{_e('zbot')} __Mkderation__",
         value=(
-            ">>> `»` • Moderation\n"
-            "    • Ticket\n"
-            "    • Welcomer\n"
-            "    • Giveaway\n"
-            "    • Logging\n"
-            "    • Voice\n"
-            "    • Ignoring"
+            ">>> ★ Moderation • Ticket | Welcomer • Giveaway • Logging • Voice • Ignoring"
         ),
         inline=False
     )
@@ -389,12 +383,7 @@ class Help(Cog, name="help"):
     embed.add_field(
         name=f"{_e('zwrench')} __Utility__",
         value=(
-            ">>> `»` • Utility\n"
-            "    • General\n"
-            "    • Server\n"
-            "    • Vanity\n"
-            "    • Reaction Roles\n"
-            "    • Giveaway"
+            ">>> ★ Utility • General • Server • Vanity • Reaction Roles • Giveaway • Boost Massage"
         ),
         inline=False
     )
@@ -403,31 +392,19 @@ class Help(Cog, name="help"):
     embed.add_field(
         name=f"{_e('starr')} __Music & Fun__",
         value=(
-            ">>> `»` • Music\n"
-            "    • Fun\n"
-            "    • Games\n"
-            "    • Birthday\n"
-            "    • Minecraft"
+            ">>> ★ Music • Playlist • Fun • Birthday • Minecraft"
         ),
         inline=False
     )
+
     # Field 5: Extra
     embed.add_field(
         name=f"{_e('zmodule')} __Extra__",
         value=(
-            ">>> `»` • J2C\n"
-            "    • Leveling\n"
-            "    • boost massage\n"
-            "    • Poll\n"
-            "    • Counting\n"
-            "    • Sticky\n"
-            "    • Joindm\n"
-            "    • Invite Tracker\n"
-            "    • Nickchanger"
+            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker • Nickchanger"
         ),
         inline=False
     )
-    
     
     # Field 6: Exclusive
     embed.add_field(
@@ -439,7 +416,7 @@ class Help(Cog, name="help"):
     )
     
     # Footer
-    embed.set_footer(text="by ZENOX")
+    embed.set_footer(text=" ")
 
     view = vhelp.View(mapping=mapping, ctx=ctx, homeembed=embed, ui=2, branding=branding)
     await interaction.followup.send(embed=embed, view=view)
