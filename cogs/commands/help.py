@@ -116,13 +116,13 @@ class HelpCommand(commands.HelpCommand):
     apply_branding_thumbnail(embed, branding, ctx.author)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
-
-    # Field 1: Security
-   embed.add_field(
-       name="**Explore Bot Features**"
-       value="\u200b",
-       inline=False
-)
+      
+    # Field 1: Explore Bot Features
+    embed.add_field(
+        name="**Explore Bot Features**",
+        value="\u200b",
+        inline=False
+    )
 
     # Field 1: Security
     embed.add_field(
