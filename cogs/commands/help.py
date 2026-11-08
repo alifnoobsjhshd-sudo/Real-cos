@@ -107,7 +107,7 @@ class HelpCommand(commands.HelpCommand):
         "The only bot you need to set up your entire server!```\n"
         "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
         "• [Help](https://discord.gg/NztQjFxnAg)\n"
-        "• [By Zen0x](https://imalif.onrender.com)\n*
+        "• [By Zen0x](https://imalif.onrender.com)\n"
         "\n"
         " ## Explore bot features"
     ),
@@ -350,7 +350,7 @@ class Help(Cog, name="help"):
         "The only bot you need to set up your entire server!```\n"
         "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
         "• [Help](https://discord.gg/NztQjFxnAg)\n"
-        "• [By Zen0x](https://imalif.onrender.com)\n*
+        "• [By Zen0x](https://imalif.onrender.com)\n"
         "\n"
         " ## Explore bot features"
     ),
