@@ -105,8 +105,8 @@ class HelpCommand(commands.HelpCommand):
     description=(
         f"```Hey! I'm {b_name}, your own best companion. "
         "The only bot you need to set up your entire server!```\n"
-        " • Prefix: ``>``, ``sun``
-        " • Total Commands: ``586``
+        " • Prefix: ``>``, ``sun`` "
+        " • Total Commands: ``586`` "
         " • **Explore Bot Features**" 
     ),
     color=b_color
@@ -347,8 +347,8 @@ class Help(Cog, name="help"):
     description=(
         f"```Hey! I'm {b_name}, your own best companion. "
         "The only bot you need to set up your entire server!```\n"
-        " • Prefix: ``>``, ``sun``
-        " • Total Commands: ``586``
+        " • Prefix: ``>``, ``sun`` "
+        " • Total Commands: ``586`` "
         " • **Explore Bot Features**" 
     ),
     color=b_color
