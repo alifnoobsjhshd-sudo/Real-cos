@@ -162,7 +162,7 @@ class HelpCommand(commands.HelpCommand):
     embed.add_field(
         name=f"{_e('zmodule')} __Extra__",
         value=(
-            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker • Nickchanger"
+            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker"
         ),
         inline=False
     )
@@ -405,7 +405,7 @@ class Help(Cog, name="help"):
     embed.add_field(
         name=f"{_e('zmodule')} __Extra__",
         value=(
-            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker • Nickchanger"
+            ">>> ★ J2C • Leveling • boost massage • Poll • Counting • Sticky • Joindm • Invite Tracker"
         ),
         inline=False
     )
