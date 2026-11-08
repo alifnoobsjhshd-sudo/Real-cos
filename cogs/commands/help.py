@@ -101,15 +101,13 @@ class HelpCommand(commands.HelpCommand):
     prefix = data["prefix"]
     filtered = await self.filter_commands(self.context.bot.walk_commands(), sort=True)
 
-    embed = discord.Embed(
+   embed = discord.Embed(
     description=(
         f"```Hey! I'm {b_name}, your own best companion. "
         "The only bot you need to set up your entire server!```\n"
-        "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
-        "• [Help](https://discord.gg/NztQjFxnAg)\n"
-        "• [By Zen0x](https://imalif.onrender.com)\n"
-        "\n"
-        " ## Explore bot features"
+        " • Prefix: ``>``, ``sun``
+        " • Total Commands: ``586``
+        " • **Explore Bot Features**" 
     ),
     color=b_color
     )
@@ -344,18 +342,18 @@ class Help(Cog, name="help"):
     b_name  = branding["branding_name"]
     b_color = branding["embed_color"]
 
-    embed = discord.Embed(
+    
+   embed = discord.Embed(
     description=(
         f"```Hey! I'm {b_name}, your own best companion. "
         "The only bot you need to set up your entire server!```\n"
-        "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
-        "• [Help](https://discord.gg/NztQjFxnAg)\n"
-        "• [By Zen0x](https://imalif.onrender.com)\n"
-        "\n"
-        " ## Explore bot features"
+        " • Prefix: ``>``, ``sun``
+        " • Total Commands: ``586``
+        " • **Explore Bot Features**" 
     ),
     color=b_color
     )
+
     embed.set_author(name=f"{interaction.user}", icon_url=interaction.user.display_avatar.url)
     apply_branding_thumbnail(embed, branding, interaction.user)
     if branding.get("embed_banner"):
