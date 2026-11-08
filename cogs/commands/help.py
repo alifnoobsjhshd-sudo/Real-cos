@@ -101,16 +101,21 @@ class HelpCommand(commands.HelpCommand):
     prefix = data["prefix"]
     filtered = await self.filter_commands(self.context.bot.walk_commands(), sort=True)
 
-   embed = discord.Embed(
-    description=(
-        f"```Hey! I'm {b_name}, your own best companion. "
-        "The only bot you need to set up your entire server!```\n"
-        " • Prefix: ``>``, ``sun`` "
-        " • Total Commands: ``586`` "
-        " • **Explore Bot Features**" 
-    ),
-    color=b_color
-    )
+
+        embed = discord.Embed(
+            description=(
+                f"```Hey! I'm {b_name}, your own best companion. "
+                "The only bot you need to set up your entire server!```\n"
+                "• Prefix: ``>``, ``sun``\n"
+                "• Total Commands: ``586``\n"
+                "\n"
+                "**✦ EXPLORE BOT FEATURES ✦**"
+            ),
+            color=b_color
+        )
+
+
+    
     embed.set_author(name=f"{ctx.author}",
                      icon_url=ctx.author.display_avatar.url)
     apply_branding_thumbnail(embed, branding, ctx.author)
@@ -343,16 +348,17 @@ class Help(Cog, name="help"):
     b_color = branding["embed_color"]
 
     
-   embed = discord.Embed(
-    description=(
-        f"```Hey! I'm {b_name}, your own best companion. "
-        "The only bot you need to set up your entire server!```\n"
-        " • Prefix: ``>``, ``sun`` "
-        " • Total Commands: ``586`` "
-        " • **Explore Bot Features**" 
-    ),
-    color=b_color
-    )
+        embed = discord.Embed(
+            description=(
+                f"```Hey! I'm {b_name}, your own best companion. "
+                "The only bot you need to set up your entire server!```\n"
+                "• Prefix: ``>``, ``sun``\n"
+                "• Total Commands: ``586``\n"
+                "\n"
+                "**✦ EXPLORE BOT FEATURES ✦**"
+            ),
+            color=b_color
+      )
 
     embed.set_author(name=f"{interaction.user}", icon_url=interaction.user.display_avatar.url)
     apply_branding_thumbnail(embed, branding, interaction.user)
