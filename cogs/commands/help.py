@@ -103,9 +103,10 @@ class HelpCommand(commands.HelpCommand):
 
     embed = discord.Embed(
         description=(
-         f"** • > __ {b_name} __ < • **\n"
-         f"**{_e('zArrow')} Prefix:** `{prefix}`\n"
-         f"**{_e('zArrow')} Total Commands:** `{len(set(self.context.bot.walk_commands()))}`\n"),
+         f"```Hey! I'm {b_name}, your own best companion. The only bot you need to set up your entire server!```\n"
+          "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
+          "• [Help](https://discord.gg/NztQjFxnAg)\n"
+          "• [By Zen0x](https://imalif.onrender.com)",
         color=b_color)
     embed.set_author(name=f"{ctx.author}",
                      icon_url=ctx.author.display_avatar.url)
