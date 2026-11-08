@@ -102,12 +102,15 @@ class HelpCommand(commands.HelpCommand):
     filtered = await self.filter_commands(self.context.bot.walk_commands(), sort=True)
 
     embed = discord.Embed(
-        description=(
-         f"```Hey! I'm {b_name}, your own best companion. The only bot you need to set up your entire server!```\n"
-          "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
-          "• [Help](https://discord.gg/NztQjFxnAg)\n"
-          "• [By Zen0x](https://imalif.onrender.com)",
-        color=b_color)
+    description=(
+        f"```Hey! I'm {b_name}, your own best companion. "
+        "The only bot you need to set up your entire server!```\n"
+        "• [Invite me](https://discord.com/oauth2/authorize?client_id=1518961032608088294&permissions=8866461766385655&integration_type=0&scope=bot)\n"
+        "• [Help](https://discord.gg/NztQjFxnAg)\n"
+        "• [By Zen0x](https://imalif.onrender.com)"
+    ),
+    color=b_color
+    )
     embed.set_author(name=f"{ctx.author}",
                      icon_url=ctx.author.display_avatar.url)
     apply_branding_thumbnail(embed, branding, ctx.author)
@@ -167,9 +170,6 @@ class HelpCommand(commands.HelpCommand):
         ),
         inline=False
     )
-
-    # Footer
-    embed.set_footer(text="by ZENOX")
     
     view = vhelp.View(mapping=mapping, ctx=self.context, homeembed=embed, ui=2, branding=branding)
     await loading_msg.edit(embed=embed, view=view)
