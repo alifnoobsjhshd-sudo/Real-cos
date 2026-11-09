@@ -116,8 +116,7 @@ class HelpCommand(commands.HelpCommand):
 
 
     
-    embed.set_author(name=f"{ctx.author}",
-                     icon_url=ctx.author.display_avatar.url)
+    
     apply_branding_thumbnail(embed, branding, ctx.author)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
@@ -360,7 +359,7 @@ class Help(Cog, name="help"):
         color=b_color
     )
 
-    embed.set_author(name=f"{interaction.user}", icon_url=interaction.user.display_avatar.url)
+    
     apply_branding_thumbnail(embed, branding, interaction.user)
     if branding.get("embed_banner"):
         embed.set_image(url=branding["embed_banner"])
