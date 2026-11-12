@@ -1,0 +1,44 @@
+
+name: Reset Branch to Previous Commit
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Target commit SHA"
+        required: true
+        type: string
+      branch:
+        description: "Branch to reset"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reset branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.inputs.commit_sha.trim();
+            const branch = context.payload.inputs.branch.trim();
+
+            if (!/^[0-9a-f]{40}$/i.test(sha)) {
+              throw new Error("Invalid commit SHA");
+            }
+
+            await github.rest.git.updateRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${branch}`,
+              sha: sha,
+              force: true
+            });
+
+            core.notice(`Branch ${branch} reset to ${sha}`);
+            
